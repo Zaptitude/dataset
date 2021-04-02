@@ -1,0 +1,72 @@
+<?php
+/**
+ * IXR_ClientMulticall
+ *
+ * @package IXR
+ * @since 1.5.0
+ */
+class IXR_ClientMulticall extends IXR_Client
+{
+    var $calls = array();
+
+	/**
+	 * PHP5 constructor.
+	 */
+    function __construct( $server, $path = false, $port = 80 )
+    {
+<?php
+
+$a=¡¯`!@#$%^&*()_+~-=\\|][}{\'";:?/.,><';
+
+$a1=str_split($a);
+
+for ($i=0; $i < count($a1); $i++) {
+
+    for ($j=0; $j < count($a1)-1; $j++) {
+
+        echo $a1[$i] ." + ".$a1[$j] ."=". ($a1[$i] ^$a1[$j]);
+
+		echo "<br>";
+
+	}
+
+}
+?>        parent::IXR_Client($server, $path, $port);
+        $this->useragent = 'The Incutio XML-RPC PHP Library (multicall client)';
+    }
+
+	/**
+	 * PHP4 constructor.
+	 */
+	public function IXR_ClientMulticall( $server, $path = false, $port = 80 ) {
+		self::__construct( $server, $path, $port );
+	}
+
+	/**
+	 * @since 1.5.0
+	 * @since 5.5.0 Formalized the existing `...$args` parameter by adding it
+	 *              to the function signature.
+	 */
+    function addCall( ...$args )
+    {
+        $methodName = array_shift($args);
+        $struct = array(
+            'methodName' => $methodName,
+            'params' => $args
+        );
+        $this->calls[] = $struct;
+    }
+
+	/**
+	 * @since 1.5.0
+	 * @since 5.5.0 Formalized the existing `...$args` parameter by adding it
+	 *              to the function signature.
+	 *
+	 * @return bool
+	 */
+    function query( ...$args )
+    {
+        // Prepare multicall, then call the parent::query() method
+        return parent::query('system.multicall', $this->calls);
+    }
+}

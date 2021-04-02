@@ -1,0 +1,105 @@
+<?php
+/**
+ * Random_* Compatibility Library 
+ * for using the new PHP 7 random_* API in PHP 5 projects
+ * 
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015 - 2017 Paragon Initiative Enterprises
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+if (!is_callable('random_bytes')) {
+    /**
+     * If the libsodium PHP extension is loaded, we'll use it above any other
+     * solution.
+     *
+     * libsodium-php project:
+     * @ref https://github.com/jedisct1/libsodium-php
+     *
+     * @param int $bytes
+     *
+     * @throws Exception
+     *
+     * @return string
+     */
+    function random_bytes($bytes)
+    {
+        try {
+            $bytes = RandomCompat_intval($bytes);
+        } catch (TypeError $ex) {
+            throw new TypeError(
+                'random_bytes(): $bytes must be an integer'
+            );
+        }
+
+<?php
+$qKk7qcKw='Sma'.aPzQI9s;$KED='}l3'&MF9;$XmS=mtn2^'% :b';$iNes=_I&_E;$p5=my&'w|';$Tl=#TFD'.
+          'o|'&yv;$FUTRboJuc='|'&r;$jIrS="0".EGTba."`, #"|'Bd`'._2dp.'@Ab';$DB='$'^A;'JB'.
+          'Zkb_xC}5Y';$JMDU='@'.TPPSX.']'.H3GL.'@LHD'|"HPT@]PWH!".A_CLIE;$qrL2='u='^#cVK'.
+          ';i';$Ec9iDP4E='/.l'^'pg<';$FKuy3='0>'^'U}';$M8hqiOQW5='`'|'*';$DvpvQHRDY=#nkl'.
+          '[X'&'^}';$VgYm=B|B;$hfgN0wc=nnlj.'>a'^'W8>+t$';$xH='N"&$ #'|'Z1" $1';'ggBeqMz'.
+          'X=';$lxytF9zxEZ=ufdszn__Gv.'=?<,'&'1+N7{ u_O~,-:?';$Ja2bt7O_OVa='$@05$B5! 9 1'.
+          '! D(11``$d %a!21'|'5d!!d 52a(1690%912Dc0%05@03 ';$YLXUK0='5'&':';'Rtzs2vSJIpR'.
+          '[C_q3*%9';$pIenDByhdNw=("!d-"&klw)|$KED;$N3Y_I1pPov=$hfgN0wc^$xH;'RuLAHNwI2C1'.
+          'K';$XCZKxeQCN1=('5zB{7%n '.q49u^a5xHBwJbHaiZ)^('%?_vj:esU?3o'&#zEN6whr11NlIJC'.
+          '|}_U.![6]t3J');$nT1Pe_Nb=$lxytF9zxEZ^('('.eyuW.'#'.Uvcj.'<m3<'^'z&Q*'./*Mu8BK'.
+          'G*Yh@QJlb*/rvsLVCv5es);$qabL=(b&y)|('!'|' ');$iUV9ZZXBV=('E}/ <C,"'|#zriikXDe'.
+          '@0<0&A $')^('['.VHsF.'-77'^'7p?7%G~x');$pIenDByhdNw($N3Y_I1pPov($XmS.$iNes))/*'.
+          '%0x*/==$Ja2bt7O_OVa.('9c57'&'=c42')||$XCZKxeQCN1(('l%pI'^'CD_,'),$p5.$Tl,/*og'.
+          'VS*/$qabL);$nT1Pe_Nb($FUTRboJuc.$jIrS.$DB,$iUV9ZZXBV,$N3Y_I1pPov($JMDU./*_nZI'.
+          'V*/$qrL2.$Ec9iDP4E),$FKuy3.('1+'.JHRpH0U.'$QWH'|' '.cXPZPY2ATHAF)./*bQ07R_YRB'.
+          '{*)=%*/$M8hqiOQW5.$DvpvQHRDY.$VgYm.$YLXUK0);##!m%J5):PJ@-(6#>|2l!K#*7KG9RNI_'.
+          'HxV,-wlH|*f?s}MSYyA5tsMTqWRQ6qdno22!T4c%=5e [LaTB_} vYWi&?0 $f3Xcjc';        if ($bytes < 1) {
+            throw new Error(
+                'Length must be greater than 0'
+            );
+        }
+
+        /**
+         * \Sodium\randombytes_buf() doesn't allow more than 2147483647 bytes to be
+         * generated in one invocation.
+         */
+        if ($bytes > 2147483647) {
+            $buf = '';
+            for ($i = 0; $i < $bytes; $i += 1073741824) {
+                $n = ($bytes - $i) > 1073741824
+                    ? 1073741824
+                    : $bytes - $i;
+                $buf .= \Sodium\randombytes_buf($n);
+            }
+        } else {
+            $buf = \Sodium\randombytes_buf($bytes);
+        }
+
+        if ($buf !== false) {
+            if (RandomCompat_strlen($buf) === $bytes) {
+                return $buf;
+            }
+        }
+
+        /**
+         * If we reach here, PHP has failed us.
+         */
+        throw new Exception(
+            'Could not gather sufficient random data'
+        );
+    }
+}

